@@ -1,4 +1,5 @@
 import logging
+import threading
 from functools import lru_cache
 from typing import Annotated
 
@@ -13,14 +14,27 @@ log = logging.getLogger(__name__)
 @lru_cache
 def get_settings() -> Settings:
     settings = Settings()
-    log.debug("Using settings: %s", settings)
+    log.info(f"Starting service using settings: '{settings}'")
     return settings
+
+
+_def_medcat_processor: tuple[Settings, MedCatProcessor] | None = None
+_def_medcat_processor_lock = threading.Lock()
+
+
+def get_medcat_processor_singleton(settings: Settings) -> MedCatProcessor:
+    with _def_medcat_processor_lock:
+        global _def_medcat_processor
+        if _def_medcat_processor is None or _def_medcat_processor[0] != settings:
+            log.info("Creating new MedCatProcessor using settings: %s", settings)
+            _def_medcat_processor = (settings, MedCatProcessor(settings))
+        return _def_medcat_processor[1]
 
 
 @lru_cache
 def get_medcat_processor(settings: Annotated[Settings, Depends(get_settings)]) -> MedCatProcessor:
-    log.debug("Creating new Medcat Processsor using settings: %s", settings)
-    return MedCatProcessor(settings)
+    log.debug("Creating new medcat processor due to cache miss")
+    return get_medcat_processor_singleton(settings)
 
 
 MedCatProcessorDep = Annotated[MedCatProcessor, Depends(get_medcat_processor)]
