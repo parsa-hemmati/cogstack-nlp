@@ -1,0 +1,5 @@
+medcat[spacy,deid,meta-cat,rel-cat]~=2.2.0
+medcat-den
+ipython
+plotly
+openpyxl
