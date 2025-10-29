@@ -33,6 +33,16 @@ if [ -z ${SERVER_WORKER_TIMEOUT+x} ]; then
   echo "SERVER_WORKER_TIMEOUT is unset -- setting to default (sec): $SERVER_WORKER_TIMEOUT";
 fi
 
+if [ -z ${SERVER_GUNICORN_MAX_REQUESTS+x} ]; then
+  SERVER_GUNICORN_MAX_REQUESTS=1000;
+  echo "SERVER_GUNICORN_MAX_REQUESTS is unset -- setting to default: $SERVER_GUNICORN_MAX_REQUESTS";
+fi
+
+if [ -z ${SERVER_GUNICORN_MAX_REQUESTS_JITTER+x} ]; then
+  SERVER_GUNICORN_MAX_REQUESTS_JITTER=50;
+  echo "SERVER_GUNICORN_MAX_REQUESTS_JITTER is unset -- setting to default: $SERVER_GUNICORN_MAX_REQUESTS_JITTER";
+fi
+
 # Note - SERVER_ACCESS_LOG_FORMAT is unused when worker-class is set to UvicornWorker
 SERVER_ACCESS_LOG_FORMAT="%(t)s [ACCESS] %(h)s \"%(r)s\" %(s)s \"%(f)s\" \"%(a)s\""
 
@@ -40,6 +50,8 @@ SERVER_ACCESS_LOG_FORMAT="%(t)s [ACCESS] %(h)s \"%(r)s\" %(s)s \"%(f)s\" \"%(a)s
 #
 # Using Gunicorn, even though FastAPI recommends Uvicorn, to keep support for the post_fork config
 echo "Starting up the service using gunicorn server ..."
+set -x
+
 exec gunicorn \
   --bind "$SERVER_HOST:$SERVER_PORT" \
   --workers="$SERVER_WORKERS" \
@@ -50,5 +62,8 @@ exec gunicorn \
   --error-logfile=- \
   --log-level info \
   --config /cat/config.py \
+  --max-requests="$SERVER_GUNICORN_MAX_REQUESTS" \
+  --max-requests-jitter="$SERVER_GUNICORN_MAX_REQUESTS_JITTER" \
+  ${SERVER_GUNICORN_EXTRA_ARGS:-} \
   --worker-class uvicorn.workers.UvicornWorker \
   medcat_service.main:app
