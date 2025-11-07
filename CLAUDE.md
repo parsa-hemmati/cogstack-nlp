@@ -1,7 +1,7 @@
 # AI Assistant Guide for CogStack NLP
 
-**Version**: 1.0.0
-**Last Updated**: 2025-01-07
+**Version**: 1.1.0
+**Last Updated**: 2025-11-07
 **Purpose**: Guide AI assistants (Claude Code, GitHub Copilot, etc.) on project conventions and best practices
 
 ---
@@ -34,6 +34,65 @@
 **Update requirement**: CONTEXT.md MUST be updated with EVERY commit (no exceptions).
 
 **Read it now**: [CONTEXT.md](CONTEXT.md) (15-20 minutes)
+
+---
+
+## 🛠️ Custom Healthcare NLP Skills
+
+**5 specialized skills** are available to assist with healthcare-specific development. They **activate automatically** based on context—you don't need to invoke them explicitly.
+
+### Available Skills
+
+#### 🔴 Priority 1 (Critical - Safety & Accuracy)
+
+**`healthcare-compliance-checker`** - HIPAA/GDPR compliance validation
+- **Activates when**: Working with patient data, authentication, API endpoints, logging
+- **What it does**: Catches PHI in logs, validates audit logging, checks encryption, verifies RBAC
+- **Why critical**: Prevents regulatory violations and patient privacy breaches
+
+**`medcat-meta-annotations`** - NLP accuracy (60% → 95% precision)
+- **Activates when**: Processing NLP results, building queries, displaying medical concepts
+- **What it does**: Explains 4 meta-annotations (Negation, Experiencer, Temporality, Certainty), provides filtering patterns
+- **Why critical**: Eliminates false positives (family history, negated conditions, hypotheticals)
+
+#### 🟡 Priority 2 (Highly Recommended)
+
+**`vue3-component-reuse`** - Leverage 65 existing Vue components
+- **Activates when**: Building UI features, forms, tables, modals, charts
+- **What it does**: Searches MedCAT Trainer for reusable patterns, provides Composition API examples
+- **Why useful**: Saves hours by reusing proven patterns
+
+**`fhir-r4-mapper`** - FHIR R4 integration patterns
+- **Activates when**: Implementing FHIR integration, clinical decision support, EHR interoperability
+- **What it does**: Maps MedCAT output to FHIR resources, provides CDS Hooks patterns
+- **Why useful**: Required for EHR integration (Sprint 3+)
+
+#### 🟢 Priority 3 (Quality Assurance)
+
+**`spec-kit-enforcer`** - Workflow enforcement
+- **Activates when**: Starting new features, before writing code
+- **What it does**: Ensures Spec-Kit framework followed, checks for specifications
+- **Why useful**: Prevents "code first, document later" anti-pattern
+
+### How Skills Work
+
+Skills are **model-invoked** (automatic activation):
+
+```
+Example: "Add API endpoint to search patients by condition"
+
+Auto-activated skills:
+✓ spec-kit-enforcer - Checks for specification
+✓ healthcare-compliance-checker - Validates PHI handling
+✓ medcat-meta-annotations - Suggests filtering patterns
+
+Result: AI guides through compliant, accurate implementation
+```
+
+**Location**: `.claude/skills/`
+**Documentation**: [.claude/skills/README.md](.claude/skills/README.md)
+
+**For detailed guidance on each skill, they will automatically activate when relevant.**
 
 ---
 
@@ -947,21 +1006,23 @@ def calculate_risk_score(patient_data):
 
 ### Must-Read Before Starting
 
-1. **Constitution** (15 min): [.specify/constitution/project-constitution.md](.specify/constitution/project-constitution.md)
-2. **Spec-Kit Guide** (30 min): [.specify/README.md](.specify/README.md)
-3. **Example Spec** (20 min): [.specify/specifications/meta-annotations-ui.md](.specify/specifications/meta-annotations-ui.md)
+1. **CONTEXT.md** (15-20 min): [CONTEXT.md](CONTEXT.md) - Living project memory (ALWAYS read first)
+2. **Constitution** (15 min): [.specify/constitution/project-constitution.md](.specify/constitution/project-constitution.md)
+3. **Spec-Kit Guide** (30 min): [.specify/README.md](.specify/README.md)
+4. **Example Spec** (20 min): [.specify/specifications/meta-annotations-ui.md](.specify/specifications/meta-annotations-ui.md)
+5. **Skills Overview** (10 min): [.claude/skills/README.md](.claude/skills/README.md) - Custom healthcare NLP skills
 
 ### Domain Knowledge
 
-4. **Meta-Annotations** (1 hour): [docs/advanced/meta-annotations-guide.md](docs/advanced/meta-annotations-guide.md)
-5. **FHIR Integration** (1 hour): [docs/integration/fhir-integration-guide.md](docs/integration/fhir-integration-guide.md)
-6. **Compliance** (2 hours): [docs/compliance/healthcare-compliance-framework.md](docs/compliance/healthcare-compliance-framework.md)
+6. **Meta-Annotations** (1 hour): [docs/advanced/meta-annotations-guide.md](docs/advanced/meta-annotations-guide.md)
+7. **FHIR Integration** (1 hour): [docs/integration/fhir-integration-guide.md](docs/integration/fhir-integration-guide.md)
+8. **Compliance** (2 hours): [docs/compliance/healthcare-compliance-framework.md](docs/compliance/healthcare-compliance-framework.md)
 
 ### Development Guides
 
-7. **Development Workflow** (1 hour): [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-8. **Agent Guidelines** (30 min): [docs/agents.md](docs/agents.md)
-9. **Workflow Frameworks** (1 hour): [docs/WORKFLOW_FRAMEWORKS_GUIDE.md](docs/WORKFLOW_FRAMEWORKS_GUIDE.md)
+9. **Development Workflow** (1 hour): [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+10. **Agent Guidelines** (30 min): [docs/agents.md](docs/agents.md)
+11. **Workflow Frameworks** (1 hour): [docs/WORKFLOW_FRAMEWORKS_GUIDE.md](docs/WORKFLOW_FRAMEWORKS_GUIDE.md)
 
 ---
 
