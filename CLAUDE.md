@@ -17,6 +17,26 @@
 
 ---
 
+## 🧠 CRITICAL: Read CONTEXT.md First!
+
+**⚠️ MANDATORY**: Before starting ANY work, read [CONTEXT.md](CONTEXT.md)
+
+**CONTEXT.md is the project's living memory** containing:
+- Current system state (what's implemented, what's not)
+- Architecture Decision Records (ADRs)
+- Recent changes and why they were made
+- Integration points and dependencies
+- Known issues and technical debt
+- Key design patterns and conventions
+
+**Why this matters**: Prevents context loss between sessions, ensures you have complete picture before coding.
+
+**Update requirement**: CONTEXT.md MUST be updated with EVERY commit (no exceptions).
+
+**Read it now**: [CONTEXT.md](CONTEXT.md) (15-20 minutes)
+
+---
+
 ## ⚠️ CRITICAL: Patient Safety & Compliance
 
 ### Non-Negotiable Requirements
@@ -627,6 +647,19 @@ fix stuff
 - [ ] Branch up-to-date with main
 - [ ] No debug code (console.log, breakpoints)
 - [ ] .gitignore updated for new files
+
+#### 🔴 CONTEXT.md Update (MANDATORY)
+- [ ] **CONTEXT.md updated** (required for ALL commits)
+- [ ] Architecture changes documented (if applicable)
+- [ ] ADR added for major decisions
+- [ ] "Recent Changes" section updated
+- [ ] "Implemented Features" or "In Progress" updated
+- [ ] Integration points documented (if new services added)
+- [ ] Technical debt noted (if shortcuts taken)
+
+**⚠️ NO COMMIT WITHOUT CONTEXT.MD UPDATE**
+
+See [CONTEXT.md](CONTEXT.md) for what to update.
 
 ---
 
