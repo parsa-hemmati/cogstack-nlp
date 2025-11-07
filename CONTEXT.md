@@ -32,17 +32,17 @@ Build a comprehensive, modular platform that leverages MedCAT's full NLP capabil
 - REST API service (MedCAT Service)
 - Supporting tools and libraries
 
-The current development focus is **extending** this ecosystem with **patient-facing features** (search, timeline, FHIR integration, clinical decision support).
+The current development focus is **extending** this ecosystem with **clinical care interfaces** (patient search, timeline visualization, FHIR integration, clinical decision support) for use by clinicians in patient care delivery.
 
 ### Current Phase
-**Phase**: Production + Patient-Facing Extensions
+**Phase**: Production + Clinical Care Tools
 **Current State**:
-- ✅ **Core NLP Platform**: Production-ready (MedCAT v2, Trainer, Service)
+- ✅ **Research/Annotation Platform**: Production-ready (MedCAT v2, Trainer, Service)
 - ✅ **Infrastructure**: Docker deployments, authentication, databases operational
-- 🚧 **Patient Features**: Planning & specification phase (following Spec-Kit workflow)
+- 🚧 **Clinical Care Interfaces**: Planning & specification phase (following Spec-Kit workflow)
 
-**Sprint**: Pre-Sprint 1 (for patient-facing features)
-**Next Milestone**: Implement first patient-facing feature (Patient Search) using Spec-Kit workflow
+**Sprint**: Pre-Sprint 1 (for clinical workflow tools)
+**Next Milestone**: Implement first clinical care interface (Patient Search for Clinicians) using Spec-Kit workflow
 
 ### Team
 - **Size**: 1-3 developers (small team, sequential development acceptable)
@@ -90,19 +90,20 @@ The repository contains **3 production applications** + supporting libraries:
 └──────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────┐
-│  PLANNED PATIENT-FACING EXTENSIONS (NOT YET IMPLEMENTED)        │
+│  PLANNED CLINICAL CARE TOOLS (NOT YET IMPLEMENTED)              │
+│  For clinicians to use in patient care delivery                 │
 │                                                                   │
 │  New Frontend Layer (to be built)                                │
-│  ├── Clinical Dashboard                                          │
-│  ├── Patient Search Interface                                    │
-│  ├── Timeline Visualization                                      │
-│  └── Research Workbench                                          │
+│  ├── Clinical Dashboard (for clinicians)                         │
+│  ├── Patient Search Interface (for clinicians)                   │
+│  ├── Timeline Visualization (patient history for clinicians)     │
+│  └── Research Workbench (for researchers)                        │
 │                                                                   │
 │  New Backend APIs (to be built)                                  │
-│  ├── Patient Search API                                          │
-│  ├── Timeline View API                                           │
-│  ├── Clinical Decision Support                                   │
-│  └── FHIR R4 Integration                                         │
+│  ├── Patient Search API (clinical queries)                       │
+│  ├── Timeline View API (patient history)                         │
+│  ├── Clinical Decision Support (real-time alerts for clinicians) │
+│  └── FHIR R4 Integration (EHR interoperability)                  │
 │                                                                   │
 │  Additional Data Layer (to be added)                             │
 │  ├── Elasticsearch (library ready, integration pending)          │
@@ -121,7 +122,7 @@ The repository contains **3 production applications** + supporting libraries:
 - ✅ Core NLP ecosystem: **Production-ready**
 - ✅ Annotation platform: **Production-ready**
 - ✅ REST API service: **Production-ready**
-- ⏳ Patient-facing features: **Planned** (following Spec-Kit workflow)
+- ⏳ Clinical care interfaces: **Planned** (following Spec-Kit workflow)
 - 📋 Documentation for extensions: **Complete**
 
 ---
@@ -235,7 +236,7 @@ The repository contains **3 production-ready applications** and **4 supporting l
 ---
 
 ### In Progress
-1. **Patient-Facing Features** (0% - Planning phase)
+1. **Clinical Care Interfaces** (0% - Planning phase)
    - Spec-Kit framework implementation complete
    - Project constitution established
    - Technical documentation complete
@@ -243,18 +244,18 @@ The repository contains **3 production-ready applications** and **4 supporting l
 
 ---
 
-### Planned Patient-Facing Extensions (Not Yet Started)
+### Planned Clinical Care Tools (Not Yet Started)
 
-These are **NEW features** to be built on top of the existing NLP ecosystem:
+These are **NEW clinical workflow tools** to be built on top of the existing NLP ecosystem for use by **clinicians and researchers** (NOT for patients):
 
-1. **Sprint 1**: Patient Search & Discovery (Spec complete, implementation pending)
-2. **Sprint 2**: Patient Timeline View (Spec complete, implementation pending)
-3. **Sprint 3**: Real-Time Clinical Decision Support (Spec complete, implementation pending)
-4. **Sprint 4**: Cohort Builder (Spec complete, implementation pending)
-5. **Sprint 5**: Concept Analytics (Spec complete, implementation pending)
-6. **Sprint 6**: Quality Dashboard (Spec complete, implementation pending)
+1. **Sprint 1**: Patient Search & Discovery (for clinicians to find patients by condition)
+2. **Sprint 2**: Patient Timeline View (for clinicians to review patient history)
+3. **Sprint 3**: Real-Time Clinical Decision Support (alerts/recommendations for clinicians)
+4. **Sprint 4**: Cohort Builder (for researchers to identify study populations)
+5. **Sprint 5**: Concept Analytics (for healthcare administrators/researchers)
+6. **Sprint 6**: Quality Dashboard (for quality improvement teams)
 
-**Key Distinction**: The **core NLP platform is production-ready**. The planned sprints focus on building **patient-facing clinical interfaces** that leverage the existing NLP infrastructure.
+**Key Distinction**: The **core NLP platform is production-ready** (MedCAT v2, Trainer, Service). The planned sprints focus on building **clinical care interfaces** that leverage the existing NLP infrastructure for use in **patient care delivery** and **research** workflows.
 
 ---
 
@@ -342,7 +343,7 @@ These are **NEW features** to be built on top of the existing NLP ecosystem:
 - ⚠️ **No Redis caching yet**: Performance optimization opportunity exists
 - ⚠️ **Elasticsearch integration pending**: Library ready, application integration needed
 
-**For Patient-Facing Extensions**: Leverage existing Vue 3 + TypeScript frontend patterns from MedCAT Trainer, and choose FastAPI or Django backend based on requirements (stateless API = FastAPI, stateful web app = Django)
+**For Clinical Care Tools**: Leverage existing Vue 3 + TypeScript frontend patterns from MedCAT Trainer, and choose FastAPI or Django backend based on requirements (stateless API = FastAPI, stateful web app with user sessions = Django)
 
 **Review Date**: Not needed (stack is operational; review only if major issues arise)
 
@@ -440,11 +441,11 @@ Used Claude Code's Explore agent to analyze entire repository structure. Found:
    - MedCAT Service: REST API (FastAPI)
    - Supporting libraries: MedCAT Den, CogStack-ES, scripts, demos
 
-2. **Planned Patient-Facing Extensions** (what is NOT yet implemented):
-   - Patient Search functionality
-   - Timeline View
-   - Clinical Decision Support
-   - FHIR R4 integration
+2. **Planned Clinical Care Tools** (what is NOT yet implemented):
+   - Patient Search (for clinicians to query by condition)
+   - Timeline View (for clinicians to review patient history)
+   - Clinical Decision Support (alerts for clinicians)
+   - FHIR R4 integration (EHR interoperability)
 
 **Rationale**:
 - **Prevent context loss**: AI assistants must understand they're extending a mature platform, not building from scratch
@@ -456,13 +457,13 @@ Used Claude Code's Explore agent to analyze entire repository structure. Found:
 - ✅ **AI assistants have accurate context**: Can leverage existing code patterns
 - ✅ **Reduced duplicated effort**: Won't reimplement existing functionality
 - ✅ **Better architecture decisions**: Will extend existing systems appropriately
-- ✅ **Clear scope boundaries**: Distinguish platform (done) from patient features (planned)
+- ✅ **Clear scope boundaries**: Distinguish research platform (done) from clinical tools (planned)
 - ⚠️ **Must study existing codebase**: Need to understand 65+ Vue components, Django models, FastAPI patterns
 - ⚠️ **Technology choices constrained**: Must use Vue 3 + TypeScript (already implemented)
-- ⚠️ **Backend choice needed**: Decide FastAPI vs Django for patient-facing features
+- ⚠️ **Backend choice needed**: Decide FastAPI vs Django for clinical care interfaces
 
 **For AI Assistants**:
-When implementing patient-facing features:
+When implementing clinical care tools (for clinicians/researchers, not patients):
 1. **Study existing patterns**: Read MedCAT Trainer code for Vue 3 + TypeScript examples
 2. **Reuse components**: 65 existing Vue components may be adaptable
 3. **Follow authentication patterns**: Django auth system is operational
@@ -702,12 +703,13 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 **Current Activity**:
 1. ✅ Major CONTEXT.md update to reflect actual codebase state
-2. ✅ Corrected documentation to distinguish production NLP platform from planned patient-facing features
-3. ⏳ Git hooks configured for CONTEXT.md enforcement
+2. ✅ Corrected documentation to distinguish research/annotation platform from planned clinical care tools
+3. ✅ Fixed terminology: "patient-facing" → "clinical care interfaces" (tools for clinicians, not patients)
+4. ⏳ Git hooks configured for CONTEXT.md enforcement
 
-**Next Steps for Patient-Facing Features**:
+**Next Steps for Clinical Care Tools**:
 1. Review production codebase (MedCAT Trainer, Service, v2) to understand existing patterns
-2. Begin Sprint 1 implementation (Patient Search) leveraging existing Vue 3 + FastAPI/Django infrastructure
+2. Begin Sprint 1 implementation (Patient Search for Clinicians) leveraging existing Vue 3 + FastAPI/Django infrastructure
 3. Integrate Elasticsearch (CogStack-ES library is ready)
 4. Decide on backend approach: FastAPI microservice vs Django extension
 
@@ -774,7 +776,7 @@ MEDCAT_TIMEOUT = 5  # seconds
 - [Current] - Comprehensive update to CONTEXT.md reflecting actual codebase reality
 
 **Changed**:
-- **Project Overview**: Changed phase from "Planning & Foundation" → "Production + Patient-Facing Extensions"
+- **Project Overview**: Changed phase from "Planning & Foundation" → "Production + Clinical Care Tools"
 - **System Architecture**: Completely rewritten to document 3 production applications
   - MedCAT v2 (228 Python files, PyPI published)
   - MedCAT Trainer (Vue 3 + Django + PostgreSQL, 65 components, 95 migrations)
@@ -784,7 +786,7 @@ MEDCAT_TIMEOUT = 5  # seconds
 - **Implemented Features**: Changed from "NONE (Documentation Phase)" to comprehensive listing of production systems
   - Detailed breakdown of all 3 applications
   - Feature lists, file locations, key metrics
-  - Distinction between production NLP platform vs planned patient features
+  - Distinction between research/annotation platform vs planned clinical care tools
 
 - **Technology Stack (ADR-002)**: Updated to reflect actual dual backend architecture
   - Documented Vue 3.5.12 + TypeScript 5.6 (production)
@@ -792,7 +794,7 @@ MEDCAT_TIMEOUT = 5  # seconds
   - PostgreSQL with 95 migrations (operational)
   - Elasticsearch library ready (integration pending)
 
-- **Planned Features**: Clarified these are NEW patient-facing extensions, not the first implementations
+- **Planned Features**: Clarified these are NEW clinical care tools for clinicians/researchers, not the first implementations
 
 - **Work In Progress**: Updated to reflect current documentation maintenance activity
 
@@ -809,15 +811,17 @@ MEDCAT_TIMEOUT = 5  # seconds
 - **Prevent duplicated work**: Don't reimplement annotation platform, NLP service, authentication
 - **Enable proper architecture**: New features should leverage Vue 3, TypeScript, dual backend patterns
 - **Correct onboarding**: New developers need accurate picture of codebase state
+- **Terminology correction**: "Patient-facing" is misleading - these are tools FOR CLINICIANS, not for patients
 
 **Impact**:
 - ✅ **Massive context improvement**: AI assistants now understand production ecosystem
 - ✅ **Better architecture decisions**: Will extend existing systems, not start from scratch
-- ✅ **Clearer scope**: Distinguish mature NLP platform from planned patient features
+- ✅ **Clearer scope**: Distinguish research/annotation platform from planned clinical care tools
+- ✅ **Terminology clarity**: "Clinical care tools" accurately describes tools for clinicians, not patients
 - ✅ **Technology constraints clear**: Must use Vue 3 + TypeScript (already implemented)
 - ✅ **Resource efficiency**: Can reuse 65 Vue components, Django auth, FastAPI patterns
 - ⚠️ **Learning curve**: Must study substantial existing codebase (~400+ Python files)
-- ⚠️ **Architecture decision needed**: FastAPI microservice vs Django extension for patient features
+- ⚠️ **Architecture decision needed**: FastAPI microservice vs Django extension for clinical tools
 
 **Discovery Method**:
 Used Claude Code's Explore agent with "very thorough" analysis to:
@@ -829,7 +833,8 @@ Used Claude Code's Explore agent with "very thorough" analysis to:
 
 **Migration Notes**:
 - **For AI assistants**: Read updated sections CAREFULLY - project is NOT greenfield
-- **Before implementing patient features**: Study MedCAT Trainer code for Vue 3 patterns
+- **Terminology correction**: "Patient-facing" → "Clinical care tools" (for clinicians, not patients)
+- **Before implementing clinical tools**: Study MedCAT Trainer code for Vue 3 patterns
 - **Architecture decisions**: Consult ADR-005 for guidance on leveraging existing systems
 - **Don't reinvent**: Check existing 65 Vue components for reusable patterns
 
