@@ -14,6 +14,83 @@ The primary NLP focus is the [Medical Concept Annotation Tool](medcat-v2/README.
 
 **Discussion Forum [discourse](https://discourse.cogstack.org/)**
 
+---
+
+## 🚀 Quick Start Guides
+
+### For Users
+
+**Get started with MedCAT in 5 minutes**: See [QUICK_START.md](QUICK_START.md)
+
+**Clinician Guide** (non-technical): See [CLINICIAN_GUIDE.md](CLINICIAN_GUIDE.md)
+
+**IT Deployment Guide** (production setup): See [IT_DEPLOYMENT_GUIDE.md](IT_DEPLOYMENT_GUIDE.md)
+
+### For Developers: Spec-Kit Framework
+
+This project uses **[Spec-Kit](https://github.com/github/spec-kit)** for specification-driven development.
+
+#### 🎯 Build Your Next Feature
+
+1. **Write Specification** → `.specify/specifications/feature-name.md`
+   - Define WHAT needs to be built and WHY
+   - Include user stories and acceptance criteria
+
+2. **Create Technical Plan** → `.specify/plans/feature-name-plan.md`
+   - Define HOW to implement the specification
+   - Architecture, tech stack, data models
+
+3. **Break into Tasks** → `.specify/tasks/feature-name-tasks.md`
+   - Create actionable, ordered tasks
+   - Each task completable in one session
+
+4. **Implement Systematically** → Follow task-by-task approach
+   - Test each task against acceptance criteria
+   - Document decisions and deviations
+
+📖 **Complete Guide**: See [.specify/README.md](.specify/README.md)
+
+📋 **Example Specification**: See [Meta-Annotations UI](.specify/specifications/meta-annotations-ui.md)
+
+🏛️ **Project Constitution**: See [Project Constitution](.specify/constitution/project-constitution.md)
+
+#### 🤖 Alternative: CCPM (Claude Code Project Manager)
+
+For **parallel agent execution** and **GitHub-native workflows**, consider [CCPM](https://github.com/automazeio/ccpm):
+
+**Spec-Kit vs CCPM Comparison:**
+
+| Feature | Spec-Kit | CCPM |
+|---------|----------|------|
+| **Focus** | Specification-driven development | Multi-agent orchestration |
+| **Storage** | `.specify/` directory | GitHub Issues |
+| **Workflow** | Constitution → Specs → Plans → Tasks | PRD → Epic → Issues → Worktrees |
+| **Execution** | Single agent/developer | Multiple parallel agents |
+| **Best For** | Detailed specifications, governance | Team collaboration, parallel work |
+
+**Hybrid Approach** (Recommended for Large Teams):
+1. Use **Spec-Kit** for high-level specifications and governance
+2. Use **CCPM** to break specs into GitHub issues and coordinate parallel agents
+3. Link CCPM epics to Spec-Kit specifications for traceability
+
+**Example Workflow**:
+```bash
+# 1. Write specification (Spec-Kit)
+.specify/specifications/fhir-integration.md
+
+# 2. Create GitHub epic from spec (CCPM)
+/pm:prd-parse .specify/specifications/fhir-integration.md
+
+# 3. Decompose into parallel tasks (CCPM)
+/pm:epic-oneshot
+
+# 4. Multiple agents work on independent issues
+/pm:issue-start #42  # Agent 1: API layer
+/pm:issue-start #43  # Agent 2: UI components
+/pm:issue-start #44  # Agent 3: Tests
+```
+
+---
 
 ## Projects
 
