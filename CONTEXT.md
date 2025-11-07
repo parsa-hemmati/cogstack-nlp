@@ -1,7 +1,7 @@
 # Project Context - Living Architecture & Decisions
 
 **Status**: Living Document - Updated with EVERY commit
-**Last Updated**: 2025-01-07
+**Last Updated**: 2025-11-07
 **Version**: 1.0.0
 
 > ⚠️ **CRITICAL**: This document MUST be updated before any code commit. No PR can be merged without context updates.
@@ -522,6 +522,50 @@ MEDCAT_TIMEOUT = 5  # seconds
 ### Migration Notes
 - What users/developers need to do
 ```
+
+---
+
+### 2025-01-07 - CONTEXT.md Integration into CLAUDE.md Workflow
+
+**Commits**:
+- [Current] - Integrate CONTEXT.md as Step 0 and Step 7 in CLAUDE.md workflow
+
+**Changed**:
+- **CLAUDE.md** - Major workflow restructure to make CONTEXT.md central
+  - **Added Step 0**: "Read CONTEXT.md FIRST (Every Session!)" - now the first step before Constitution
+  - Renumbered workflow from Step 1-6 to Step 0-7
+  - Prominent warning: "⚠️ STEP ZERO - ALWAYS START HERE"
+  - Lists what CONTEXT.md tells you (15-20 minute time investment)
+
+  - **Added Step 7**: "Update CONTEXT.md (Before Committing!)" - mandatory before every commit
+  - Detailed checklist of what to update in CONTEXT.md
+  - Example good update (comprehensive, detailed format)
+  - Example bad update (what to avoid)
+  - Emphasis on git hook enforcement
+
+  - **Updated Commit Message Format**:
+  - Added "CONTEXT.md Updates" section (mandatory for code commits)
+  - Must document what was updated in CONTEXT.md
+  - Git hook verification note
+
+**Why**:
+- **Make CONTEXT.md non-optional** in the AI assistant workflow
+- **Prevent context loss** by ensuring every session starts with CONTEXT.md
+- **Enforce living documentation** through both workflow and git hooks
+- **Provide clear examples** of what good CONTEXT.md updates look like
+- **Integrate context updates** into commit message format for visibility
+
+**Impact**:
+- ✅ AI assistants will always read CONTEXT.md as first action
+- ✅ Developers have clear checklist for CONTEXT.md updates
+- ✅ Commit messages now document what changed in CONTEXT.md
+- ✅ Workflow is now: Read CONTEXT → Plan → Code → Update CONTEXT → Commit
+- ⚠️ Adds ~5 minutes to commit process (for CONTEXT.md updates)
+
+**Migration Notes**:
+- AI assistants should follow new Step 0-7 workflow in CLAUDE.md
+- All commits should include "CONTEXT.md Updates" section in commit message
+- This is the first commit following the new format!
 
 ---
 

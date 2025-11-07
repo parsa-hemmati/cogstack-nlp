@@ -72,9 +72,39 @@ This project uses **[Spec-Kit](https://github.com/github/spec-kit)** for specifi
 
 ### Mandatory Process
 
-#### 1. Read the Constitution FIRST
+#### 0. Read CONTEXT.md FIRST (Every Session!)
 
-**Before starting ANY feature:**
+**⚠️ STEP ZERO - ALWAYS START HERE**
+
+```bash
+# Read this file at the start of EVERY session
+cat CONTEXT.md
+
+# Pay special attention to:
+# - Recent Changes (last 3-5 entries)
+# - Current System State (what's implemented)
+# - Work In Progress (active development)
+# - Relevant ADRs (architecture decisions)
+```
+
+**What CONTEXT.md tells you:**
+- What's implemented vs what's planned
+- Recent changes and why they were made
+- Architecture decisions with rationale (ADRs)
+- Integration points and how to use them
+- Known issues and technical debt
+- Design patterns to follow
+
+**Time investment**: 15-20 minutes
+**Return**: Complete context, no repeated questions, consistent decisions
+
+**Update requirement**: You MUST update CONTEXT.md before committing code (git hook enforces this)
+
+---
+
+#### 1. Read the Constitution SECOND
+
+**After reading CONTEXT.md, review principles:**
 
 ```bash
 # Read this file
@@ -269,13 +299,123 @@ ls .specify/tasks/*.md
 4. **Refactor if needed** (tests still pass)
 5. **Document changes** in code comments
 6. **Update task status** (completed)
-7. **Commit with proper message** (see format below)
+7. **Update CONTEXT.md** (mandatory - see below)
+8. **Commit with proper message** (see format below)
 
 **Do NOT**:
 - ❌ Skip ahead to future tasks
 - ❌ Implement features not in spec
 - ❌ Skip tests ("I'll add them later")
 - ❌ Leave TODOs without creating tasks
+- ❌ **Skip CONTEXT.md update** (git hook will block commit!)
+
+---
+
+#### 7. Update CONTEXT.md (Before Committing!)
+
+**⚠️ MANDATORY: Update CONTEXT.md with EVERY code commit**
+
+**What to update** (use this checklist):
+
+```markdown
+✅ Recent Changes Section
+Add entry following this format:
+
+### [Date] - [Feature/Change Name]
+
+**Commits**: [commit SHA] - [brief description]
+
+**Added**: What was added
+**Changed**: What was changed
+**Removed**: What was removed (if applicable)
+
+**Why**: Rationale for changes
+**Impact**: How this affects the system
+**Migration Notes**: What users/developers need to do
+
+✅ Implemented Features Section
+Move feature from "Planned" to "Implemented" if complete
+OR update "In Progress" if still working
+
+✅ Architecture Decision Records (if applicable)
+Create ADR if you made significant decision:
+- Technology choice
+- Design pattern selection
+- Integration approach
+- Performance optimization strategy
+
+✅ Integration Points (if applicable)
+Document new services, APIs, or external dependencies
+
+✅ Technical Debt (if applicable)
+Note any shortcuts taken and why:
+- Skipped optimization for MVP
+- Hardcoded value (refactor later)
+- Missing edge case handling
+
+✅ Known Issues (if bugs discovered)
+Document issues found during development
+
+✅ Design Patterns (if new pattern introduced)
+Document pattern with example and rationale
+```
+
+**Example Good Update**:
+```markdown
+### 2025-01-08 - Patient Search API Implementation
+
+**Commits**: abc123f - Implement patient search with meta-annotations
+
+**Added**:
+- POST /api/v1/patients/search endpoint (FastAPI)
+- PatientSearchService class with MedCAT integration
+- Elasticsearch query builder for meta-annotation filtering
+- 15 unit tests, 5 integration tests (92% coverage)
+
+**Changed**:
+- None (new feature)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Sprint 1 requirement (patient search & discovery)
+- Leverages meta-annotations (Negation, Temporality, Experiencer)
+- Provides foundation for cohort identification
+- Aligns with "Transparency" principle (confidence scores shown)
+
+**Impact**:
+- ✅ Core search functionality now available
+- ✅ 95% precision (vs 60% without meta-annotations)
+- ✅ Response time: 450ms (below 500ms target)
+- ⚠️ Requires MedCAT service running at localhost:5000
+- ⚠️ Elasticsearch index 'patients' must exist
+
+**Migration Notes**:
+- Start MedCAT service: `docker-compose up medcat-service`
+- Create ES index: `python scripts/create_es_index.py`
+- Run migrations: `alembic upgrade head`
+
+**Technical Debt**:
+- Hardcoded MedCAT URL (TODO: move to config)
+- Missing pagination for large result sets (add in Sprint 2)
+
+**Design Pattern Introduced**:
+- Repository pattern for Elasticsearch access
+- Service layer for business logic
+- Dependency injection for MedCAT client
+```
+
+**Example Bad Update** (Don't do this):
+```markdown
+### 2025-01-08 - Updates
+
+**Added**: Stuff
+**Changed**: Things
+**Why**: Because
+```
+
+**Enforcement**: Git hook will reject commits without meaningful CONTEXT.md updates!
 
 ---
 
@@ -526,12 +666,20 @@ Tests:
 - X unit tests, Y integration tests
 - All tests passing
 
+CONTEXT.md Updates:
+- Updated "Recent Changes" with entry
+- [If applicable] Added ADR-XXX for [decision]
+- [If applicable] Moved feature to "Implemented"
+- [If applicable] Noted technical debt: [description]
+
 [Optional for agent-generated code]
 AI Context:
 - Specification: .specify/specifications/{name}.md
 - Task: {task description}
 - Session: {date/time}
 ```
+
+**⚠️ IMPORTANT**: The "CONTEXT.md Updates" section is MANDATORY for code commits. Git hook will verify CONTEXT.md is modified.
 
 ### Type Values
 
