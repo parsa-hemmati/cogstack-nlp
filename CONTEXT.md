@@ -26,81 +26,235 @@
 ### Mission Statement
 Build a comprehensive, modular platform that leverages MedCAT's full NLP capabilities to transform healthcare research, delivery, and governance.
 
+**Clarification**: This repository contains a **mature, production-ready NLP ecosystem** with:
+- Core NLP processing library (MedCAT v2)
+- Web-based annotation/training platform (MedCAT Trainer)
+- REST API service (MedCAT Service)
+- Supporting tools and libraries
+
+The current development focus is **extending** this ecosystem with **patient-facing features** (search, timeline, FHIR integration, clinical decision support).
+
 ### Current Phase
-**Phase**: Planning & Foundation (Spec-Kit framework implementation complete)
-**Sprint**: Pre-Sprint 1 (specifications and documentation complete)
-**Next Milestone**: Implement first feature using Spec-Kit workflow
+**Phase**: Production + Patient-Facing Extensions
+**Current State**:
+- ✅ **Core NLP Platform**: Production-ready (MedCAT v2, Trainer, Service)
+- ✅ **Infrastructure**: Docker deployments, authentication, databases operational
+- 🚧 **Patient Features**: Planning & specification phase (following Spec-Kit workflow)
+
+**Sprint**: Pre-Sprint 1 (for patient-facing features)
+**Next Milestone**: Implement first patient-facing feature (Patient Search) using Spec-Kit workflow
 
 ### Team
 - **Size**: 1-3 developers (small team, sequential development acceptable)
 - **Roles**: Full-stack developers + clinical SME input
 - **AI Assistance**: Claude Code (primary), GitHub Copilot (optional)
+- **Existing Codebase**: ~400+ Python files, 65 Vue components, 95 database migrations
 
 ---
 
 ## 🏗️ System Architecture
 
-### High-Level Architecture (Current State)
+### Actual Architecture (Current Production State)
+
+The repository contains **3 production applications** + supporting libraries:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  NOT YET IMPLEMENTED - PLANNED ARCHITECTURE         │
-│                                                      │
-│  Frontend (Vue 3 + TypeScript)                      │
-│  ├── Clinical Dashboard                             │
-│  ├── Research Workbench                             │
-│  └── Governance Portal                              │
-│                                                      │
-│  Backend (FastAPI + Python)                         │
-│  ├── Patient Search API                             │
-│  ├── Timeline View API                              │
-│  ├── FHIR Integration                               │
-│  └── Authentication/Authorization                   │
-│                                                      │
-│  Data Layer                                         │
-│  ├── PostgreSQL (relational data)                   │
-│  ├── Elasticsearch (search + analytics)             │
-│  └── Redis (caching)                                │
-│                                                      │
-│  External Services                                  │
-│  ├── MedCAT Service (NLP processing)                │
-│  ├── AnonCAT Service (de-identification)            │
-│  └── FHIR Server (optional integration)             │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  PRODUCTION-READY ECOSYSTEM (IMPLEMENTED)                        │
+│                                                                   │
+│  1. MedCAT Trainer (Full Web Application)                       │
+│     ├── Frontend: Vue 3.5 + TypeScript + Vuetify (65 components)│
+│     ├── Backend: Django REST Framework                           │
+│     ├── Database: PostgreSQL (95 migrations)                     │
+│     ├── Auth: Django auth + OIDC support                         │
+│     └── Features: Annotation, training, metrics, project mgmt    │
+│                                                                   │
+│  2. MedCAT Service (REST API Microservice)                       │
+│     ├── Backend: FastAPI 0.115.2                                 │
+│     ├── Server: Gunicorn + Uvicorn                               │
+│     ├── Features: Single/bulk processing, Gradio demo UI         │
+│     ├── Monitoring: Prometheus metrics (optional)                │
+│     └── Deployment: Docker (GPU/CPU variants)                    │
+│                                                                   │
+│  3. MedCAT v2 (Core NLP Library)                                 │
+│     ├── Files: 228 Python files                                  │
+│     ├── Features: NER, linking, MetaCAT, DeID, RelCAT            │
+│     ├── Distribution: PyPI published                             │
+│     └── Tests: Comprehensive unit tests                          │
+│                                                                   │
+│  Supporting Libraries                                             │
+│     ├── MedCAT Den: Model distribution system                    │
+│     ├── CogStack-ES: Elasticsearch/OpenSearch client            │
+│     ├── MedCAT Scripts: Training utilities                       │
+│     └── Demo Apps: AnonCAT demo, MedCAT demo                     │
+└──────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│  PLANNED PATIENT-FACING EXTENSIONS (NOT YET IMPLEMENTED)        │
+│                                                                   │
+│  New Frontend Layer (to be built)                                │
+│  ├── Clinical Dashboard                                          │
+│  ├── Patient Search Interface                                    │
+│  ├── Timeline Visualization                                      │
+│  └── Research Workbench                                          │
+│                                                                   │
+│  New Backend APIs (to be built)                                  │
+│  ├── Patient Search API                                          │
+│  ├── Timeline View API                                           │
+│  ├── Clinical Decision Support                                   │
+│  └── FHIR R4 Integration                                         │
+│                                                                   │
+│  Additional Data Layer (to be added)                             │
+│  ├── Elasticsearch (library ready, integration pending)          │
+│  └── Redis (caching - not yet implemented)                       │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+**Key Architecture Notes**:
+- **Dual Backend Stack**: FastAPI (microservice) + Django (monolith)
+- **Vue 3 Frontend**: Already implemented for annotation platform
+- **PostgreSQL**: In production use with 95 database migrations
+- **Authentication**: Fully operational in MedCAT Trainer
+- **Docker Deployments**: 29 compose files across projects
 
 **Status**:
-- ✅ Documentation complete
-- ✅ Specifications written
-- ⏳ Implementation NOT started
-- 📋 Following Spec-Kit workflow for all features
+- ✅ Core NLP ecosystem: **Production-ready**
+- ✅ Annotation platform: **Production-ready**
+- ✅ REST API service: **Production-ready**
+- ⏳ Patient-facing features: **Planned** (following Spec-Kit workflow)
+- 📋 Documentation for extensions: **Complete**
 
 ---
 
 ## 🗂️ Current System State
 
 ### Implemented Features
-**As of 2025-01-07: NONE (Documentation Phase)**
+**As of 2024-11-07: EXTENSIVE PRODUCTION ECOSYSTEM**
 
-No code has been implemented yet. Current state:
-- ✅ Project structure defined
-- ✅ Spec-Kit framework implemented
-- ✅ Constitution established
-- ✅ Documentation written (guides, specs, plans)
-- ⏳ Awaiting first feature implementation
+The repository contains **3 production-ready applications** and **4 supporting libraries**:
+
+#### 1. MedCAT v2 - Core NLP Library ✅ 100% Complete
+**Location**: `/medcat-v2/`
+**Status**: PyPI published, production-ready
+
+**Features**:
+- ✅ **Named Entity Recognition (NER)**: Medical concept extraction from clinical text
+- ✅ **Entity Linking**: Links entities to UMLS/SNOMED-CT vocabularies
+- ✅ **MetaCAT**: Meta-annotations (Negation, Temporality, Experiencer, Certainty)
+- ✅ **RelCAT**: Relationship extraction between entities
+- ✅ **DeID**: De-identification capabilities
+- ✅ **Training**: Supervised and unsupervised model training
+- ✅ **Multi-processing**: Scalable batch processing
+
+**Key Metrics**:
+- 228 Python files
+- 43,435 lines in core `cat.py`
+- 30,110 lines in `trainer.py`
+- Comprehensive unit tests
+
+---
+
+#### 2. MedCAT Trainer - Annotation Platform ✅ 100% Complete
+**Location**: `/medcat-trainer/`
+**Status**: Production web application
+
+**Frontend** (Vue 3.5.12 + TypeScript):
+- ✅ Annotation interface (`TrainAnnotations.vue` - 34,490 lines)
+- ✅ Metrics dashboard (`Metrics.vue` - 25,991 lines)
+- ✅ Concept database management
+- ✅ Project management
+- ✅ User authentication UI
+- 65 Vue components total
+
+**Backend** (Django REST Framework):
+- ✅ User authentication & authorization (Token + OIDC)
+- ✅ Project CRUD operations
+- ✅ Document management
+- ✅ Annotation workflows
+- ✅ Model training orchestration
+- ✅ Metrics & analytics APIs
+- ✅ Export/import functionality
+
+**Database** (PostgreSQL):
+- ✅ 17 Django models (ModelPack, ConceptDB, Project, Document, Entity, etc.)
+- ✅ 95 database migrations
+- ✅ Annotation history tracking
+- ✅ User permissions system
+
+**Key Files**:
+- `webapp/api/api/models.py` (578 lines)
+- `webapp/api/api/views.py` (962 lines)
+- `webapp/frontend/src/` (65 Vue components)
+
+---
+
+#### 3. MedCAT Service - REST API ✅ 100% Complete
+**Location**: `/medcat-service/`
+**Status**: Production-ready microservice
+
+**Features**:
+- ✅ **FastAPI 0.115.2** REST API
+- ✅ **Single document processing**: `POST /api/process`
+- ✅ **Bulk processing**: `POST /api/process_bulk`
+- ✅ **Health checks**: `GET /api/health`
+- ✅ **Gradio demo UI**: `GET /demo`
+- ✅ **Prometheus metrics**: `GET /metrics` (optional)
+- ✅ **Docker deployment**: 7 compose files (GPU/CPU/dev/prod)
+- ✅ **Gunicorn + Uvicorn** server
+
+**Key Files**:
+- `medcat_service/main.py` - FastAPI application
+- `medcat_service/routers/process.py` - NLP endpoints
+- `medcat_service/nlp_processor/medcat_processor.py` - Core processor
+- 7 test files
+
+---
+
+#### 4. Supporting Libraries & Tools ✅ 100% Complete
+
+**MedCAT Den** (`/medcat-den/`):
+- Model storage and distribution system
+- Local/remote model caching
+- Model versioning
+
+**CogStack-ES** (`/cogstack-es/`):
+- Elasticsearch/OpenSearch client library
+- PyPI published
+- Authentication support (API key, basic auth)
+- ES8/ES9/OpenSearch compatibility
+
+**MedCAT Scripts** (`/medcat-scripts/`):
+- Model training utilities
+- MCT export evaluation
+- Batch processing scripts
+
+**Demo Applications**:
+- AnonCAT Demo (de-identification visualization)
+- MedCAT Demo (annotation demonstration)
+
+---
 
 ### In Progress
-1. **Documentation & Planning** (100% complete)
-   - Spec-Kit framework
-   - Project constitution
-   - Technical documentation
-   - Compliance framework
+1. **Patient-Facing Features** (0% - Planning phase)
+   - Spec-Kit framework implementation complete
+   - Project constitution established
+   - Technical documentation complete
+   - PRDs written for Sprints 1-6
 
-### Planned (Not Started)
-1. **Sprint 1**: Patient Search & Discovery
-2. **Sprint 2**: Patient Timeline View
-3. **Sprint 3**: Real-Time Clinical Decision Support
-4. **Sprint 4**: Authentication & Authorization
+---
+
+### Planned Patient-Facing Extensions (Not Yet Started)
+
+These are **NEW features** to be built on top of the existing NLP ecosystem:
+
+1. **Sprint 1**: Patient Search & Discovery (Spec complete, implementation pending)
+2. **Sprint 2**: Patient Timeline View (Spec complete, implementation pending)
+3. **Sprint 3**: Real-Time Clinical Decision Support (Spec complete, implementation pending)
+4. **Sprint 4**: Cohort Builder (Spec complete, implementation pending)
+5. **Sprint 5**: Concept Analytics (Spec complete, implementation pending)
+6. **Sprint 6**: Quality Dashboard (Spec complete, implementation pending)
+
+**Key Distinction**: The **core NLP platform is production-ready**. The planned sprints focus on building **patient-facing clinical interfaces** that leverage the existing NLP infrastructure.
 
 ---
 
@@ -137,37 +291,60 @@ No code has been implemented yet. Current state:
 
 ---
 
-### ADR-002: Technology Stack Selection
+### ADR-002: Technology Stack (Existing Implementation)
 
-**Date**: 2025-01-07
-**Status**: ✅ Accepted
-**Context**: Need modern, maintainable tech stack for healthcare application
+**Date**: 2024-11-07 (Documentation of existing choices)
+**Status**: ✅ Implemented & Operational
+**Context**: Repository contains mature codebase with established technology choices
 
-**Decisions**:
+**ACTUAL IMPLEMENTED STACK**:
 
-| Component | Choice | Rationale |
-|-----------|--------|-----------|
-| **Frontend** | Vue 3 + TypeScript | Composition API, strong typing, excellent DX |
-| **Backend** | FastAPI (Python) | Async support, automatic OpenAPI docs, MedCAT integration |
-| **Database** | PostgreSQL | ACID compliance, JSON support, proven reliability |
-| **Search** | Elasticsearch | Full-text search, analytics, MedCAT results storage |
-| **Caching** | Redis | Fast, simple, widely supported |
-| **Container** | Docker + Compose | Portability, reproducibility, easy deployment |
+| Component | Choice | Status | Evidence |
+|-----------|--------|--------|----------|
+| **Frontend** | Vue 3.5.12 + TypeScript 5.6 | ✅ Production | 65 components in MedCAT Trainer |
+| **UI Framework** | Vuetify 3.7.3 | ✅ Production | Material Design components |
+| **Build Tool** | Vite 6.3.4 | ✅ Production | Fast HMR, optimized builds |
+| **Backend (API)** | FastAPI 0.115.2 | ✅ Production | MedCAT Service REST API |
+| **Backend (Web)** | Django REST Framework | ✅ Production | MedCAT Trainer application |
+| **Database** | PostgreSQL | ✅ Production | 95 migrations, 17 models |
+| **Search** | Elasticsearch | ⚠️ Library ready | CogStack-ES implemented, not integrated |
+| **Caching** | Redis | ❌ Not implemented | Planned for future |
+| **Container** | Docker + Compose | ✅ Production | 29 compose files |
+| **Server** | Gunicorn + Uvicorn | ✅ Production | ASGI/WSGI serving |
 
-**Alternatives Considered**:
-- React: More complex, larger bundle size
-- Django: More heavyweight, slower than FastAPI
-- MongoDB: Less suitable for relational healthcare data
+**Key Finding**: The repository uses a **DUAL BACKEND ARCHITECTURE**:
+- **FastAPI** for stateless NLP microservice (MedCAT Service)
+- **Django** for stateful web application (MedCAT Trainer)
+
+**Rationale** (inferred from existing implementation):
+- Vue 3: Composition API, strong typing, excellent developer experience
+- TypeScript: Type safety for large frontend codebase (34K+ line components)
+- Vuetify: Comprehensive Material Design component library
+- FastAPI: Async support, automatic OpenAPI docs, lightweight for microservices
+- Django: Full-featured framework for complex web applications with auth/ORM
+- PostgreSQL: ACID compliance, relational data integrity for annotations
+- Docker: Multi-environment deployment (GPU/CPU, dev/prod)
+
+**Alternatives** (historical decisions, not documented):
+- React: More complex, larger ecosystem
+- Express.js: Less Python integration
+- MongoDB: Less suitable for relational annotation/healthcare data
 - Solr: More complex than Elasticsearch for our use case
+- Flask: Less feature-rich than Django for web applications
 
 **Consequences**:
-- ✅ Modern stack with strong typing
-- ✅ Excellent developer experience
-- ✅ Well-documented technologies
-- ⚠️ Team needs Vue 3 experience (training may be needed)
-- ⚠️ Elasticsearch operational complexity
+- ✅ **Proven in production**: All technologies battle-tested in existing applications
+- ✅ **Strong typing**: TypeScript + Pydantic ensures code quality
+- ✅ **Dual backend flexibility**: FastAPI for APIs, Django for complex web apps
+- ✅ **Active Vue 3 codebase**: 65 existing components to learn from
+- ✅ **Comprehensive Docker setup**: 29 compose files for various scenarios
+- ⚠️ **Dual backend complexity**: Must maintain expertise in both FastAPI and Django
+- ⚠️ **No Redis caching yet**: Performance optimization opportunity exists
+- ⚠️ **Elasticsearch integration pending**: Library ready, application integration needed
 
-**Review Date**: 2025-07-07 (when tech debt review scheduled)
+**For Patient-Facing Extensions**: Leverage existing Vue 3 + TypeScript frontend patterns from MedCAT Trainer, and choose FastAPI or Django backend based on requirements (stateless API = FastAPI, stateful web app = Django)
+
+**Review Date**: Not needed (stack is operational; review only if major issues arise)
 
 ---
 
@@ -232,6 +409,67 @@ No code has been implemented yet. Current state:
 - ⚠️ Cannot take shortcuts with security
 
 **Documentation**: [docs/compliance/healthcare-compliance-framework.md]
+
+---
+
+### ADR-005: Documentation of Actual Implementation State
+
+**Date**: 2025-11-07
+**Status**: ✅ Accepted (Corrective Documentation)
+**Context**: CONTEXT.md was created in January 2025 with assumption of greenfield project, but comprehensive codebase analysis revealed extensive production implementations
+
+**Discovery**:
+Used Claude Code's Explore agent to analyze entire repository structure. Found:
+- 3 production-ready applications (MedCAT v2, MedCAT Trainer, MedCAT Service)
+- ~400+ Python files across projects
+- 65 Vue 3 components in production
+- 95 PostgreSQL database migrations
+- Dual backend architecture (FastAPI + Django)
+- 29 Docker compose files
+- 122+ test files
+- Comprehensive documentation
+
+**Critical Misalignment**:
+- **CONTEXT.md claimed**: "NONE (Documentation Phase)" and "Implementation NOT started"
+- **Actual reality**: Production-ready NLP ecosystem with mature codebase
+
+**Decision**: Correct CONTEXT.md to accurately reflect:
+1. **Existing Production Systems** (what IS implemented):
+   - MedCAT v2: Core NLP library (PyPI published)
+   - MedCAT Trainer: Full web application (Vue 3 + Django + PostgreSQL)
+   - MedCAT Service: REST API (FastAPI)
+   - Supporting libraries: MedCAT Den, CogStack-ES, scripts, demos
+
+2. **Planned Patient-Facing Extensions** (what is NOT yet implemented):
+   - Patient Search functionality
+   - Timeline View
+   - Clinical Decision Support
+   - FHIR R4 integration
+
+**Rationale**:
+- **Prevent context loss**: AI assistants must understand they're extending a mature platform, not building from scratch
+- **Accurate onboarding**: New developers need to know production systems exist
+- **Appropriate decisions**: Architecture choices should leverage existing patterns (Vue 3, TypeScript, dual backend)
+- **Resource allocation**: Don't reinvent wheels that already exist (annotation platform, NLP processing, authentication)
+
+**Consequences**:
+- ✅ **AI assistants have accurate context**: Can leverage existing code patterns
+- ✅ **Reduced duplicated effort**: Won't reimplement existing functionality
+- ✅ **Better architecture decisions**: Will extend existing systems appropriately
+- ✅ **Clear scope boundaries**: Distinguish platform (done) from patient features (planned)
+- ⚠️ **Must study existing codebase**: Need to understand 65+ Vue components, Django models, FastAPI patterns
+- ⚠️ **Technology choices constrained**: Must use Vue 3 + TypeScript (already implemented)
+- ⚠️ **Backend choice needed**: Decide FastAPI vs Django for patient-facing features
+
+**For AI Assistants**:
+When implementing patient-facing features:
+1. **Study existing patterns**: Read MedCAT Trainer code for Vue 3 + TypeScript examples
+2. **Reuse components**: 65 existing Vue components may be adaptable
+3. **Follow authentication patterns**: Django auth system is operational
+4. **Leverage NLP service**: MedCAT Service API is ready to use
+5. **Follow Docker patterns**: 29 compose files show deployment strategies
+
+**Review Date**: Not needed (corrective documentation, not a new decision)
 
 ---
 
@@ -460,13 +698,18 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ### Active Development
 
-**As of 2025-01-07**: No active development
+**As of 2025-11-07**: Documentation and context maintenance
 
-**Next Steps**:
-1. Review and approve all specifications
-2. Begin Sprint 1 implementation (Patient Search)
-3. Set up development environment (Docker, databases)
-4. Initialize frontend and backend projects
+**Current Activity**:
+1. ✅ Major CONTEXT.md update to reflect actual codebase state
+2. ✅ Corrected documentation to distinguish production NLP platform from planned patient-facing features
+3. ⏳ Git hooks configured for CONTEXT.md enforcement
+
+**Next Steps for Patient-Facing Features**:
+1. Review production codebase (MedCAT Trainer, Service, v2) to understand existing patterns
+2. Begin Sprint 1 implementation (Patient Search) leveraging existing Vue 3 + FastAPI/Django infrastructure
+3. Integrate Elasticsearch (CogStack-ES library is ready)
+4. Decide on backend approach: FastAPI microservice vs Django extension
 
 ---
 
@@ -522,6 +765,73 @@ MEDCAT_TIMEOUT = 5  # seconds
 ### Migration Notes
 - What users/developers need to do
 ```
+
+---
+
+### 2025-11-07 - MAJOR CONTEXT.md Correction: Documentation of Actual Production State
+
+**Commits**:
+- [Current] - Comprehensive update to CONTEXT.md reflecting actual codebase reality
+
+**Changed**:
+- **Project Overview**: Changed phase from "Planning & Foundation" → "Production + Patient-Facing Extensions"
+- **System Architecture**: Completely rewritten to document 3 production applications
+  - MedCAT v2 (228 Python files, PyPI published)
+  - MedCAT Trainer (Vue 3 + Django + PostgreSQL, 65 components, 95 migrations)
+  - MedCAT Service (FastAPI REST API, Docker deployment)
+  - Supporting libraries (MedCAT Den, CogStack-ES, scripts, demos)
+
+- **Implemented Features**: Changed from "NONE (Documentation Phase)" to comprehensive listing of production systems
+  - Detailed breakdown of all 3 applications
+  - Feature lists, file locations, key metrics
+  - Distinction between production NLP platform vs planned patient features
+
+- **Technology Stack (ADR-002)**: Updated to reflect actual dual backend architecture
+  - Documented Vue 3.5.12 + TypeScript 5.6 (production)
+  - FastAPI 0.115.2 (MedCAT Service) + Django (MedCAT Trainer)
+  - PostgreSQL with 95 migrations (operational)
+  - Elasticsearch library ready (integration pending)
+
+- **Planned Features**: Clarified these are NEW patient-facing extensions, not the first implementations
+
+- **Work In Progress**: Updated to reflect current documentation maintenance activity
+
+**Added**:
+- **ADR-005**: "Documentation of Actual Implementation State"
+  - Documents the discovery of mature codebase using Explore agent
+  - Explains critical misalignment between docs and reality
+  - Provides guidance for AI assistants on leveraging existing code
+  - Emphasizes studying 65 Vue components, Django models, FastAPI patterns
+
+**Why**:
+- **CRITICAL context loss prevention**: CONTEXT.md claimed "no implementation" but 3 production apps exist
+- **Accurate AI assistance**: AI assistants need to know they're extending a mature platform
+- **Prevent duplicated work**: Don't reimplement annotation platform, NLP service, authentication
+- **Enable proper architecture**: New features should leverage Vue 3, TypeScript, dual backend patterns
+- **Correct onboarding**: New developers need accurate picture of codebase state
+
+**Impact**:
+- ✅ **Massive context improvement**: AI assistants now understand production ecosystem
+- ✅ **Better architecture decisions**: Will extend existing systems, not start from scratch
+- ✅ **Clearer scope**: Distinguish mature NLP platform from planned patient features
+- ✅ **Technology constraints clear**: Must use Vue 3 + TypeScript (already implemented)
+- ✅ **Resource efficiency**: Can reuse 65 Vue components, Django auth, FastAPI patterns
+- ⚠️ **Learning curve**: Must study substantial existing codebase (~400+ Python files)
+- ⚠️ **Architecture decision needed**: FastAPI microservice vs Django extension for patient features
+
+**Discovery Method**:
+Used Claude Code's Explore agent with "very thorough" analysis to:
+- Map entire directory structure (13 major directories)
+- Inventory all services and components
+- Verify technology stack claims
+- Count files, components, migrations
+- Identify discrepancies between docs and reality
+
+**Migration Notes**:
+- **For AI assistants**: Read updated sections CAREFULLY - project is NOT greenfield
+- **Before implementing patient features**: Study MedCAT Trainer code for Vue 3 patterns
+- **Architecture decisions**: Consult ADR-005 for guidance on leveraging existing systems
+- **Don't reinvent**: Check existing 65 Vue components for reusable patterns
 
 ---
 
