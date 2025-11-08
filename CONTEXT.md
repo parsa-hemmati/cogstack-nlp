@@ -44,7 +44,7 @@ The current development focus is **extending** this ecosystem with **clinical ca
 - 🚧 **Clinical Care Interfaces**: Ready for Technical Plan phase
 
 **Sprint**: Pre-Sprint 1 (for clinical workflow tools)
-**Next Milestone**: Create Technical Plan for Clinical Care Tools Base Application
+**Next Milestone**: Create Task Breakdown from Technical Plan, then begin Phase 1 (Core Infrastructure)
 
 ### Team
 - **Size**: 1-3 developers (small team, sequential development acceptable)
@@ -769,6 +769,116 @@ MEDCAT_TIMEOUT = 5  # seconds
 ### Migration Notes
 - What users/developers need to do
 ```
+
+---
+
+### 2025-11-08 - Technical Plan for Clinical Care Tools Base Application
+
+**Commits**:
+- [Current] - docs(plan): Create comprehensive technical plan for base app
+
+**Added**:
+- **Technical Plan**: `.specify/plans/clinical-care-tools-base-plan.md` (~3,000 lines)
+  - Architecture overview with system context diagrams
+  - Technology stack decisions with rationale
+  - Complete API design (OpenAPI 3.1 specifications for all endpoints)
+  - Database schema with 13 core tables and Alembic migration strategy
+  - Component design patterns (backend services, frontend components)
+  - Security architecture (JWT, RBAC, session binding, break-glass access)
+  - MedCAT integration with retry logic and circuit breaker patterns
+  - PHI extraction workflow (4-step process with code examples)
+  - Testing strategy (test pyramid: 70% unit, 25% integration, 5% E2E)
+  - Deployment architecture (production-ready docker-compose.yml)
+  - Performance requirements (response time targets, concurrent users)
+  - Risks & mitigations (10 identified risks with impact/probability/mitigation)
+  - 7 implementation phases over 10 weeks (~290 hours)
+
+**Changed**:
+- **CONTEXT.md**: Updated "Next Milestone" from "Create Technical Plan" to "Create Task Breakdown from Technical Plan"
+- **Current Phase**: Clinical Care Interfaces moved from "Ready for Technical Plan phase" to "Technical Plan Complete"
+
+**Removed**:
+- None
+
+**Why**:
+- **User Request**: "Create technical plan"
+- **Spec-Kit Workflow**: Following Constitution → Specification → Technical Plan → Tasks → Code
+- **Implementation Readiness**: Convert high-level spec (v1.1.0) to actionable technical details
+- **Risk Mitigation**: Identify 10 risks upfront (MedCAT downtime, DB migration failure, JWT leak, etc.)
+- **Team Alignment**: Provide complete blueprint for 290 hours of development work
+- **Technology Decisions**: Document rationale for FastAPI vs Django, PostgreSQL vs MongoDB, Vue vs React
+
+**Impact**:
+- ✅ Complete blueprint for implementation ready
+- ✅ API specifications defined (OpenAPI 3.1 for all endpoints)
+- ✅ Database schema designed (13 tables with indexes and partitioning)
+- ✅ Security architecture detailed (JWT, RBAC, break-glass, session binding)
+- ✅ Testing strategy clear (test pyramid with coverage targets)
+- ✅ Deployment approach defined (Docker Compose for single workstation)
+- ✅ Timeline estimated (10 weeks, 7 phases)
+- ✅ Risks identified and mitigated
+- ⏭️ **Next Step**: Create task breakdown using `tech-plan-to-tasks` skill
+
+**Migration Notes**:
+- No migration needed (planning document only)
+- Ready for task breakdown phase
+- Review technical plan at `.specify/plans/clinical-care-tools-base-plan.md`
+
+**Technical Decisions Documented**:
+
+1. **FastAPI over Django** for new backend:
+   - Rationale: Async performance, automatic OpenAPI generation, Pydantic validation
+   - Keeps existing Django (MedCAT Trainer) separate
+
+2. **PostgreSQL 15+** for data storage:
+   - Rationale: JSONB support, full-text search, ACID compliance, mature ecosystem
+   - Rejected: MongoDB (schema flexibility not needed, ACID compliance critical)
+
+3. **Vue 3.5 + Composition API** for frontend:
+   - Rationale: Consistency with MedCAT Trainer, TypeScript support, mature ecosystem
+   - Rejected: React (unfamiliar to team, no existing codebase)
+
+4. **JWT with 8-hour expiry**:
+   - Rationale: Stateless auth, mobile-friendly, industry standard
+   - Security: Session binding (IP hash + user-agent hash) prevents hijacking
+
+5. **AES-256 for document encryption**:
+   - Rationale: FIPS 140-2 compliant, HIPAA recommended, strong encryption
+   - Key management: Environment variables (DEV), HSM/KMS (PROD)
+
+6. **Test Pyramid (70/25/5)**:
+   - Rationale: Fast feedback (unit), integration coverage (API), critical paths (E2E)
+   - Target: ≥80% overall, ≥90% for auth/PHI/clinical paths
+
+7. **Alembic for migrations**:
+   - Rationale: SQLAlchemy integration, version control, rollback support
+   - Pattern: Forward + backward migrations, data migrations separate
+
+8. **Pinia for state management**:
+   - Rationale: Vue 3 official state management, TypeScript support, DevTools integration
+   - Rejected: Vuex (deprecated for Vue 3)
+
+9. **Docker Compose for deployment**:
+   - Rationale: Single workstation deployment, simple orchestration, no K8s overhead
+   - Services: Frontend (8080), Backend (8000), PostgreSQL (5432), MedCAT (5000)
+
+10. **Tenacity for MedCAT retry logic**:
+    - Rationale: Exponential backoff, configurable retries, circuit breaker pattern
+    - Configuration: 3 attempts, 4-10s exponential wait
+
+**Implementation Phases**:
+1. **Phase 1**: Core Infrastructure (Week 1-2, ~60 hours)
+2. **Phase 2**: User & Project Management (Week 3, ~30 hours)
+3. **Phase 3**: Document Upload & PHI Extraction (Week 4, ~40 hours)
+4. **Phase 4**: Module System & Patient Search (Week 5-6, ~50 hours)
+5. **Phase 5**: Session Security & Break-Glass (Week 7, ~30 hours)
+6. **Phase 6**: Data Retention & Clinical Safety (Week 8, ~30 hours)
+7. **Phase 7**: Testing & Deployment (Week 9-10, ~50 hours)
+
+**Key Files**:
+- Technical Plan: `.specify/plans/clinical-care-tools-base-plan.md`
+- Based on Spec: `.specify/specifications/clinical-care-tools-base-app.md` (v1.1.0)
+- Constitution: `.specify/constitution/project-constitution.md`
 
 ---
 
