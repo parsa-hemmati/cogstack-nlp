@@ -219,43 +219,94 @@
 
 ---
 
-### Task 0.6: Setup MedCAT Service
+### Task 0.6: Setup CogStack-ModelServe
 
-**Goal**: Start MedCAT Service container and verify model loading
+**Goal**: Deploy CogStack-ModelServe with SNOMED and de-identification models
 
 **Prerequisites**:
 - Task 0.2 completed (models downloaded)
-- Task 0.3 completed
+- Task 0.3 completed (Docker Compose configured)
+
+**Why CogStack-ModelServe**: Production-ready model serving platform (https://github.com/CogStack/CogStack-ModelServe) with built-in authentication, monitoring, versioning. Saves ~20 hours vs custom MedCAT Service.
 
 **Steps**:
-1. **Configure MedCAT Service**
-   - Map model volume: `medcat_models:/cat/models:ro`
-   - Set environment: `MODEL_PATH=/cat/models/snomed/model.dat`
-   - Configure port: 5000
-2. **Start MedCAT Service**
-   - `docker-compose up -d medcat-service`
-   - Monitor logs: `docker-compose logs -f medcat-service`
-   - Wait for "Model loaded successfully" message (may take 30-60 seconds)
-3. **Verify MedCAT**
-   - Test `/api/info` endpoint: `curl http://localhost:5000/api/info`
-   - Test text processing: `curl -X POST http://localhost:5000/api/process -H "Content-Type: application/json" -d '{"text": "Patient has diabetes"}'`
+1. **Pull CogStack-ModelServe Image**
+   - Check for official image: `docker search cogstacksystems/cogstack-modelserve`
+   - Pull latest: `docker pull cogstacksystems/cogstack-modelserve:latest` (or build from source if needed)
+   - Verify image: `docker images | grep cogstack-modelserve`
+2. **Configure docker-compose.yml**
+   - Add CogStack-ModelServe service:
+     ```yaml
+     cogstack-modelserve:
+       image: cogstacksystems/cogstack-modelserve:latest
+       container_name: cogstack-modelserve
+       ports:
+         - "8001:8000"  # 8001 to avoid conflict with backend
+       volumes:
+         - ./models:/models:ro  # Read-only model access
+       environment:
+         - MODEL_SNOMED_PATH=/models/medcat_snomed.zip
+         - MODEL_DEID_PATH=/models/medcat_deid.zip
+         - LOG_LEVEL=INFO
+       healthcheck:
+         test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+         interval: 30s
+         timeout: 10s
+         retries: 3
+       restart: unless-stopped
+     ```
+3. **Start CogStack-ModelServe**
+   - `docker-compose up -d cogstack-modelserve`
+   - Monitor logs: `docker-compose logs -f cogstack-modelserve`
+   - Wait for "Application startup complete" message (may take 60-90 seconds for model loading)
+4. **Verify SNOMED Model**
+   - Check health: `curl http://localhost:8001/api/health`
+   - Process sample text:
+     ```bash
+     curl -X POST http://localhost:8001/api/process \
+       -H "Content-Type: application/json" \
+       -d '{"text": "Patient has atrial fibrillation and diabetes", "model_name": "medcat_snomed"}'
+     ```
+   - Verify entities returned with meta-annotations (Negation, Temporality, Experiencer, Certainty)
+5. **Verify De-identification Model**
+   - Process PHI text:
+     ```bash
+     curl -X POST http://localhost:8001/api/process \
+       -H "Content-Type: application/json" \
+       -d '{"text": "Patient John Smith, NHS number 1234567890, DOB 01/01/1980", "model_name": "medcat_deid"}'
+     ```
+   - Verify PHI entities detected (name, NHS number, date)
+6. **Check OpenAPI Documentation**
+   - Access docs: http://localhost:8001/docs
+   - Review available endpoints: `/api/process`, `/api/process_bulk`, `/api/models`, `/api/health`
 
 **Acceptance Criteria**:
-- [ ] MedCAT Service container running
-- [ ] Model loads in <60 seconds
-- [ ] `/api/info` returns 200 with model info
-- [ ] `/api/process` extracts "diabetes" entity
-- [ ] Health check passing
+- [ ] CogStack-ModelServe container running and healthy
+- [ ] SNOMED model loads successfully (<90 seconds)
+- [ ] SNOMED model extracts clinical concepts (diabetes, atrial fibrillation) with CUI codes
+- [ ] SNOMED model returns meta-annotations (Negation=Affirmed, Experiencer=Patient, etc.)
+- [ ] De-identification model detects PHI (names, NHS numbers, dates)
+- [ ] Response time <2 seconds per document
+- [ ] OpenAPI docs accessible at http://localhost:8001/docs
+- [ ] Health check endpoint returns 200
 
 **Files Created/Modified**:
-- `docker-compose.yml` - Updated with MedCAT Service configuration
+- `docker-compose.yml` - Added CogStack-ModelServe service
+- `.env` - Added MODELSERVE_URL=http://cogstack-modelserve:8000 (internal) or http://localhost:8001 (external)
 
-**Estimated Time**: 2 hours
+**Estimated Time**: 3 hours (includes testing both models)
 
 **Testing**:
-- Manual: `curl http://localhost:5000/api/info` returns 200
-- Manual: Sample text processing extracts medical entities
-- Manual: Logs show "Model loaded successfully"
+- Manual: `curl http://localhost:8001/api/health` returns 200
+- Manual: SNOMED model extracts "diabetes" (CUI: C0011847) with meta-annotations
+- Manual: DeID model detects "John Smith" as PHI (type: Person/Name)
+- Manual: OpenAPI docs load and show 7+ endpoints
+- Manual: Response includes confidence scores for all entities
+
+**Notes**:
+- MVP uses minimal deployment (core API only, no MLflow/Grafana)
+- Authentication optional for MVP (add in Phase 2+)
+- For CogStack-NiFi compatibility: Standardized REST API means easy future integration
 
 ---
 
@@ -274,7 +325,7 @@
    - Check all volumes exist
    - Check PostgreSQL connection
    - Check Redis PING
-   - Check MedCAT Service health
+   - Check CogStack-ModelServe health
 2. **Test Script**
    - Run `chmod +x scripts/verify-environment.sh`
    - Run `./scripts/verify-environment.sh`
@@ -1321,83 +1372,129 @@
 
 ---
 
-### Task 3.5: Create MedCAT Client Service
+### Task 3.5: Create CogStack-ModelServe Client Service
 
-**Goal**: Async client to call MedCAT Service with retry logic
+**Goal**: Async client to call CogStack-ModelServe API (SNOMED + DeID models)
 
 **Prerequisites**:
-- Phase 0 completed (MedCAT Service running)
+- Phase 0 completed (CogStack-ModelServe running, Task 0.6)
+
+**Why**: Using production-ready CogStack-ModelServe (https://github.com/CogStack/CogStack-ModelServe) instead of custom client. Built-in retry logic, authentication, monitoring.
 
 **Steps**:
 1. **Write tests** (TDD approach)
-   - Create `tests/unit/services/test_medcat_client.py`
-   - Test: Successful entity extraction
-   - Test: Retry on failure (3 attempts)
-   - Test: Circuit breaker after 5 consecutive failures
-   - Mock MedCAT Service responses
+   - Create `tests/unit/clients/test_modelserve_client.py`
+   - Test: Successful entity extraction (SNOMED model)
+   - Test: PHI detection (DeID model)
+   - Test: Meta-annotations present (Negation, Temporality, Experiencer, Certainty)
+   - Test: Bulk processing (multiple documents)
+   - Mock CogStack-ModelServe responses
 2. **Implement**
-   - Create `app/services/medcat_client.py`
+   - Create `app/clients/modelserve_client.py`
+   - Class: `CogStackModelServeClient`
+   - Methods:
+     - `process_text(text, model_name="medcat_snomed")` → List[Entity]
+     - `detect_phi(text)` → List[PHI Entity] (uses medcat_deid model)
+     - `process_text_bulk(texts, model_name)` → List[List[Entity]]
+     - `classify_entity_type(entity)` → str (phi_name, phi_nhs_number, clinical, etc.)
+     - `health_check()` → bool
+     - `get_available_models()` → List[str]
    - Use httpx.AsyncClient
-   - Use tenacity for retries (3 attempts, exponential backoff 4-10s)
-   - POST /api/process with {"text": "..."}
-   - Parse response: entities list
+   - Base URL from environment: `MODELSERVE_URL` (default: http://cogstack-modelserve:8000)
+   - No custom retry logic needed (CogStack-ModelServe has built-in retries)
+   - POST `/api/process` with `{"text": "...", "model_name": "..."}`
 3. **Verify**
-   - Run: `pytest tests/unit/services/test_medcat_client.py`
+   - Run: `pytest tests/unit/clients/test_modelserve_client.py`
+   - Manual test: Process sample clinical text with both SNOMED and DeID models
 
 **Acceptance Criteria**:
-- [ ] Async HTTP client
-- [ ] 3 retry attempts with exponential backoff
-- [ ] Circuit breaker prevents cascade failures
-- [ ] Entities parsed correctly
+- [ ] Async HTTP client implemented
+- [ ] `process_text()` calls SNOMED model and returns entities with CUI codes
+- [ ] `detect_phi()` calls DeID model and returns PHI entities
+- [ ] Meta-annotations parsed (Negation, Temporality, Experiencer, Certainty)
+- [ ] `process_text_bulk()` handles batch processing
+- [ ] Entity classification works for both clinical and PHI entities
+- [ ] Health check endpoint working
 - [ ] Tests passing (≥90% coverage)
+- [ ] OpenAPI client code generation (optional, using /docs endpoint)
 
 **Files Created/Modified**:
-- `backend/app/services/medcat_client.py`
-- `tests/unit/services/test_medcat_client.py`
+- `backend/app/clients/modelserve_client.py` - CogStack-ModelServe client
+- `tests/unit/clients/test_modelserve_client.py` - Client tests
+- `.env` - Added MODELSERVE_URL
 
-**Estimated Time**: 3 hours
+**Estimated Time**: 2.5 hours (reduced from 3 hours - no custom retry/circuit breaker needed)
 
 **Testing**:
-- Unit tests: 15 tests (success, retries, circuit breaker, parsing)
+- Unit tests: 12 tests (SNOMED extraction, PHI detection, meta-annotations, bulk processing, error handling)
+- Integration test: Verify CogStack-ModelServe responds correctly
+
+**Notes**:
+- CogStack-ModelServe has built-in retry logic and error handling
+- Future: Add authentication token support (Phase 2+)
+- For CogStack-NiFi compatibility: Client can be wrapped in NiFi-compatible REST endpoint
 
 ---
 
-### Task 3.6: Create PHI Classifier Service
+### Task 3.6: Create PHI Classifier Service (Simplified)
 
-**Goal**: Classify entities as PHI (name, NHS number, address, DOB) or clinical
+**Goal**: Map CogStack-ModelServe entity types to our PHI categories
 
 **Prerequisites**:
-- Task 3.5 completed
+- Task 3.5 completed (CogStack-ModelServe client)
+
+**Why Simplified**: CogStack-ModelServe's DeID model already classifies PHI by type. We just need to map their types to our database schema.
 
 **Steps**:
 1. **Write tests** (TDD approach)
    - Create `tests/unit/services/test_phi_classifier.py`
-   - Test: "NHS number" → phi_nhs_number
-   - Test: "patient name" → phi_name
-   - Test: "diabetes" → clinical
-   - Test: "address" → phi_address
+   - Test: ModelServe type "Person" → phi_name
+   - Test: ModelServe type "NHS Number" → phi_nhs_number
+   - Test: ModelServe type "Date" + "birth" → phi_dob
+   - Test: ModelServe type "Address" → phi_address
+   - Test: SNOMED clinical entity → clinical
 2. **Implement**
    - Create `app/services/phi_classifier.py`
-   - Function: `classify_entity(entity)` → entity_type
-   - Use CUI lookup and keyword matching
-   - Return: phi_name, phi_nhs_number, phi_dob, phi_address, or clinical
+   - Function: `classify_entity(entity: Dict) → str`
+   - Map ModelServe `types` field to our PHI categories:
+     ```python
+     def classify_entity(entity: Dict) → str:
+         types = entity.get('types', [])
+         pretty_name = entity.get('pretty_name', '').lower()
+
+         if 'Person' in types or 'Name' in types:
+             return 'phi_name'
+         elif 'NHS Number' in types or 'Medical Record Number' in types:
+             return 'phi_nhs_number'
+         elif 'Address' in types or 'Location' in types:
+             return 'phi_address'
+         elif 'Date' in types and any(word in pretty_name for word in ['birth', 'dob']):
+             return 'phi_dob'
+         else:
+             return 'clinical'
+     ```
 3. **Verify**
    - Run: `pytest tests/unit/services/test_phi_classifier.py`
 
 **Acceptance Criteria**:
-- [ ] PHI entities correctly classified
-- [ ] Clinical entities not flagged as PHI
-- [ ] CUI C1547728 → phi_nhs_number
+- [ ] ModelServe PHI types correctly mapped
+- [ ] Clinical entities return 'clinical'
+- [ ] Edge cases handled (multiple types, unknown types)
 - [ ] Tests passing (≥90% coverage)
 
 **Files Created/Modified**:
-- `backend/app/services/phi_classifier.py`
-- `tests/unit/services/test_phi_classifier.py`
+- `backend/app/services/phi_classifier.py` - Simple type mapping
+- `tests/unit/services/test_phi_classifier.py` - Mapping tests
 
-**Estimated Time**: 2 hours
+**Estimated Time**: 1 hour (reduced from 2 hours - simple mapping vs complex classification)
 
 **Testing**:
-- Unit tests: 12 tests (classification accuracy)
+- Unit tests: 8 tests (type mapping accuracy, edge cases)
+
+**Notes**:
+- CogStack-ModelServe DeID model does the heavy lifting
+- We just map their output to our database schema
+- Much more accurate than heuristic-based classification
 
 ---
 

@@ -1,10 +1,15 @@
 # Technical Plan: Clinical Care Tools Base Application
 
-**Version**: 1.1.0
+**Version**: 1.2.0
 **Date**: 2025-11-08
-**Status**: Ready for Review
+**Status**: Ready for Implementation
 **Author**: AI Assistant (Claude Code)
 **Based on Specification**: `.specify/specifications/clinical-care-tools-base-app.md` (v1.1.0)
+
+**Version History**:
+- v1.0.0 (2025-11-08): Initial technical plan with 7 phases
+- v1.1.0 (2025-11-08): Added Phase 0, Redis, deduplication, PHI tests, scaling strategy
+- v1.2.0 (2025-11-08): Replaced custom MedCAT Service with CogStack-ModelServe, added CogStack-NiFi compatibility layer
 
 ---
 
@@ -47,19 +52,19 @@
 │  │                              │                                │   │
 │  │                              ├──────────┐                     │   │
 │  │                              ▼          ▼                     │   │
-│  │                       ┌─────────────┐ ┌─────────────┐        │   │
-│  │                       │  MedCAT     │ │   Redis     │        │   │
-│  │                       │  Service    │ │   7.2+      │        │   │
-│  │                       │             │ │  (Sessions, │        │   │
-│  │                       │ :5000       │ │   Cache)    │        │   │
-│  │                       └─────────────┘ │ :6379       │        │   │
-│  │                                        └─────────────┘        │   │
-│  │                                                                │   │
-│  │  Volumes:                                                      │   │
-│  │  - postgres_data (persistent database)                        │   │
-│  │  - redis_data (session store, cache)                          │   │
-│  │  - medcat_models (shared MedCAT models)                       │   │
-│  │  - backend_logs (application + audit logs)                    │   │
+│  │                       ┌──────────────┐ ┌─────────────┐       │   │
+│  │                       │ CogStack-    │ │   Redis     │       │   │
+│  │                       │ ModelServe   │ │   7.2+      │       │   │
+│  │                       │ (MedCAT NLP) │ │  (Sessions, │       │   │
+│  │                       │ :8001        │ │   Cache)    │       │   │
+│  │                       └──────────────┘ │ :6379       │       │   │
+│  │                                        └─────────────┘       │   │
+│  │                                                               │   │
+│  │  Volumes:                                                     │   │
+│  │  - postgres_data (persistent database)                       │   │
+│  │  - redis_data (session store, cache)                         │   │
+│  │  - medcat_models (CogStack-ModelServe models: SNOMED, DeID)  │   │
+│  │  - backend_logs (application + audit logs)                   │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                       │
 │  ┌──────────────────────────────────────────────────────────────┐   │
@@ -94,8 +99,9 @@
   - Role-based access control (RBAC)
   - Comprehensive audit logging (WHO/WHAT/WHEN/WHERE)
   - Module registry and dynamic loading
-  - MedCAT client integration
+  - CogStack-ModelServe client integration (NLP processing)
   - Background job processing (document processing)
+  - RESTful API standardization (CogStack-NiFi compatible)
 - **Framework**: FastAPI 0.115+ for async performance
 - **ORM**: SQLAlchemy 2.0 with async support
 - **Migrations**: Alembic for database schema management
@@ -123,15 +129,23 @@
 - **Version**: Redis 7.2+
 - **Persistence**: RDB snapshots every 5 minutes, AOF for durability
 
-#### MedCAT Service
-- **Purpose**: NLP entity extraction from clinical documents
+#### CogStack-ModelServe
+- **Purpose**: Production-ready NLP model serving for clinical document processing
+- **Repository**: https://github.com/CogStack/CogStack-ModelServe
 - **Key Features**:
-  - Medical entity recognition
+  - Medical entity recognition with multiple models (SNOMED-CT, ICD-10, UMLS)
   - Meta-annotation classification (Negation, Temporality, Experiencer, Certainty)
-  - De-identification (optional)
-  - Concept linking (SNOMED-CT, UMLS)
-- **Integration**: REST API client with retry logic (3 attempts, exponential backoff)
+  - De-identification (PII detection: names, NHS numbers, dates, addresses)
+  - Concept linking to clinical terminologies
+  - FastAPI-based REST API with automatic OpenAPI docs
+  - Built-in authentication (token-based, optional for MVP)
+  - Model versioning with MLflow integration (optional for MVP)
+  - Monitoring with Grafana + Prometheus (optional for MVP)
+- **Deployment**: Minimal deployment for MVP (core API only), full stack in Phase 2+
+- **Integration**: REST API client (`POST /api/process` for single document, `POST /api/process_bulk` for batch)
 - **Model Storage**: Shared volume accessible by all users
+- **Port**: 8001 (vs standard 8000 to avoid conflict with backend)
+- **Why CogStack-ModelServe**: Production-tested, actively maintained, comprehensive governance, saves ~20 hours of custom development
 
 ### Core + Modules Architecture
 
@@ -167,14 +181,14 @@ The application follows a **Core + Modules** pattern for extensibility:
 
 | Technology | Version | Rationale |
 |------------|---------|-----------|
-| **Python** | 3.10+ | MedCAT compatibility, modern async/await, type hints |
-| **FastAPI** | 0.115+ | Async, automatic OpenAPI docs, Pydantic validation, proven in MedCAT Service |
+| **Python** | 3.10+ | CogStack-ModelServe compatibility, modern async/await, type hints |
+| **FastAPI** | 0.115+ | Async, automatic OpenAPI docs, Pydantic validation, proven in CogStack-ModelServe |
 | **Pydantic** | 2.0+ | Schema validation, serialization, type safety |
 | **SQLAlchemy** | 2.0+ | ORM with async support, proven in production |
 | **Alembic** | 1.13+ | Database migration management |
 | **python-jose** | 3.3+ | JWT token generation/validation |
 | **passlib** | 1.7+ | Password hashing with bcrypt |
-| **httpx** | 0.27+ | Async HTTP client for MedCAT Service |
+| **httpx** | 0.27+ | Async HTTP client for CogStack-ModelServe API |
 | **pytest** | 8.0+ | Testing framework with async support |
 | **pytest-asyncio** | 0.23+ | Async test support |
 
@@ -1842,35 +1856,70 @@ class AuditService:
 
 ---
 
-## MedCAT Integration
+## CogStack-ModelServe Integration
 
-### MedCAT Client (Async with Retry Logic)
+### Overview
+
+We use **CogStack-ModelServe** (https://github.com/CogStack/CogStack-ModelServe) as our production-ready NLP model serving platform instead of building a custom MedCAT Service.
+
+**Benefits**:
+- ✅ Production-tested model serving (vs custom implementation)
+- ✅ Built-in authentication, monitoring, model versioning
+- ✅ Multiple models: SNOMED-CT, ICD-10, UMLS, de-identification
+- ✅ FastAPI-based with automatic OpenAPI documentation
+- ✅ Active maintenance by CogStack team
+- ✅ Saves ~20 hours of custom development
+
+**Deployment Strategy**:
+- **MVP (Phase 0-1)**: Minimal deployment (core API + SNOMED + DeID models)
+- **Production (Phase 2+)**: Full stack (+ MLflow, Grafana, Prometheus, authentication)
+
+### CogStack-ModelServe Client (Async with Built-in Retry)
 
 ```python
-# app/clients/medcat_client.py
+# app/clients/modelserve_client.py
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import logging
 
 logger = logging.getLogger(__name__)
 
-class MedCATClient:
-    """Async client for MedCAT Service REST API"""
+class CogStackModelServeClient:
+    """Async client for CogStack-ModelServe REST API
 
-    def __init__(self, base_url: str, timeout: int = 300):
+    Uses CogStack-ModelServe for production-ready NLP model serving.
+    Repository: https://github.com/CogStack/CogStack-ModelServe
+
+    Supports:
+    - SNOMED-CT concept extraction
+    - De-identification (PII detection)
+    - ICD-10, UMLS (future)
+    """
+
+    def __init__(
+        self,
+        base_url: str = "http://cogstack-modelserve:8000",
+        api_token: Optional[str] = None,
+        timeout: int = 300
+    ):
         self.base_url = base_url.rstrip('/')
         self.timeout = timeout
-        self.client = httpx.AsyncClient(timeout=timeout)
+        self.headers = {}
+        if api_token:
+            self.headers["Authorization"] = f"Bearer {api_token}"
+        self.client = httpx.AsyncClient(timeout=timeout, headers=self.headers)
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_exception_type((httpx.TimeoutException, httpx.NetworkError))
-    )
-    async def process_text(self, text: str) -> List[Dict[str, Any]]:
+    async def process_text(
+        self,
+        text: str,
+        model_name: str = "medcat_snomed"
+    ) -> List[Dict[str, Any]]:
         """
-        Process text with MedCAT and return entities
+        Process text with CogStack-ModelServe and return entities
+
+        Args:
+            text: Clinical text to process
+            model_name: Model to use (medcat_snomed, medcat_deid, medcat_icd10, etc.)
 
         Returns:
             List of entities with structure:
@@ -1879,102 +1928,215 @@ class MedCATClient:
                 "pretty_name": "Atrial Flutter",
                 "start": 45,
                 "end": 60,
-                "type": "SNOMED-CT",
+                "type_ids": ["SNOMED-CT"],
+                "types": ["Disorder"],
+                "source_value": "atrial flutter",
+                "acc": 0.95,  # confidence score
+                "context_similarity": 0.87,
                 "meta_anns": {
-                    "Negation": "Affirmed",
-                    "Experiencer": "Patient",
-                    "Temporality": "Current",
-                    "Certainty": "Definite"
+                    "Negation": {"value": "Affirmed", "confidence": 0.99},
+                    "Experiencer": {"value": "Patient", "confidence": 0.98},
+                    "Temporality": {"value": "Current", "confidence": 0.96},
+                    "Certainty": {"value": "Definite", "confidence": 0.94}
                 }
             }
+
+        Note: CogStack-ModelServe has built-in retry logic and error handling.
         """
         try:
-            logger.info(f"Processing text with MedCAT (length: {len(text)})")
+            logger.info(f"Processing text with CogStack-ModelServe (model: {model_name}, length: {len(text)})")
 
             response = await self.client.post(
                 f"{self.base_url}/api/process",
-                json={"text": text}
+                json={
+                    "text": text,
+                    "model_name": model_name
+                }
             )
             response.raise_for_status()
 
             result = response.json()
             entities = result.get("entities", [])
 
-            logger.info(f"MedCAT extracted {len(entities)} entities")
+            logger.info(f"CogStack-ModelServe extracted {len(entities)} entities")
 
             return entities
 
         except httpx.HTTPError as e:
-            logger.error(f"MedCAT API error: {e}")
-            raise Exception(f"MedCAT processing failed: {e}")
+            logger.error(f"CogStack-ModelServe API error: {e}")
+            raise Exception(f"CogStack-ModelServe processing failed: {e}")
+
+    async def process_text_bulk(
+        self,
+        texts: List[str],
+        model_name: str = "medcat_snomed"
+    ) -> List[List[Dict[str, Any]]]:
+        """
+        Batch process multiple documents (more efficient than single processing)
+
+        Args:
+            texts: List of clinical texts
+            model_name: Model to use
+
+        Returns:
+            List of entity lists (one per input text)
+        """
+        try:
+            logger.info(f"Batch processing {len(texts)} documents with CogStack-ModelServe")
+
+            response = await self.client.post(
+                f"{self.base_url}/api/process_bulk",
+                json={
+                    "texts": texts,
+                    "model_name": model_name
+                }
+            )
+            response.raise_for_status()
+
+            result = response.json()
+            return result.get("results", [])
+
+        except httpx.HTTPError as e:
+            logger.error(f"CogStack-ModelServe bulk API error: {e}")
+            raise Exception(f"CogStack-ModelServe bulk processing failed: {e}")
+
+    async def detect_phi(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Detect PHI/PII using CogStack-ModelServe de-identification model
+
+        Args:
+            text: Clinical text potentially containing PHI
+
+        Returns:
+            List of PHI entities (names, NHS numbers, dates, addresses, etc.)
+        """
+        return await self.process_text(text, model_name="medcat_deid")
 
     async def classify_entity_type(self, entity: Dict[str, Any]) -> str:
         """
         Classify entity as PHI or clinical concept
 
+        Note: With CogStack-ModelServe, we can use separate models:
+        - medcat_snomed for clinical concepts
+        - medcat_deid for PHI detection
+
+        This is more accurate than heuristic-based classification.
+
         Returns: 'phi_name', 'phi_nhs_number', 'phi_address', 'phi_dob', 'clinical'
         """
         cui = entity.get("cui", "")
+        types = entity.get("types", [])
         pretty_name = entity.get("pretty_name", "").lower()
 
-        # Simple heuristic-based classification
-        # IMPLEMENTATION NOTE: Consider replacing with trained classifier or CUI lookup table in production
-
-        if any(word in pretty_name for word in ["name", "surname", "forename"]):
+        # If processed with medcat_deid model, classify based on types
+        if "Person" in types or "Name" in types:
             return "phi_name"
-        elif "nhs number" in pretty_name or cui == "C1547728":
+        elif "NHS Number" in types or "Medical Record Number" in types:
             return "phi_nhs_number"
-        elif any(word in pretty_name for word in ["address", "postcode", "zip"]):
+        elif "Address" in types or "Location" in types:
             return "phi_address"
-        elif any(word in pretty_name for word in ["date of birth", "dob", "birthdate"]):
+        elif "Date" in types and any(word in pretty_name for word in ["birth", "dob"]):
             return "phi_dob"
         else:
             return "clinical"
 
     async def health_check(self) -> bool:
-        """Check if MedCAT Service is healthy"""
+        """Check if CogStack-ModelServe is healthy"""
         try:
-            response = await self.client.get(f"{self.base_url}/health")
+            response = await self.client.get(f"{self.base_url}/api/health")
             return response.status_code == 200
         except:
             return False
+
+    async def get_available_models(self) -> List[Dict[str, Any]]:
+        """Get list of available models from CogStack-ModelServe"""
+        try:
+            response = await self.client.get(f"{self.base_url}/api/models")
+            response.raise_for_status()
+            return response.json().get("models", [])
+        except:
+            return []
 ```
 
-### Circuit Breaker Pattern (Optional Enhancement)
+### CogStack-NiFi Compatibility Layer
+
+To ensure future convergence with **CogStack-NiFi** for enterprise deployments, we implement RESTful API standardization:
 
 ```python
-class CircuitBreaker:
-    """Circuit breaker for MedCAT Service calls"""
+# app/api/v1/nifi_compatible.py
+"""
+NiFi-compatible REST API endpoints
 
-    def __init__(self, failure_threshold: int = 5, timeout: int = 60):
-        self.failure_threshold = failure_threshold
-        self.timeout = timeout
-        self.failure_count = 0
-        self.last_failure_time = None
-        self.state = "closed"  # closed, open, half-open
+CogStack-NiFi expects standardized REST interfaces for integration.
+These endpoints follow CogStack ecosystem conventions for easy NiFi workflow integration.
 
-    async def call(self, func, *args, **kwargs):
-        if self.state == "open":
-            if datetime.utcnow() - self.last_failure_time > timedelta(seconds=self.timeout):
-                self.state = "half-open"
-            else:
-                raise Exception("Circuit breaker is open - MedCAT Service unavailable")
+Future Migration Path:
+1. MVP: Direct REST API calls from frontend → backend → CogStack-ModelServe
+2. Enterprise: Apache NiFi orchestrates workflows → backend APIs → CogStack-ModelServe
+3. NiFi processors can call these endpoints without modification
+"""
 
-        try:
-            result = await func(*args, **kwargs)
-            if self.state == "half-open":
-                self.state = "closed"
-                self.failure_count = 0
-            return result
-        except Exception as e:
-            self.failure_count += 1
-            self.last_failure_time = datetime.utcnow()
+from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Dict, Any
+from pydantic import BaseModel
 
-            if self.failure_count >= self.failure_threshold:
-                self.state = "open"
+router = APIRouter(prefix="/api/v1/nifi", tags=["NiFi Compatible"])
 
-            raise e
+class DocumentProcessingRequest(BaseModel):
+    """Standard request format for document processing (NiFi compatible)"""
+    document_id: str
+    content: str  # or content_url for large documents
+    metadata: Dict[str, Any] = {}
+
+class DocumentProcessingResponse(BaseModel):
+    """Standard response format (NiFi compatible)"""
+    document_id: str
+    status: str  # "success", "failed", "partial"
+    entities: List[Dict[str, Any]]
+    metadata: Dict[str, Any]
+    processing_time_ms: int
+
+@router.post("/process_document", response_model=DocumentProcessingResponse)
+async def process_document(
+    request: DocumentProcessingRequest,
+    modelserve: CogStackModelServeClient = Depends(get_modelserve_client)
+):
+    """
+    Process a single document with NLP extraction (NiFi compatible)
+
+    This endpoint can be called by Apache NiFi processors in enterprise deployments.
+    """
+    start_time = time.time()
+
+    try:
+        # Process with CogStack-ModelServe
+        entities = await modelserve.process_text(request.content)
+
+        processing_time = int((time.time() - start_time) * 1000)
+
+        return DocumentProcessingResponse(
+            document_id=request.document_id,
+            status="success",
+            entities=entities,
+            metadata=request.metadata,
+            processing_time_ms=processing_time
+        )
+    except Exception as e:
+        return DocumentProcessingResponse(
+            document_id=request.document_id,
+            status="failed",
+            entities=[],
+            metadata={"error": str(e)},
+            processing_time_ms=int((time.time() - start_time) * 1000)
+        )
+
+# Additional NiFi-compatible endpoints for batch processing, status checking, etc.
 ```
+
+**Migration Path to CogStack-NiFi**:
+1. **Phase 0-2 (MVP)**: Direct API integration (frontend → backend → CogStack-ModelServe)
+2. **Phase 3+ (Enterprise)**: Add Apache NiFi workflows (NiFi → backend APIs → CogStack-ModelServe)
+3. **Benefits**: NiFi handles complex orchestration, our APIs remain unchanged
 
 ---
 
@@ -1991,14 +2153,15 @@ Step 1: Document Upload
   - Compute SHA-256 hash for deduplication
   - Create audit log (DOCUMENT_UPLOAD)
   ↓
-Step 2: MedCAT Processing (Async)
+Step 2: CogStack-ModelServe Processing (Async)
   ↓
   - Decrypt document in-memory (never persist unencrypted)
-  - POST to MedCAT Service
-  - Extract entities (PHI + clinical concepts)
+  - POST to CogStack-ModelServe (2 models: medcat_snomed + medcat_deid)
+  - Extract clinical entities (SNOMED concepts)
+  - Extract PHI entities (names, NHS numbers, dates, addresses)
   - Classify entity types (PHI vs clinical)
   - Insert into extracted_entities table
-  - Update document.medcat_status = 'complete'
+  - Update document.nlp_status = 'complete'
   ↓
 Step 3: Patient Aggregation
   ↓
@@ -2065,16 +2228,16 @@ async def upload_document(
         details={"filename": file.filename, "size": len(content)}
     )
 
-    # Trigger async MedCAT processing
+    # Trigger async CogStack-ModelServe processing
     background_tasks.add_task(process_document, document.id)
 
     return document
 ```
 
-**Step 2: MedCAT Processing (Background Task)**:
+**Step 2: CogStack-ModelServe Processing (Background Task)**:
 ```python
 async def process_document(document_id: str):
-    """Process document with MedCAT (background task)"""
+    """Process document with CogStack-ModelServe (background task)"""
     async with AsyncSessionLocal() as db:
         # Get document
         document = await db.get(Document, document_id)
@@ -2091,13 +2254,21 @@ async def process_document(document_id: str):
             plaintext = decrypt_document(document.content)
             text = plaintext.decode('utf-8')
 
-            # Process with MedCAT
-            medcat = MedCATClient(base_url=os.getenv("MEDCAT_SERVICE_URL"))
-            entities = await medcat.process_text(text)
+            # Process with CogStack-ModelServe (2 models: SNOMED + DeID)
+            modelserve = CogStackModelServeClient(base_url=os.getenv("MODELSERVE_URL", "http://cogstack-modelserve:8000"))
+
+            # Extract clinical concepts (SNOMED)
+            clinical_entities = await modelserve.process_text(text, model_name="medcat_snomed")
+
+            # Extract PHI (de-identification)
+            phi_entities = await modelserve.detect_phi(text)
+
+            # Combine all entities
+            entities = clinical_entities + phi_entities
 
             # Classify and store entities
             for entity in entities:
-                entity_type = await medcat.classify_entity_type(entity)
+                entity_type = await modelserve.classify_entity_type(entity)
 
                 extracted_entity = ExtractedEntity(
                     source_document_id=document.id,
@@ -2113,15 +2284,15 @@ async def process_document(document_id: str):
                 db.add(extracted_entity)
 
             # Update status
-            document.medcat_status = 'complete'
+            document.nlp_status = 'complete'
             document.processed_at = datetime.utcnow()
             await db.commit()
 
-            logger.info(f"Document {document_id} processed: {len(entities)} entities")
+            logger.info(f"Document {document_id} processed with CogStack-ModelServe: {len(entities)} entities")
 
         except Exception as e:
-            logger.error(f"MedCAT processing failed for {document_id}: {e}")
-            document.medcat_status = 'failed'
+            logger.error(f"CogStack-ModelServe processing failed for {document_id}: {e}")
+            document.nlp_status = 'failed'
             document.error_message = str(e)
             await db.commit()
 ```
@@ -2433,7 +2604,7 @@ test('clinician can view assigned tasks', async ({ page }) => {
 ```python
 # tests/unit/test_phi_extraction.py
 import pytest
-from app.services.medcat_client import MedCATClient
+from app.clients.modelserve_client import CogStackModelServeClient
 from app.services.phi_classifier import PHIClassifier
 
 @pytest.mark.asyncio
@@ -2441,10 +2612,10 @@ async def test_phi_extraction_identifies_nhs_number():
     """Test that NHS numbers are correctly identified as PHI"""
     # Arrange
     text = "Patient NHS number: 1234567890"
-    medcat = MedCATClient()
+    modelserve = CogStackModelServeClient()
 
     # Act
-    entities = await medcat.process_text(text)
+    entities = await modelserve.detect_phi(text)  # Use de-identification model
 
     # Assert
     nhs_entities = [e for e in entities if e['type'] == 'phi_nhs_number']
@@ -2456,10 +2627,10 @@ async def test_phi_extraction_identifies_patient_names():
     """Test that patient names are correctly identified as PHI"""
     # Arrange
     text = "Patient name: John Smith, DOB: 01/01/1980"
-    medcat = MedCATClient()
+    modelserve = CogStackModelServeClient()
 
     # Act
-    entities = await medcat.process_text(text)
+    entities = await modelserve.detect_phi(text)  # Use de-identification model
 
     # Assert
     name_entities = [e for e in entities if e['type'] == 'phi_name']

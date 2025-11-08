@@ -478,6 +478,105 @@ When implementing clinical care tools (for clinicians/researchers, not patients)
 
 ---
 
+### ADR-006: Adopt CogStack-ModelServe for NLP Model Serving
+
+**Date**: 2025-11-08
+**Status**: ✅ Accepted
+**Context**: Need production-ready NLP model serving for Clinical Care Tools Base Application
+
+**Problem**: Original plan specified custom MedCAT Service implementation (~20 hours development). Before implementation, conducted due diligence review of CogStack ecosystem components (CogStack-NiFi, CogStack-ModelServe) to avoid reinventing the wheel.
+
+**Analysis Results**:
+1. **CogStack-NiFi** (https://github.com/CogStack/CogStack-NiFi):
+   - Apache NiFi-based enterprise data pipeline orchestration
+   - **Decision**: ❌ DEFER - Over-engineered for single-workstation MVP
+   - Reconsider for future enterprise deployment (100+ users, multi-site)
+
+2. **CogStack-ModelServe** (https://github.com/CogStack/CogStack-ModelServe):
+   - Production-ready model serving platform (FastAPI-based)
+   - **Decision**: ✅ ADOPT - Perfect fit for MVP + production
+
+**Decision**: Replace custom MedCAT Service with **CogStack-ModelServe**
+
+**Why CogStack-ModelServe**:
+- ✅ **Production-tested**: Battle-tested, actively maintained (408 commits, 4 PRs)
+- ✅ **Comprehensive**: Built-in authentication, monitoring (Grafana), model versioning (MLflow)
+- ✅ **Multiple models**: SNOMED-CT, ICD-10, UMLS, de-identification (PII detection)
+- ✅ **FastAPI-based**: Auto-generated OpenAPI docs, async support, aligns with our tech stack
+- ✅ **Flexible deployment**: Minimal (core API only) for MVP, full stack (+ MLflow/Grafana) for production
+- ✅ **Time savings**: ~20 hours saved (no custom retry logic, circuit breaker, auth needed)
+- ✅ **Better accuracy**: Separate DeID model for PHI detection (vs heuristic-based classification)
+
+**Architecture Changes**:
+1. **Technical Plan**: v1.1.0 → v1.2.0
+   - Replaced "MedCAT Service (port 5000)" with "CogStack-ModelServe (port 8001)"
+   - Updated integration code (CogStackModelServeClient vs MedCATClient)
+   - Added CogStack-NiFi compatibility layer (RESTful API standardization)
+   - Updated docker-compose.yml configuration
+
+2. **Task Breakdown**:
+   - Task 0.6: "Setup MedCAT Service" → "Setup CogStack-ModelServe" (3 hours)
+   - Task 3.5: "Create MedCAT Client Service" → "Create CogStack-ModelServe Client Service" (2.5 hours, reduced from 3)
+   - Task 3.6: "Create PHI Classifier Service" → "Create PHI Classifier Service (Simplified)" (1 hour, reduced from 2)
+   - **Time saved**: 1.5 hours in implementation + ~20 hours avoiding custom development = **21.5 hours total**
+
+3. **Resource Requirements**:
+   - **MVP (minimal deployment)**: 8GB RAM, 5 CPU cores - NO CHANGE ✅
+   - **Future (full stack)**: 12GB RAM, 8 CPU cores - defer to Phase 2+
+
+4. **Future CogStack-NiFi Compatibility**:
+   - Added RESTful API standardization layer (`/api/v1/nifi/process_document`)
+   - Standardized request/response formats (NiFi-compatible)
+   - **Migration path**: MVP (direct REST) → Enterprise (Apache NiFi orchestration)
+   - Our APIs remain unchanged when NiFi is added
+
+**Deployment Strategy**:
+- **Phase 0-1 (MVP)**: Minimal CogStack-ModelServe (core API + SNOMED + DeID models)
+- **Phase 2+ (Production)**: Full stack (+ MLflow, Grafana, Prometheus, authentication)
+
+**Models Used**:
+- `medcat_snomed`: SNOMED-CT clinical concept extraction
+- `medcat_deid`: PHI/PII detection (names, NHS numbers, dates, addresses)
+
+**Rationale**:
+- **Don't reinvent the wheel**: Leverage existing CogStack ecosystem
+- **Production-ready from day one**: Proven in healthcare deployments
+- **Future-proof**: Easy convergence with CogStack-NiFi for enterprise deployments
+- **Better PHI detection**: Trained DeID model vs heuristic-based classification
+- **Time efficiency**: 21.5 hours saved for other features
+- **Maintenance**: CogStack team handles updates, security patches
+
+**Consequences**:
+- ✅ **21.5 hours saved** (implementation + avoided custom development)
+- ✅ **Production-ready**: Authentication, monitoring, versioning built-in
+- ✅ **Better accuracy**: Trained DeID model for PHI detection
+- ✅ **Future-proof**: CogStack-NiFi convergence path documented
+- ✅ **Active support**: CogStack community + institutional backing
+- ⚠️ **Learning curve**: Team must learn CogStack-ModelServe APIs (mitigated by OpenAPI docs)
+- ⚠️ **External dependency**: Relying on CogStack maintenance (mitigated: active project, can fork if needed)
+- ⚠️ **Full stack complexity**: MLflow/Grafana add complexity (mitigated: defer to Phase 2+, MVP uses minimal deployment)
+
+**Alternatives Considered**:
+1. **Custom MedCAT Service**: Original plan, ~20 hours development, missing governance features
+2. **Direct MedCAT library integration**: No REST API, tight coupling, harder to scale
+3. **Third-party NLP APIs**: Vendor lock-in, PHI data sharing concerns, compliance issues
+
+**Documentation Updates**:
+- Technical Plan: v1.2.0 (updated architecture, integration patterns, NiFi compatibility)
+- Task Breakdown: Phase 0 Task 0.6, Phase 3 Tasks 3.5-3.6 (updated)
+- CogStack Ecosystem Analysis: COGSTACK_ECOSYSTEM_ANALYSIS.md (850 lines, comprehensive evaluation)
+
+**Implementation Status**: ✅ Documented, ready for Phase 0 implementation
+
+**Review Date**: 2025-12-08 (1 month after MVP deployment, evaluate performance/satisfaction)
+
+**References**:
+- CogStack-ModelServe: https://github.com/CogStack/CogStack-ModelServe
+- Analysis Document: COGSTACK_ECOSYSTEM_ANALYSIS.md
+- Technical Plan v1.2.0: .specify/plans/clinical-care-tools-base-plan.md
+
+---
+
 ## 💾 Data Architecture
 
 ### Database Schema (Planned, Not Implemented)

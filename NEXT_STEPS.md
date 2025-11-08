@@ -71,7 +71,7 @@
   - Backend (FastAPI, port 8000)
   - PostgreSQL (port 5432)
   - Redis (port 6379)
-  - MedCAT Service (port 5000)
+  - CogStack-ModelServe (port 8001)
 - Configure networks and volumes
 - Add health checks
 
@@ -88,15 +88,15 @@
 - Set memory limit (2GB)
 - Test connection
 
-#### Task 0.6: Verify MedCAT Service (3 hours)
-- Build MedCAT Service Docker image
-- Mount models volume
-- Start service and wait for model loading
+#### Task 0.6: Deploy and Verify CogStack-ModelServe (3 hours)
+- Deploy CogStack-ModelServe container (production-ready NLP serving)
+- Configure SNOMED and de-identification models
+- Verify both models operational
 - Test with sample clinical text
 - Verify meta-annotations in response
 
 #### Task 0.7: Create Environment Verification Script (1 hour)
-- Script checks: Docker, PostgreSQL, Redis, MedCAT Service
+- Script checks: Docker, PostgreSQL, Redis, CogStack-ModelServe
 - Creates verification report
 - Documents common issues and solutions
 
@@ -104,7 +104,7 @@
 - [ ] All 5 Docker containers running and healthy
 - [ ] PostgreSQL accepting connections
 - [ ] Redis accepting connections
-- [ ] MedCAT Service returns NLP results with meta-annotations
+- [ ] CogStack-ModelServe returns NLP results with meta-annotations (SNOMED + DeID models)
 - [ ] Verification script passes all checks
 - [ ] Documentation updated with setup notes
 
