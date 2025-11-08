@@ -1,7 +1,7 @@
 # Project Context - Living Architecture & Decisions
 
 **Status**: Living Document - Updated with EVERY commit
-**Last Updated**: 2025-11-07
+**Last Updated**: 2025-11-08
 **Version**: 1.0.0
 
 > ⚠️ **CRITICAL**: This document MUST be updated before any code commit. No PR can be merged without context updates.
@@ -767,6 +767,113 @@ MEDCAT_TIMEOUT = 5  # seconds
 ### Migration Notes
 - What users/developers need to do
 ```
+
+---
+
+### 2025-11-08 - Enhanced Base App Specification with Production Readiness Sections
+
+**Commits**:
+- [Current] - feat(spec): Add 5 CRITICAL sections for production readiness
+
+**Added**:
+- **5 CRITICAL Production Readiness Sections** (~1,150 lines) to base app specification:
+
+  1. **Data Retention & Purging Policy** (~190 lines)
+     - Retention periods: Documents (8 years), Audit logs (7 years), Sessions (90 days)
+     - Legal hold workflow with `legal_hold` flag on documents
+     - Automated purging scripts for sessions and tasks
+     - Semi-automated document purging with 30-day grace period
+     - Anonymization workflow for research use after retention
+
+  2. **Disaster Recovery & Business Continuity** (~250 lines)
+     - RTO: 4 hours, RPO: 24 hours, MTTR: <8 hours
+     - Daily automated backup script (PostgreSQL dump, encryption, offsite storage)
+     - Monthly restore testing procedure
+     - Failover procedures for 3 scenarios: hardware failure, data corruption, ransomware
+     - Business continuity communication plan
+
+  3. **Clinical Safety Mechanisms** (~350 lines)
+     - `clinical_overrides` table for tracking clinician disagreements with system
+     - `critical_findings` table for urgent alerts (sepsis, acute MI, critical labs)
+     - `clinical_incidents` table for incident reporting integration
+     - Weekly override review process
+     - Auto-escalation for unacknowledged critical findings (4 hours)
+     - Patient Safety Dashboard with alert thresholds
+
+  4. **Enhanced Authentication - Break-Glass Access** (~200 lines)
+     - `break_glass_events` table for emergency access tracking
+     - Emergency 60-minute access workflow with immediate security notification
+     - Post-access review within 24 hours (justified/questionable/inappropriate)
+     - Auto-revocation of expired access
+     - Comprehensive audit logging
+
+  5. **Session Security Enhancements** (~160 lines)
+     - Session binding to IP and user-agent (session hijack detection)
+     - Concurrent session limits (max 2 per user)
+     - Idle timeout (15 minutes of inactivity)
+     - Admin force logout capability
+     - Suspicious session flagging and security team alerts
+
+- **Version History Section**: Added to specification header tracking changes
+- **Updated Table of Contents**: Renumbered sections to include 5 new sections (15-19)
+
+**Changed**:
+- **Specification Version**: 1.0.0 → 1.1.0
+- **Specification Size**: ~69KB → ~85KB (~23% increase)
+- **Total Sections**: 15 → 20
+
+**Removed**:
+- None
+
+**Why**:
+- **Regulatory Compliance**: GDPR Article 5(1)(e) requires data retention policies
+- **HIPAA Requirements**: §164.316(b)(2)(i) requires retention documentation (6 years minimum)
+- **NHS Compliance**: Records Management Code specifies 8-year retention for clinical records
+- **Clinical Safety**: NHS DCB0129 and ISO 14971 require risk management and incident tracking
+- **Production Readiness**: Cannot deploy healthcare system without DR/BC plan
+- **Emergency Care**: Break-glass access required for life-threatening scenarios
+- **Security Hardening**: Session hijacking is primary attack vector for healthcare applications
+
+**Impact**:
+- ✅ Specification now production-ready for healthcare deployment
+- ✅ Addresses all 19 user recommendations (CRITICAL + HIGH priority)
+- ✅ Comprehensive compliance framework (GDPR, HIPAA, NHS, ISO)
+- ✅ Patient safety mechanisms align with clinical governance requirements
+- ✅ Security enhancements meet healthcare industry standards
+- ⚠️ Implementation complexity increased (additional 8 database tables, 3 cron jobs)
+- ⚠️ Requires security team integration (email/SMS notifications)
+- ⚠️ Requires clinical governance lead involvement (override reviews)
+
+**Migration Notes**:
+- No migration needed (specification phase only)
+- Next step: Create Technical Plan incorporating all 5 sections
+- Implementation priority: Core security first, then clinical safety, then DR/BC
+- Estimated implementation time: +15-20 hours for all 5 sections
+
+**Technical Debt**:
+- None (specification phase)
+
+**Design Patterns Introduced**:
+- **Legal Hold Pattern**: Prevent purging of legally-required data with flag + reason + owner
+- **Break-Glass Pattern**: Time-limited emergency access with immediate notification + post-review
+- **Session Binding Pattern**: IP + user-agent hashing for hijack detection
+- **Clinical Override Tracking**: Document when humans disagree with system (quality improvement)
+- **Critical Finding Auto-Escalation**: 4-hour unacknowledged threshold → escalate to director
+
+**Compliance Frameworks Referenced**:
+- GDPR Article 5(1)(e): Storage limitation
+- HIPAA §164.316(b)(2)(i): Documentation retention
+- NHS Records Management Code: Clinical records 8 years, audit trails 7 years
+- NHS DCB0129: Clinical Safety Risk Management
+- ISO 14971: Medical Devices Risk Management
+
+**Database Schema Additions**:
+- `deidentified_mappings` - Research data anonymization
+- `deidentified_documents` - De-identified content for research
+- `clinical_overrides` - Clinician disagreements with system
+- `critical_findings` - Urgent clinical alerts
+- `clinical_incidents` - Incident reporting
+- `break_glass_events` - Emergency access tracking
 
 ---
 

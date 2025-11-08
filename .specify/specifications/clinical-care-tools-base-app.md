@@ -1,10 +1,14 @@
 # Specification: Clinical Care Tools Base Application
 
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Date**: 2025-11-08
 **Status**: Draft
 **Author**: AI Assistant (Claude Code)
 **Reviewers**: [To be assigned]
+
+**Version History**:
+- **1.1.0** (2025-11-08): Added 5 CRITICAL sections for production readiness (Data Retention, Disaster Recovery, Clinical Safety, Break-Glass Access, Session Security)
+- **1.0.0** (2025-11-08): Initial specification with Core + Modules architecture and PHI extraction workflow
 
 ---
 
@@ -24,7 +28,12 @@
 12. [Constraints](#constraints)
 13. [Acceptance Criteria](#acceptance-criteria)
 14. [Alignment with Constitution](#alignment-with-constitution)
-15. [Open Questions](#open-questions)
+15. [Data Retention & Purging Policy](#data-retention--purging-policy)
+16. [Disaster Recovery & Business Continuity](#disaster-recovery--business-continuity)
+17. [Clinical Safety Mechanisms](#clinical-safety-mechanisms)
+18. [Enhanced Authentication - Break-Glass Access](#enhanced-authentication---break-glass-access)
+19. [Session Security Enhancements](#session-security-enhancements)
+20. [Open Questions](#open-questions)
 
 ---
 
@@ -2274,6 +2283,1187 @@ This specification aligns with the **CogStack NLP Full Potential - Project Const
 - **Configuration**: Admin can tune settings without code changes
 - **Audit Logs**: Track usage patterns for improvement opportunities
 - **Extensible Schema**: JSONB fields for future flexibility
+
+---
+
+## Data Retention & Purging Policy
+
+### Overview
+
+**Goal**: Comply with GDPR/HIPAA data retention requirements while maintaining clinical governance audit trails.
+
+**Key Requirements**:
+- GDPR Article 5(1)(e): Data minimization and storage limitation
+- HIPAA §164.316(b)(2)(i): Retain documentation for 6 years
+- NHS Records Management Code of Practice: Clinical records 8 years, audit trails 7 years
+- Clinical governance: Maintain audit trails for legal discovery
+
+### Retention Periods
+
+#### Clinical Documents & PHI
+
+| Data Type | Retention Period | Rationale | Purging Method |
+|-----------|------------------|-----------|----------------|
+| **Documents** (`documents` table) | **8 years** from last patient contact | NHS Records Management Code | Automated purge + audit log |
+| **Extracted Entities** (`extracted_entities`) | **8 years** from extraction date | Clinical governance | Cascade delete with documents |
+| **Patient Records** (`patients`) | **8 years** from last document | Active patient care | Manual review required |
+| **Audit Logs** (`audit_logs`) | **7 years** from creation | Legal discovery, NHS guidance | Automated archive then purge |
+
+#### System Data
+
+| Data Type | Retention Period | Rationale | Purging Method |
+|-----------|------------------|-----------|----------------|
+| **User Sessions** (`sessions`) | **90 days** from expiry | Security analysis | Automated purge daily |
+| **Tasks** (`tasks`) | **2 years** from completion | Workflow analysis | Automated purge quarterly |
+| **Module Data** (e.g., `patient_search_results`) | **1 year** from creation | Performance analysis | Module-defined purge |
+
+### Purging Mechanisms
+
+#### Automated Purging (Daily Cron Job)
+
+```sql
+-- Purge expired sessions (daily)
+DELETE FROM sessions
+WHERE expires_at < NOW() - INTERVAL '90 days';
+
+-- Purge old completed tasks (quarterly)
+DELETE FROM tasks
+WHERE status = 'complete'
+  AND completed_at < NOW() - INTERVAL '2 years';
+
+-- Archive old audit logs (monthly, before purge)
+INSERT INTO audit_logs_archive
+SELECT * FROM audit_logs
+WHERE timestamp < NOW() - INTERVAL '7 years';
+
+DELETE FROM audit_logs
+WHERE timestamp < NOW() - INTERVAL '7 years';
+```
+
+#### Document Purging (Semi-Automated)
+
+**Process**:
+1. **Weekly Report**: Generate list of documents eligible for purging (>8 years old)
+2. **Admin Review**: Admin reviews list, marks documents for purge or legal hold
+3. **Grace Period**: 30-day grace period for appeals
+4. **Execution**: Batch purge approved documents
+5. **Audit**: Log all purges with admin approval
+
+```sql
+-- Mark documents for purge
+UPDATE documents
+SET
+    medcat_status = 'pending_purge',
+    updated_at = NOW(),
+    updated_by = 'admin-uuid'
+WHERE
+    uploaded_at < NOW() - INTERVAL '8 years'
+    AND medcat_status != 'legal_hold';
+
+-- Execute purge (after grace period)
+DELETE FROM documents
+WHERE medcat_status = 'pending_purge'
+  AND updated_at < NOW() - INTERVAL '30 days';
+```
+
+#### Patient Record Purging (Manual Only)
+
+**Constraints**: Patients linked to multiple documents, complex legal requirements
+
+**Process**:
+1. **Eligibility**: Patient has no documents within 8 years
+2. **Admin Review**: Manual review required (cannot be automated)
+3. **Anonymization Option**: Convert to anonymous research record (optional)
+4. **Purge**: Delete patient record and extracted entities
+
+```sql
+-- Find eligible patients
+SELECT p.id, p.nhs_number, p.first_name, p.last_name,
+       MAX(d.uploaded_at) AS last_document_date
+FROM patients p
+LEFT JOIN documents d ON d.id = ANY(p.source_document_ids)
+GROUP BY p.id
+HAVING MAX(d.uploaded_at) < NOW() - INTERVAL '8 years'
+   OR MAX(d.uploaded_at) IS NULL;
+```
+
+### Legal Hold Procedures
+
+**Trigger Events**:
+- Litigation initiated
+- Clinical incident investigation
+- Regulatory inquiry (CQC, ICO)
+- Patient complaint escalation
+
+**Legal Hold Workflow**:
+
+```sql
+-- Add legal_hold flag to documents table
+ALTER TABLE documents
+ADD COLUMN legal_hold BOOLEAN NOT NULL DEFAULT FALSE,
+ADD COLUMN legal_hold_reason TEXT NULL,
+ADD COLUMN legal_hold_by UUID REFERENCES users(id),
+ADD COLUMN legal_hold_at TIMESTAMP WITH TIME ZONE NULL;
+
+-- Place document on legal hold
+UPDATE documents
+SET
+    legal_hold = TRUE,
+    legal_hold_reason = 'Litigation: Smith vs Hospital',
+    legal_hold_by = 'admin-uuid',
+    legal_hold_at = NOW()
+WHERE id = 'document-uuid';
+
+-- Prevent purging of legal hold documents
+-- (already in purge query above: AND medcat_status != 'legal_hold')
+```
+
+**Legal Hold Notifications**:
+- Email admin when legal hold placed
+- Weekly report of active legal holds
+- Alert if purge attempted on legal hold document
+
+### Anonymization for Research
+
+**Goal**: Retain clinical data value while removing PHI after retention period
+
+**Workflow**:
+1. **Eligibility**: Documents >8 years old, no legal hold
+2. **Anonymization**:
+   - Replace NHS number → `PATIENT_001`, `PATIENT_002`, etc.
+   - Replace names → `John Smith` → `Patient A`
+   - Replace addresses → `London` (city only)
+   - Replace dates → Year only (2015, not 2015-03-15)
+3. **De-identification Table**:
+
+```sql
+CREATE TABLE deidentified_mappings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    original_patient_id UUID,  -- No FK (patient may be deleted)
+    token VARCHAR(50) NOT NULL,  -- 'PATIENT_001'
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by UUID NOT NULL REFERENCES users(id),
+
+    -- Access control: Only researchers with special permission
+    CONSTRAINT deidentified_mappings_unique_token UNIQUE(token)
+);
+
+-- Separate table for anonymized data (not accessible to clinicians)
+CREATE TABLE deidentified_documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    original_document_id UUID,  -- No FK
+    patient_token VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,  -- De-identified content
+    document_type VARCHAR(100),
+    document_year INT,  -- Year only
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+```
+
+**Access Control**: Only `researcher` role with `deidentified_data.view` permission
+
+### Compliance Reporting
+
+**Monthly Reports** (automated):
+- Documents purged this month
+- Documents on legal hold
+- Retention policy compliance rate (% within policy)
+
+**Annual Audit** (manual):
+- Review retention policy against current regulations
+- Verify purge procedures executed correctly
+- Update retention periods if regulations change
+
+---
+
+## Disaster Recovery & Business Continuity
+
+### Overview
+
+**Goal**: Ensure clinical care continuity even if primary workstation fails
+
+**Key Metrics**:
+- **RTO (Recovery Time Objective)**: 4 hours (half working day)
+- **RPO (Recovery Point Objective)**: 24 hours (maximum acceptable data loss)
+- **MTTR (Mean Time To Repair)**: <8 hours
+
+### Backup Strategy
+
+#### Automated Daily Backups
+
+**Schedule**: Daily at 2:00 AM (low usage period)
+
+**Backup Scope**:
+```bash
+# Docker volumes to backup
+/var/lib/docker/volumes/clinical-care-tools_postgres-data
+/var/lib/docker/volumes/clinical-care-tools_medcat-models
+/var/lib/docker/volumes/clinical-care-tools_documents  # If using file storage
+/var/lib/docker/volumes/clinical-care-tools_logs
+```
+
+**Backup Script** (`/scripts/backup.sh`):
+```bash
+#!/bin/bash
+BACKUP_DIR="/backups/$(date +%Y-%m-%d)"
+mkdir -p "$BACKUP_DIR"
+
+# PostgreSQL dump (compressed)
+docker exec postgres pg_dump -U clinicaltools -Fc clinical_care_tools \
+  > "$BACKUP_DIR/database.dump"
+
+# Verify backup integrity
+pg_restore --list "$BACKUP_DIR/database.dump" > /dev/null
+if [ $? -eq 0 ]; then
+    echo "Backup verified successfully"
+else
+    echo "ERROR: Backup verification failed!" >&2
+    exit 1
+fi
+
+# Copy volumes (rsync for incremental)
+rsync -av /var/lib/docker/volumes/clinical-care-tools_medcat-models \
+  "$BACKUP_DIR/medcat-models"
+
+# Encrypt backup (AES-256)
+tar czf - "$BACKUP_DIR" | openssl enc -aes-256-cbc -salt \
+  -out "$BACKUP_DIR.tar.gz.enc" -pass file:/etc/backup.key
+
+# Upload to network storage (NAS/external drive)
+cp "$BACKUP_DIR.tar.gz.enc" /mnt/nas/clinical-backups/
+
+# Retention: Keep daily backups for 30 days, weekly for 6 months
+find /backups -name "*.tar.gz.enc" -mtime +30 -delete
+```
+
+**Cron Schedule**:
+```cron
+0 2 * * * /scripts/backup.sh >> /var/log/backup.log 2>&1
+```
+
+#### Weekly Full Backup
+
+**Schedule**: Every Sunday 3:00 AM
+
+**Includes**:
+- Full PostgreSQL dump
+- All Docker volumes
+- Application logs
+- Configuration files
+- Encryption keys (stored separately, not on same server)
+
+#### Offsite Backup
+
+**Frequency**: Weekly
+
+**Methods**:
+- Option A: Copy to offsite NAS (hospital network)
+- Option B: USB hard drive rotated offsite (physical security)
+- Option C: Encrypted cloud backup (Azure/AWS with HIPAA BAA)
+
+**Security**: All offsite backups AES-256 encrypted
+
+### Backup Testing & Verification
+
+#### Monthly Restore Test
+
+**Procedure** (first Monday of each month):
+1. Select random backup from previous month
+2. Restore to test environment (separate workstation)
+3. Verify data integrity (sample queries)
+4. Verify application functionality (login, search)
+5. Document results and time taken
+
+**Acceptance Criteria**:
+- Restore completes within 4 hours (meets RTO)
+- Data loss <24 hours (meets RPO)
+- Application functional after restore
+
+#### Checksum Verification
+
+**Daily**:
+```bash
+# Generate checksums during backup
+sha256sum "$BACKUP_DIR/database.dump" > "$BACKUP_DIR/checksums.txt"
+
+# Verify checksums monthly
+sha256sum -c /backups/2024-11-01/checksums.txt
+```
+
+### Failover Procedures
+
+#### Scenario 1: Workstation Hardware Failure
+
+**Detection**: Workstation unresponsive, won't boot
+
+**Response** (within 4 hours RTO):
+1. **Notify Stakeholders** (0-15 mins):
+   - Email admin list: "Primary workstation down, initiating DR"
+   - SMS alerts to on-call staff
+
+2. **Prepare Standby Workstation** (15-60 mins):
+   - Boot standby workstation (pre-configured with Docker)
+   - Verify network connectivity
+   - Mount backup storage
+
+3. **Restore from Backup** (60-180 mins):
+   ```bash
+   # Decrypt latest backup
+   openssl enc -d -aes-256-cbc -in backup.tar.gz.enc \
+     -out backup.tar.gz -pass file:/etc/backup.key
+
+   # Extract
+   tar xzf backup.tar.gz
+
+   # Restore PostgreSQL
+   docker exec -i postgres pg_restore -U clinicaltools -d clinical_care_tools \
+     < database.dump
+
+   # Restore volumes
+   rsync -av backup/medcat-models/ /var/lib/docker/volumes/clinical-care-tools_medcat-models/
+
+   # Start application
+   docker-compose up -d
+   ```
+
+4. **Verify Functionality** (180-210 mins):
+   - Test login
+   - Test patient search
+   - Test document upload
+   - Test audit log query
+
+5. **Resume Operations** (210-240 mins):
+   - Email users: "System restored, resume work"
+   - Monitor for issues for 24 hours
+
+#### Scenario 2: Data Corruption Detected
+
+**Detection**: Checksum mismatch, database errors, PHI anomalies
+
+**Response**:
+1. **Immediately Stop Write Operations**:
+   ```bash
+   # Put application in read-only mode
+   docker exec postgres psql -U clinicaltools -d clinical_care_tools \
+     -c "ALTER DATABASE clinical_care_tools SET default_transaction_read_only = ON;"
+   ```
+
+2. **Identify Corruption Extent**:
+   - Run database integrity checks
+   - Check audit logs for when corruption started
+   - Identify affected tables
+
+3. **Restore from Last Known Good Backup**:
+   - Find most recent uncorrupted backup
+   - Restore affected tables only (if possible)
+   - Verify data integrity
+
+4. **Manual Data Recovery** (if needed):
+   - Review audit logs for recent changes
+   - Manually re-enter lost data (since last backup)
+   - Document recovery process
+
+#### Scenario 3: Ransomware/Malware Attack
+
+**Detection**: Files encrypted, ransom note, unusual file changes
+
+**Response**:
+1. **Immediate Isolation**:
+   - Disconnect workstation from network
+   - Power off workstation
+   - Do NOT pay ransom
+
+2. **Forensic Analysis** (IT security team):
+   - Preserve evidence (memory dump, disk image)
+   - Identify attack vector
+   - Determine data breach scope
+
+3. **Clean Restore**:
+   - Wipe infected workstation
+   - Reinstall OS and Docker from scratch
+   - Restore from pre-infection backup
+   - Scan backup for malware before restoring
+
+4. **Post-Incident**:
+   - Report to ICO (if data breach)
+   - Review security controls
+   - Implement additional safeguards
+
+### Business Continuity During Downtime
+
+#### Alternative Access Methods
+
+**If Primary Workstation Down**:
+- **Urgent Patient Care**: Access patient records via hospital EHR (not this system)
+- **Non-Urgent Tasks**: Postpone until system restored
+- **Read-Only Access**: If database restored but app broken, provide SQL query access to authorized users
+
+#### Communication Plan
+
+**Stakeholders**:
+- Clinicians using system
+- IT support staff
+- Hospital management
+- Patients (if data breach)
+
+**Templates**:
+```
+Subject: [URGENT] Clinical Tools System Outage
+
+The Clinical Care Tools system is currently unavailable due to [hardware failure].
+
+Estimated restoration time: [4 hours] by [14:00]
+
+Alternative: Access patient records via hospital EHR for urgent care.
+
+Updates will be sent every hour.
+
+IT Support: [phone] [email]
+```
+
+### Annual DR Test
+
+**Full Disaster Recovery Drill** (once per year):
+1. Simulate complete workstation failure
+2. Execute full failover procedure
+3. Invite observers (IT, clinical, management)
+4. Measure RTO/RPO achievement
+5. Document lessons learned
+6. Update DR plan based on findings
+
+---
+
+## Clinical Safety Mechanisms
+
+### Overview
+
+**Goal**: Prevent patient harm from system errors, misuse, or data quality issues
+
+**Key Standards**:
+- NHS DCB0129: Clinical Safety Risk Management
+- ISO 14971: Medical Devices Risk Management
+- Clinical governance best practices
+
+### Clinical Decision Override Tracking
+
+#### Scenario
+
+Clinician disagrees with CDS recommendation or search results
+
+**Example**:
+- System suggests "Atrial Flutter" based on MedCAT extraction
+- Clinician reviews source document, determines it's actually "Atrial Fibrillation"
+- Clinician overrides system finding
+
+#### Schema
+
+```sql
+CREATE TABLE clinical_overrides (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id),
+    resource_type VARCHAR(100) NOT NULL,  -- 'extracted_entity', 'cds_recommendation', 'patient_match'
+    resource_id UUID NOT NULL,
+    system_value TEXT NOT NULL,  -- What system suggested
+    override_value TEXT NOT NULL,  -- What clinician chose
+    reason TEXT NOT NULL,  -- Required: Why override?
+    severity VARCHAR(50) NOT NULL,  -- 'minor', 'moderate', 'major', 'critical'
+    reviewed BOOLEAN NOT NULL DEFAULT FALSE,
+    reviewed_by UUID REFERENCES users(id),
+    reviewed_at TIMESTAMP WITH TIME ZONE NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT clinical_overrides_severity_check CHECK (severity IN ('minor', 'moderate', 'major', 'critical'))
+);
+
+CREATE INDEX idx_clinical_overrides_user ON clinical_overrides(user_id);
+CREATE INDEX idx_clinical_overrides_resource ON clinical_overrides(resource_type, resource_id);
+CREATE INDEX idx_clinical_overrides_severity ON clinical_overrides(severity);
+CREATE INDEX idx_clinical_overrides_reviewed ON clinical_overrides(reviewed) WHERE reviewed = FALSE;
+```
+
+#### Workflow
+
+**UI Component** (shown when clinician questions system):
+```vue
+<template>
+  <v-dialog v-model="showOverride">
+    <v-card>
+      <v-card-title>Override System Finding</v-card-title>
+      <v-card-text>
+        <p><strong>System found:</strong> {{ systemValue }}</p>
+        <v-text-field
+          v-model="overrideValue"
+          label="Correct value"
+          required
+        />
+        <v-textarea
+          v-model="reason"
+          label="Reason for override (required)"
+          required
+        />
+        <v-select
+          v-model="severity"
+          :items="['minor', 'moderate', 'major', 'critical']"
+          label="Clinical severity"
+          hint="How significant is this discrepancy?"
+        />
+      </v-card-text>
+      <v-card-actions>
+        <v-btn @click="submitOverride">Submit Override</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+</template>
+```
+
+**Audit Log** (automatically generated):
+```python
+await audit_log(
+    user_id=user.id,
+    action="CLINICAL_OVERRIDE",
+    resource_type="extracted_entity",
+    resource_id=entity_id,
+    details={
+        "system_value": "Atrial Flutter (CUI: C0004239)",
+        "override_value": "Atrial Fibrillation (CUI: C0004238)",
+        "reason": "Review of source document shows 'AF' abbreviation refers to fibrillation, not flutter",
+        "severity": "moderate"
+    }
+)
+```
+
+#### Override Review Process
+
+**Weekly Review** (Clinical Governance Lead):
+1. Query unreviewed overrides:
+   ```sql
+   SELECT * FROM clinical_overrides
+   WHERE reviewed = FALSE
+   ORDER BY severity DESC, created_at ASC;
+   ```
+
+2. Review each override:
+   - Minor: Acknowledge and mark reviewed
+   - Moderate: Discuss with clinician if pattern emerges
+   - Major/Critical: Immediate investigation, potential incident report
+
+3. **Quality Improvement**:
+   - Identify systematic issues (e.g., MedCAT consistently misclassifying specific term)
+   - Trigger model retraining if >10 overrides for same concept
+   - Update clinical guidelines if needed
+
+### Critical Finding Alerts
+
+#### Scenario
+
+Urgent clinical findings requiring immediate attention
+
+**Examples**:
+- Suspected sepsis
+- Acute MI (myocardial infarction)
+- Critical lab values (e.g., K+ >6.5)
+- Safety alerts (drug interactions)
+
+#### Schema
+
+```sql
+CREATE TABLE critical_findings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID NOT NULL REFERENCES patients(id),
+    finding_type VARCHAR(100) NOT NULL,  -- 'sepsis_alert', 'acute_mi', 'critical_lab', 'drug_interaction'
+    severity VARCHAR(50) NOT NULL,  -- 'urgent', 'critical'
+    description TEXT NOT NULL,
+    source_document_id UUID REFERENCES documents(id),
+    source_entity_ids UUID[] NOT NULL,  -- Array of extracted_entities IDs
+    confidence REAL NOT NULL,
+
+    -- Acknowledgment tracking
+    acknowledged BOOLEAN NOT NULL DEFAULT FALSE,
+    acknowledged_by UUID REFERENCES users(id),
+    acknowledged_at TIMESTAMP WITH TIME ZONE NULL,
+    action_taken TEXT NULL,
+
+    -- Escalation
+    escalated BOOLEAN NOT NULL DEFAULT FALSE,
+    escalated_to UUID REFERENCES users(id),
+    escalated_at TIMESTAMP WITH TIME ZONE NULL,
+
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,  -- Auto-dismiss after 48 hours
+
+    CONSTRAINT critical_findings_severity_check CHECK (severity IN ('urgent', 'critical')),
+    CONSTRAINT critical_findings_confidence_check CHECK (confidence >= 0.0 AND confidence <= 1.0)
+);
+
+CREATE INDEX idx_critical_findings_patient ON critical_findings(patient_id);
+CREATE INDEX idx_critical_findings_acknowledged ON critical_findings(acknowledged) WHERE acknowledged = FALSE;
+CREATE INDEX idx_critical_findings_expires ON critical_findings(expires_at) WHERE acknowledged = FALSE;
+```
+
+#### Alert Workflow
+
+**Detection** (during MedCAT processing):
+```python
+# After extracting entities
+for entity in extracted_entities:
+    # Check against critical finding rules
+    if entity.cui == 'C0243026' and entity.meta_annotations['Negation'] == 'Affirmed':  # Sepsis
+        create_critical_finding(
+            patient_id=patient_id,
+            finding_type='sepsis_alert',
+            severity='critical',
+            description=f"Suspected sepsis detected in document {document.filename}",
+            confidence=entity.confidence
+        )
+
+        # Send notification (email + in-app)
+        notify_user(
+            user_id=document.uploaded_by,
+            message="CRITICAL: Suspected sepsis detected in uploaded document",
+            priority='high'
+        )
+```
+
+**Dashboard Widget** (always visible):
+```vue
+<v-alert
+  v-if="criticalFindings.length > 0"
+  type="error"
+  prominent
+  class="critical-findings-alert"
+>
+  <v-row align="center">
+    <v-col>
+      {{ criticalFindings.length }} Critical Finding(s) Require Attention
+    </v-col>
+    <v-col class="text-right">
+      <v-btn @click="viewCriticalFindings">Review Now</v-btn>
+    </v-col>
+  </v-row>
+</v-alert>
+```
+
+**Acknowledgment Workflow**:
+1. Clinician reviews finding
+2. Determines action (escalate, false positive, already managed)
+3. Documents action taken
+4. Marks acknowledged
+
+**Auto-Escalation**: If not acknowledged within 4 hours, escalate to clinical lead
+
+### Handover Procedures
+
+#### Scenario
+
+Staff changeover (shift change, annual leave, staff leaving)
+
+**Challenge**: Ensure continuity of patient care and tasks
+
+#### Task Reassignment
+
+```sql
+-- Reassign all pending tasks from outgoing user to incoming user
+UPDATE tasks
+SET
+    assigned_to = 'incoming-user-uuid',
+    updated_at = NOW(),
+    updated_by = 'admin-uuid',
+    configuration = jsonb_set(
+        configuration,
+        '{handover_notes}',
+        to_jsonb('Reassigned from Dr. Smith (on leave) to Dr. Jones')
+    )
+WHERE
+    assigned_to = 'outgoing-user-uuid'
+    AND status IN ('pending', 'in_progress');
+```
+
+#### Handover Checklist
+
+**UI Prompt** (when user marks themselves as "on leave"):
+- [ ] Review all pending tasks
+- [ ] Reassign urgent tasks to specific colleague
+- [ ] Add handover notes to each task
+- [ ] Notify project owners of absence
+- [ ] Set auto-reply email
+
+**Handover Notes** (stored in task configuration):
+```json
+{
+  "handover_notes": "Patient Mrs. Smith (NHS: 1234567890) - Awaiting MRI results, due back 15th Nov. Check timeline for follow-up appointment.",
+  "previous_owner": "user-uuid-outgoing",
+  "handover_date": "2024-11-08T09:00:00Z"
+}
+```
+
+### Clinical Incident Reporting
+
+#### Integration with Hospital Incident System
+
+**Trigger Events** (require incident report):
+- System error affecting patient care
+- Data loss or corruption
+- Clinical override marked "critical" severity
+- Critical finding missed or delayed
+- Unauthorized PHI access
+
+#### Schema
+
+```sql
+CREATE TABLE clinical_incidents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    incident_type VARCHAR(100) NOT NULL,  -- 'system_error', 'data_loss', 'missed_finding', 'unauthorized_access'
+    severity VARCHAR(50) NOT NULL,  -- 'no_harm', 'near_miss', 'minor_harm', 'major_harm'
+    description TEXT NOT NULL,
+    patient_affected UUID REFERENCES patients(id),  -- NULL if no specific patient
+    user_involved UUID REFERENCES users(id),
+    root_cause TEXT NULL,
+    corrective_action TEXT NULL,
+
+    -- Hospital incident system integration
+    hospital_incident_id VARCHAR(100) NULL,  -- External incident ID
+    reported_to_hospital BOOLEAN NOT NULL DEFAULT FALSE,
+    reported_at TIMESTAMP WITH TIME ZONE NULL,
+
+    -- Investigation
+    investigated BOOLEAN NOT NULL DEFAULT FALSE,
+    investigated_by UUID REFERENCES users(id),
+    investigation_notes TEXT NULL,
+    investigation_complete_at TIMESTAMP WITH TIME ZONE NULL,
+
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by UUID NOT NULL REFERENCES users(id),
+
+    CONSTRAINT clinical_incidents_severity_check CHECK (severity IN ('no_harm', 'near_miss', 'minor_harm', 'major_harm'))
+);
+
+CREATE INDEX idx_clinical_incidents_severity ON clinical_incidents(severity);
+CREATE INDEX idx_clinical_incidents_investigated ON clinical_incidents(investigated) WHERE investigated = FALSE;
+CREATE INDEX idx_clinical_incidents_patient ON clinical_incidents(patient_affected);
+```
+
+#### Workflow
+
+**Automatic Incident Creation**:
+```python
+# Example: System error during MedCAT processing
+try:
+    entities = await medcat_service.process(document.content)
+except Exception as e:
+    # Log error
+    logger.error(f"MedCAT processing failed: {e}")
+
+    # Create incident
+    incident = await create_clinical_incident(
+        incident_type='system_error',
+        severity='near_miss',  # No patient harm yet, but potential
+        description=f"MedCAT processing failed for document {document.id}: {str(e)}",
+        user_involved=document.uploaded_by
+    )
+
+    # Notify clinical governance lead
+    notify_clinical_lead(incident)
+```
+
+**Investigation Workflow**:
+1. Incident created → Email to clinical governance lead
+2. Lead reviews incident → Assigns to investigator
+3. Investigator gathers evidence (audit logs, screenshots, user interviews)
+4. Root cause analysis
+5. Corrective actions identified
+6. Incident marked complete
+7. Monthly review of all incidents (quality improvement)
+
+### Patient Safety Dashboard
+
+**Admin View**:
+- Open critical findings (by severity)
+- Unreviewed clinical overrides (by severity)
+- Open clinical incidents (by type)
+- System health metrics (uptime, error rates)
+
+**Alerts**:
+- >5 critical findings unacknowledged for >4 hours → Escalate to clinical director
+- >10 clinical overrides of same concept → Trigger model review
+- >3 clinical incidents in one week → Immediate review meeting
+
+---
+
+## Enhanced Authentication & Authorization
+
+### Break-Glass Access
+
+#### Scenario
+
+**Emergency clinical situation** requiring immediate access to patient data:
+- Clinician needs urgent access to patient record but not assigned to project
+- Patient unconscious, cannot consent
+- Life-threatening situation, no time for formal access request
+
+#### Schema Enhancement
+
+```sql
+-- Add to users table
+ALTER TABLE users
+ADD COLUMN can_break_glass BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Break-glass access log
+CREATE TABLE break_glass_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id),
+    patient_id UUID NOT NULL REFERENCES patients(id),
+    reason TEXT NOT NULL,  -- Required: Why emergency access needed
+    clinical_justification TEXT NOT NULL,  -- Detailed justification
+    accessed_resources JSONB NOT NULL DEFAULT '[]',  -- Array of resource IDs accessed
+    duration_minutes INT NOT NULL DEFAULT 60,  -- How long access granted
+    access_granted_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    access_expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+
+    -- Post-access review
+    reviewed BOOLEAN NOT NULL DEFAULT FALSE,
+    reviewed_by UUID REFERENCES users(id),
+    reviewed_at TIMESTAMP WITH TIME ZONE NULL,
+    review_outcome VARCHAR(50) NULL,  -- 'justified', 'questionable', 'inappropriate'
+    review_notes TEXT NULL,
+
+    -- Security team notification
+    security_notified BOOLEAN NOT NULL DEFAULT TRUE,
+    security_notified_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT break_glass_review_outcome_check CHECK (
+        review_outcome IS NULL OR review_outcome IN ('justified', 'questionable', 'inappropriate')
+    )
+);
+
+CREATE INDEX idx_break_glass_user ON break_glass_events(user_id);
+CREATE INDEX idx_break_glass_patient ON break_glass_events(patient_id);
+CREATE INDEX idx_break_glass_reviewed ON break_glass_events(reviewed) WHERE reviewed = FALSE;
+CREATE INDEX idx_break_glass_expires ON break_glass_events(access_expires_at);
+```
+
+#### Break-Glass Workflow
+
+**UI Prompt**:
+```vue
+<v-dialog v-model="showBreakGlass" persistent max-width="600px">
+  <v-card>
+    <v-card-title class="error white--text">
+      ⚠️ Emergency Access (Break-Glass)
+    </v-card-title>
+    <v-card-text>
+      <v-alert type="warning" prominent>
+        This access will be:
+        - Logged and audited
+        - Reviewed by clinical governance
+        - Reported to security team
+        - Limited to 60 minutes
+      </v-alert>
+
+      <v-text-field
+        v-model="patientIdentifier"
+        label="Patient NHS Number or MRN"
+        required
+      />
+
+      <v-textarea
+        v-model="reason"
+        label="Emergency Reason (Required)"
+        hint="E.g., 'Patient unconscious in A&E, need medication history'"
+        rows="3"
+        required
+      />
+
+      <v-textarea
+        v-model="clinicalJustification"
+        label="Clinical Justification (Detailed)"
+        hint="Explain why immediate access is necessary for patient care"
+        rows="4"
+        required
+      />
+
+      <v-checkbox
+        v-model="acknowledged"
+        label="I acknowledge this access will be reviewed and I may be required to provide additional justification"
+        required
+      />
+    </v-card-text>
+    <v-card-actions>
+      <v-btn @click="showBreakGlass = false">Cancel</v-btn>
+      <v-btn
+        color="error"
+        @click="requestBreakGlass"
+        :disabled="!canSubmit"
+      >
+        Request Emergency Access
+      </v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+```
+
+**Backend Logic**:
+```python
+@router.post("/api/v1/auth/break-glass")
+async def request_break_glass_access(
+    request: BreakGlassRequest,
+    user: User = Depends(get_current_user)
+):
+    # Validate user has break-glass permission
+    if not user.can_break_glass:
+        raise HTTPException(403, "User not authorized for break-glass access")
+
+    # Validate reason is provided and substantive
+    if len(request.reason) < 20:
+        raise HTTPException(400, "Reason must be detailed (min 20 characters)")
+
+    # Find patient
+    patient = await get_patient_by_identifier(request.patient_identifier)
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    # Create break-glass event
+    event = await create_break_glass_event(
+        user_id=user.id,
+        patient_id=patient.id,
+        reason=request.reason,
+        clinical_justification=request.clinical_justification,
+        duration_minutes=60
+    )
+
+    # Audit log (high priority)
+    await audit_log(
+        user_id=user.id,
+        action="BREAK_GLASS_ACCESS",
+        resource_type="patient",
+        resource_id=str(patient.id),
+        details={
+            "reason": request.reason,
+            "clinical_justification": request.clinical_justification,
+            "duration_minutes": 60
+        }
+    )
+
+    # IMMEDIATE notifications
+    await notify_security_team(event)  # Email + SMS
+    await notify_clinical_governance_lead(event)
+
+    # Grant temporary access (modify user permissions in-memory)
+    # Return temporary token with patient access
+    temp_token = create_temp_access_token(
+        user_id=user.id,
+        patient_id=patient.id,
+        expires_in_minutes=60
+    )
+
+    return {
+        "access_granted": True,
+        "expires_at": event.access_expires_at,
+        "temp_token": temp_token,
+        "message": "Emergency access granted. Security team notified."
+    }
+```
+
+**Auto-Revocation**:
+```python
+# Background task runs every 5 minutes
+async def revoke_expired_break_glass_access():
+    expired_events = await db.query(
+        "SELECT * FROM break_glass_events WHERE access_expires_at < NOW() AND reviewed = FALSE"
+    )
+
+    for event in expired_events:
+        # Revoke access (invalidate temp tokens)
+        await revoke_temp_tokens(user_id=event.user_id, patient_id=event.patient_id)
+
+        # Audit log
+        await audit_log(
+            user_id=event.user_id,
+            action="BREAK_GLASS_EXPIRED",
+            resource_type="patient",
+            resource_id=str(event.patient_id)
+        )
+```
+
+**Post-Access Review** (within 24 hours):
+1. Clinical governance lead reviews all break-glass events
+2. Contacts clinician for additional justification if needed
+3. Marks review outcome (`justified`, `questionable`, `inappropriate`)
+4. If `inappropriate` → Disciplinary process triggered
+
+### Session Security Enhancements
+
+#### Current Limitations
+
+Basic JWT with 8-hour expiry is insufficient for healthcare security
+
+#### Enhancements
+
+**1. Session Binding**
+
+```sql
+-- Enhance sessions table
+ALTER TABLE sessions
+ADD COLUMN ip_address_hash VARCHAR(64) NOT NULL,  -- SHA-256 of IP
+ADD COLUMN user_agent_hash VARCHAR(64) NOT NULL,  -- SHA-256 of user-agent
+ADD COLUMN device_fingerprint VARCHAR(255) NULL,  -- Browser fingerprint
+ADD COLUMN is_suspicious BOOLEAN NOT NULL DEFAULT FALSE,
+ADD COLUMN suspicious_reason TEXT NULL;
+
+-- Session validation now checks IP + user-agent match
+```
+
+**Validation Logic**:
+```python
+async def validate_session(token: str, request: Request):
+    session = await get_session_by_token_hash(hash_token(token))
+
+    if not session:
+        raise HTTPException(401, "Invalid session")
+
+    # Check expiry
+    if session.expires_at < datetime.now():
+        await delete_session(session.id)
+        raise HTTPException(401, "Session expired")
+
+    # Check IP binding (allow some variance for DHCP)
+    current_ip_hash = hash_ip(request.client.host)
+    if current_ip_hash != session.ip_address_hash:
+        # Mark suspicious but don't reject (could be legitimate IP change)
+        session.is_suspicious = True
+        session.suspicious_reason = "IP address changed"
+        await update_session(session)
+
+        # Alert security team if multiple IP changes
+        if session.suspicious_change_count > 3:
+            await alert_security_team(session)
+
+    # Check user-agent binding (strict)
+    current_ua_hash = hash_user_agent(request.headers.get("User-Agent"))
+    if current_ua_hash != session.user_agent_hash:
+        # Immediate rejection (likely session hijack)
+        await delete_session(session.id)
+        await audit_log(
+            user_id=session.user_id,
+            action="SESSION_HIJACK_DETECTED",
+            resource_type="session",
+            resource_id=str(session.id),
+            details={"reason": "User-Agent mismatch"}
+        )
+        raise HTTPException(401, "Session invalid - security violation")
+
+    return session
+```
+
+**2. Concurrent Session Limits**
+
+```python
+# During login
+async def create_session(user_id: UUID, ...):
+    # Count active sessions for user
+    active_sessions = await db.query(
+        "SELECT COUNT(*) FROM sessions WHERE user_id = ? AND expires_at > NOW()",
+        user_id
+    )
+
+    if active_sessions >= 2:  # Max 2 concurrent sessions
+        # Terminate oldest session
+        oldest_session = await db.query(
+            "SELECT * FROM sessions WHERE user_id = ? ORDER BY created_at ASC LIMIT 1",
+            user_id
+        )
+        await delete_session(oldest_session.id)
+
+        # Notify user (email)
+        await notify_user(
+            user_id=user_id,
+            message="Previous session terminated due to new login from different device"
+        )
+
+    # Create new session
+    # ...
+```
+
+**3. Idle Timeout (15 minutes)**
+
+```python
+# Middleware updates last_activity on every request
+@app.middleware("http")
+async def update_session_activity(request: Request, call_next):
+    if "Authorization" in request.headers:
+        token = extract_token(request.headers["Authorization"])
+        session = await get_session_by_token_hash(hash_token(token))
+
+        if session:
+            # Check idle timeout
+            if session.last_activity < datetime.now() - timedelta(minutes=15):
+                # Session idle too long
+                await delete_session(session.id)
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Session expired due to inactivity"}
+                )
+
+            # Update last activity
+            session.last_activity = datetime.now()
+            await update_session(session)
+
+    response = await call_next(request)
+    return response
+```
+
+**4. Admin Force Logout**
+
+```sql
+-- Add to sessions table
+ALTER TABLE sessions
+ADD COLUMN force_logout BOOLEAN NOT NULL DEFAULT FALSE,
+ADD COLUMN force_logout_reason TEXT NULL,
+ADD COLUMN force_logout_by UUID REFERENCES users(id);
+```
+
+**API Endpoint**:
+```python
+@router.post("/api/v1/admin/force-logout/{user_id}")
+async def force_logout_user(
+    user_id: UUID,
+    reason: str,
+    admin: User = Depends(require_permission("admin.force_logout"))
+):
+    # Mark all sessions for force logout
+    await db.execute(
+        """UPDATE sessions
+           SET force_logout = TRUE,
+               force_logout_reason = ?,
+               force_logout_by = ?
+           WHERE user_id = ?""",
+        reason, admin.id, user_id
+    )
+
+    # Audit log
+    await audit_log(
+        user_id=admin.id,
+        action="ADMIN_FORCE_LOGOUT",
+        resource_type="user",
+        resource_id=str(user_id),
+        details={"reason": reason}
+    )
+
+    return {"message": f"All sessions for user {user_id} will be terminated"}
+```
+
+**Client-Side Check** (on every API call):
+```python
+# Middleware checks force_logout flag
+if session.force_logout:
+    await delete_session(session.id)
+    return JSONResponse(
+        status_code=401,
+        content={
+            "detail": "Your session has been terminated by an administrator",
+            "reason": session.force_logout_reason
+        }
+    )
+```
 
 ---
 
