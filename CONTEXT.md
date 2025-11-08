@@ -703,19 +703,35 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ### Active Development
 
-**As of 2025-11-07**: Documentation and context maintenance
+**As of 2025-11-08**: Planning phase complete, ready for implementation
 
 **Current Activity**:
-1. ✅ Major CONTEXT.md update to reflect actual codebase state
-2. ✅ Corrected documentation to distinguish research/annotation platform from planned clinical care tools
-3. ✅ Fixed terminology: "patient-facing" → "clinical care interfaces" (tools for clinicians, not patients)
-4. ⏳ Git hooks configured for CONTEXT.md enforcement
+1. ✅ Planning Phase 100% Complete
+   - Constitution established (10 core principles)
+   - Specification complete (v1.1.0 with 5 production sections)
+   - Technical plan complete (v1.1.0, 8 phases, 310 hours)
+   - Task breakdown complete (~90 tasks)
+   - 8 implementation skills ready
+   - Git hooks enforcing quality
+   - Session management enhanced (v1.4.0)
+   - NEXT_STEPS.md created for session continuity
+
+2. ⏳ **Next: Phase 0 - Environment Setup** (7 tasks, ~20 hours)
+   - Docker Desktop installation and configuration
+   - MedCAT model download and verification (2-5 GB)
+   - Docker Compose configuration (5 services)
+   - PostgreSQL and Redis initialization
+   - MedCAT Service verification
+   - Environment verification script
 
 **Next Steps for Clinical Care Tools**:
-1. Review production codebase (MedCAT Trainer, Service, v2) to understand existing patterns
-2. Begin Sprint 1 implementation (Patient Search for Clinicians) leveraging existing Vue 3 + FastAPI/Django infrastructure
-3. Integrate Elasticsearch (CogStack-ES library is ready)
-4. Decide on backend approach: FastAPI microservice vs Django extension
+1. **Immediate**: Begin Phase 0 (Environment Setup) - see NEXT_STEPS.md
+2. Install Docker Desktop with 8GB RAM, 4 CPU cores
+3. Download MedCAT SNOMED-CT models (2-5 GB)
+4. Create docker-compose.yml with 5 services
+5. Initialize PostgreSQL database
+6. Initialize Redis caching
+7. Verify MedCAT Service operational
 
 ---
 
@@ -774,10 +790,61 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-08 - Next Steps Documentation for Future Sessions
+
+**Commits**:
+- [Current] - docs: Create NEXT_STEPS.md for session continuity
+
+**Added**:
+- **NEXT_STEPS.md** - Comprehensive guide for starting new coding sessions
+  - What's been completed (planning phase 100% complete)
+  - Phase 0 detailed breakdown (7 tasks, 20 hours)
+  - Key files reference (planning docs, guides, skills)
+  - Starting a new session checklist (4 steps)
+  - Important constraints & requirements
+  - Phase overview (8 phases total)
+  - AI assistant checklist for new sessions
+  - Quick start command
+  - Success criteria for Phase 0
+
+**Changed**:
+- None
+
+**Removed**:
+- None
+
+**Why**:
+- **User request**: "Include a next steps section in a file for future reference and new coding sessions"
+- **Session continuity**: Provide clear starting point for new sessions
+- **Onboarding efficiency**: New developers/AI assistants can quickly understand current state
+- **Context preservation**: Complement CONTEXT.md with actionable next steps
+- **Clear milestones**: Define success criteria for Phase 0
+
+**Impact**:
+- ✅ Single file provides complete "where are we, what's next" overview
+- ✅ New sessions can start immediately with clear direction
+- ✅ Phase 0 tasks clearly outlined with acceptance criteria
+- ✅ Key files referenced for easy navigation
+- ✅ AI assistant checklist ensures consistent session start
+- ✅ Quick start command for rapid context loading
+
+**Migration Notes**:
+- Read NEXT_STEPS.md at the start of every new session
+- Use it alongside CONTEXT.md (CONTEXT = history, NEXT_STEPS = future)
+- Update NEXT_STEPS.md as phases complete
+
+**Design Pattern Introduced**:
+- **Session Continuity Pattern**: CONTEXT.md (history) + NEXT_STEPS.md (future) = complete context
+
+**Key Files**:
+- NEXT_STEPS.md - Session starting guide
+
+---
+
 ### 2025-11-08 - Enhanced Session Management Guidance in CLAUDE.md (v1.4.0)
 
 **Commits**:
-- [Current] - docs(claude): Add proactive context checking before big tasks
+- a0d97d4f - docs(claude): Enhance session context management (v1.4.0)
 
 **Added**:
 - **"BEFORE Starting ANY Big Task - CHECK CONTEXT FIRST!" section** in CLAUDE.md
