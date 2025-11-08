@@ -1,76 +1,86 @@
 #!/bin/bash
 #
-# Install Git hooks for CogStack NLP project
+# Install git hooks from .git-hooks/ directory
+#
+# This script copies all hooks to .git/hooks/ and makes them executable
 #
 
 set -e
 
+# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Installing Git hooks...${NC}"
+# Get script directory and repository root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+echo -e "${YELLOW}Installing git hooks...${NC}"
 echo ""
 
-# Get script directory
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-HOOKS_SOURCE_DIR="$PROJECT_ROOT/.git-hooks"
-HOOKS_TARGET_DIR="$PROJECT_ROOT/.git/hooks"
-
 # Check if .git directory exists
-if [ ! -d "$PROJECT_ROOT/.git" ]; then
+if [ ! -d "$REPO_ROOT/.git" ]; then
     echo -e "${RED}Error: .git directory not found${NC}"
-    echo "Are you running this from the repository root?"
+    echo "Are you in the repository root?"
     exit 1
 fi
 
 # Check if .git-hooks directory exists
-if [ ! -d "$HOOKS_SOURCE_DIR" ]; then
+if [ ! -d "$REPO_ROOT/.git-hooks" ]; then
     echo -e "${RED}Error: .git-hooks directory not found${NC}"
     exit 1
 fi
 
-# Create hooks directory if it doesn't exist
-mkdir -p "$HOOKS_TARGET_DIR"
+# Create .git/hooks directory if it doesn't exist
+mkdir -p "$REPO_ROOT/.git/hooks"
 
-# Install pre-commit hook
-if [ -f "$HOOKS_SOURCE_DIR/pre-commit" ]; then
-    echo "Installing pre-commit hook..."
+# Install each hook
+HOOKS_INSTALLED=0
+HOOKS_FAILED=0
 
-    # Check if hook already exists
-    if [ -f "$HOOKS_TARGET_DIR/pre-commit" ]; then
-        echo -e "${YELLOW}Warning: pre-commit hook already exists${NC}"
-        read -p "Overwrite? (y/N) " -n 1 -r
-        echo ""
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Skipping pre-commit hook"
-        else
-            cp "$HOOKS_SOURCE_DIR/pre-commit" "$HOOKS_TARGET_DIR/pre-commit"
-            chmod +x "$HOOKS_TARGET_DIR/pre-commit"
-            echo -e "${GREEN}✓ pre-commit hook installed${NC}"
-        fi
-    else
-        cp "$HOOKS_SOURCE_DIR/pre-commit" "$HOOKS_TARGET_DIR/pre-commit"
-        chmod +x "$HOOKS_TARGET_DIR/pre-commit"
-        echo -e "${GREEN}✓ pre-commit hook installed${NC}"
+for hook in "$REPO_ROOT/.git-hooks"/*; do
+    # Skip README.md
+    if [[ "$(basename "$hook")" == "README.md" ]]; then
+        continue
     fi
-else
-    echo -e "${YELLOW}Warning: pre-commit hook source not found${NC}"
+
+    # Skip if not a file
+    if [ ! -f "$hook" ]; then
+        continue
+    fi
+
+    HOOK_NAME=$(basename "$hook")
+    TARGET="$REPO_ROOT/.git/hooks/$HOOK_NAME"
+
+    # Copy hook
+    if cp "$hook" "$TARGET"; then
+        chmod +x "$TARGET"
+        echo -e "${GREEN}✓${NC} Installed: $HOOK_NAME"
+        ((HOOKS_INSTALLED++))
+    else
+        echo -e "${RED}✗${NC} Failed: $HOOK_NAME"
+        ((HOOKS_FAILED++))
+    fi
+done
+
+echo ""
+echo "Summary:"
+echo "  Installed: $HOOKS_INSTALLED hook(s)"
+if [ "$HOOKS_FAILED" -gt 0 ]; then
+    echo -e "  ${RED}Failed: $HOOKS_FAILED hook(s)${NC}"
 fi
 
 echo ""
 echo -e "${GREEN}Git hooks installation complete!${NC}"
 echo ""
-echo "Installed hooks:"
-ls -l "$HOOKS_TARGET_DIR" | grep -E '^-.*x' | awk '{print "  - " $9}'
+echo "Hooks installed:"
+echo "  - pre-commit: Enforces CONTEXT.md updates"
+echo "  - commit-msg: Validates commit message format"
+echo "  - prepare-commit-msg: Provides commit message template"
 echo ""
-echo "To test the pre-commit hook:"
-echo "  1. Make a code change"
-echo "  2. Try to commit without updating CONTEXT.md"
-echo "  3. Hook should prevent commit"
+echo "See .git-hooks/README.md for details."
 echo ""
-echo "To bypass hook (emergency only):"
-echo "  git commit --no-verify"
-echo ""
+
+exit 0

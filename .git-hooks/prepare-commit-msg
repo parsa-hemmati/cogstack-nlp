@@ -1,0 +1,67 @@
+#!/bin/bash
+#
+# Prepare commit message hook
+#
+# Provides commit message template if message is empty
+#
+# To install: cp .git-hooks/prepare-commit-msg .git/hooks/prepare-commit-msg && chmod +x .git/hooks/prepare-commit-msg
+#
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# Only provide template for new commits (not amend, merge, etc.)
+if [ "$COMMIT_SOURCE" = "message" ] || [ "$COMMIT_SOURCE" = "merge" ] || [ "$COMMIT_SOURCE" = "squash" ]; then
+    exit 0
+fi
+
+# Check if commit message is empty
+if [ ! -s "$COMMIT_MSG_FILE" ]; then
+    # Get branch name for scope suggestion
+    BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+
+    # Extract potential scope from branch name (e.g., feature/patient-search -> patient-search)
+    SCOPE=$(echo "$BRANCH" | sed -E 's#^(feature|bugfix|hotfix)/##' | sed 's#/#-#g')
+
+    if [ "$SCOPE" = "main" ] || [ "$SCOPE" = "develop" ]; then
+        SCOPE=""
+    else
+        SCOPE="($SCOPE)"
+    fi
+
+    cat > "$COMMIT_MSG_FILE" << EOF
+# <type>$SCOPE: <short summary>
+#
+# [Optional: Agent-generated code]
+#
+# Changes:
+# - <What was changed>
+# - <Another change>
+#
+# Rationale:
+# - <Why these changes were made>
+# - <Link to spec/issue if applicable>
+#
+# Tests:
+# - Test coverage: X%
+# - X unit tests, Y integration tests
+# - All tests passing
+#
+# CONTEXT.md Updates:
+# - Updated "Recent Changes" with entry
+# - [If applicable] Added ADR-XXX for [decision]
+# - [If applicable] Moved feature to "Implemented"
+#
+# Valid types: feat, fix, docs, style, refactor, test, chore, perf, security
+# Scope examples: patient-search, auth, api, ui, docs, deps
+#
+# Examples:
+#   feat(patient-search): add meta-annotation filtering
+#   fix(auth): resolve JWT token expiration issue
+#   docs(claude): update skills section with new workflow
+#
+# See CLAUDE.md for full commit message format guide
+EOF
+fi
+
+exit 0

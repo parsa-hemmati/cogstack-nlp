@@ -1,16 +1,39 @@
 # Git Hooks
 
-This directory contains Git hooks to enforce project standards.
+This directory contains Git hooks to enforce project standards and quality.
 
-## Pre-Commit Hook
+## Available Hooks
+
+### 1. Pre-Commit Hook
 
 **Purpose**: Ensures CONTEXT.md is updated with every code change
 
 **What it checks**:
 - ✅ CONTEXT.md is modified when code changes are committed
 - ✅ CONTEXT.md has meaningful changes (not just date update)
-- ⚠️ Warns about console.log/debugger statements
-- ⚠️ Warns about TODO comments without tasks
+- ⚠️ Warns about console.log/debugger statements in JavaScript/TypeScript
+- ⚠️ Warns about TODO comments without associated tasks
+
+### 2. Commit-Msg Hook
+
+**Purpose**: Enforces conventional commit message format
+
+**What it checks**:
+- ✅ First line follows `<type>(<scope>): <summary>` format
+- ✅ Valid type (feat, fix, docs, style, refactor, test, chore, perf, security)
+- ✅ Summary ≤72 characters (warns at >50 characters)
+- ⚠️ Warns if body is missing for non-trivial commits
+- ⚠️ Warns if CONTEXT.md Updates section missing for code changes
+
+### 3. Prepare-Commit-Msg Hook
+
+**Purpose**: Provides commit message template automatically
+
+**What it does**:
+- Inserts commit message template when message is empty
+- Suggests scope based on branch name
+- Includes examples and valid types
+- Provides structured format for Changes, Rationale, Tests, CONTEXT.md Updates
 
 ## Installation
 

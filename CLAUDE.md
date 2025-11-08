@@ -1,7 +1,7 @@
 # AI Assistant Guide for CogStack NLP
 
-**Version**: 1.1.0
-**Last Updated**: 2025-11-07
+**Version**: 1.2.0
+**Last Updated**: 2025-11-08
 **Purpose**: Guide AI assistants (Claude Code, GitHub Copilot, etc.) on project conventions and best practices
 
 ---
@@ -39,7 +39,7 @@
 
 ## 🛠️ Custom Healthcare NLP Skills
 
-**5 specialized skills** are available to assist with healthcare-specific development. They **activate automatically** based on context—you don't need to invoke them explicitly.
+**8 specialized skills** are available to assist with healthcare-specific development. They **activate automatically** based on context—you don't need to invoke them explicitly.
 
 ### Available Skills
 
@@ -74,20 +74,52 @@
 - **What it does**: Ensures Spec-Kit framework followed, checks for specifications
 - **Why useful**: Prevents "code first, document later" anti-pattern
 
+#### 🔵 Priority 4 (Implementation Workflow)
+
+**`spec-to-tech-plan`** - Technical plan generation
+- **Activates when**: Converting specifications to technical plans, architecture design
+- **What it does**: Creates API designs, database schemas, testing strategies, deployment architecture
+- **Why useful**: Ensures complete planning before implementation
+
+**`tech-plan-to-tasks`** - Task breakdown
+- **Activates when**: Breaking down plans, creating task lists, estimating work
+- **What it does**: Converts plans into 1-2 hour tasks with TDD approach, clear acceptance criteria
+- **Why useful**: Enables granular tracking and parallel development
+
+**`infrastructure-expert`** - Infrastructure implementation
+- **Activates when**: Setting up Docker, PostgreSQL, authentication, audit logging
+- **What it does**: Provides production-ready patterns for infrastructure, security, backups
+- **Why useful**: Battle-tested healthcare infrastructure patterns
+
 ### How Skills Work
 
-Skills are **model-invoked** (automatic activation):
+Skills are **model-invoked** (automatic activation) and work together across the full development lifecycle:
 
 ```
-Example: "Add API endpoint to search patients by condition"
+Example: "Build patient search feature"
 
-Auto-activated skills:
-✓ spec-kit-enforcer - Checks for specification
-✓ healthcare-compliance-checker - Validates PHI handling
-✓ medcat-meta-annotations - Suggests filtering patterns
+Planning Phase:
+✓ spec-kit-enforcer - Ensures specification exists
+✓ spec-to-tech-plan - Creates API design, database schema, testing strategy
+✓ tech-plan-to-tasks - Breaks into 8-12 implementable tasks (1-2 hours each)
 
-Result: AI guides through compliant, accurate implementation
+Implementation Phase:
+✓ infrastructure-expert - Guides Docker, PostgreSQL, auth, audit logging
+✓ medcat-meta-annotations - Ensures proper NLP filtering (95% precision)
+✓ healthcare-compliance-checker - Validates PHI handling, audit logging
+
+Integration Phase:
+✓ vue3-component-reuse - Finds existing UI patterns
+✓ fhir-r4-mapper - Adds FHIR export capability
+
+Result: Complete, compliant, production-ready implementation
 ```
+
+**Complete Workflow Coverage**:
+- **Spec → Plan → Tasks → Code** (full Spec-Kit lifecycle)
+- **Safety & Compliance** (HIPAA, GDPR, patient safety)
+- **NLP Accuracy** (meta-annotation filtering)
+- **Infrastructure** (Docker, auth, audit, backups)
 
 **Location**: `.claude/skills/`
 **Documentation**: [.claude/skills/README.md](.claude/skills/README.md)
