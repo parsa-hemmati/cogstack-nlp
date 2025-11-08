@@ -770,6 +770,178 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-08 - Architecture & Planning Skills + Modular App Design
+
+**Commits**:
+- [Current] - feat(skills): Add 4 architecture/planning skills for modular app development
+
+**Added**:
+- **4 New Architecture & Planning Skills** (`.claude/skills/`) - 3,800+ lines
+
+  **medcat-architecture** (Expert knowledge of existing MedCAT ecosystem):
+  - Documents MedCAT v2 core library architecture (228 files, PyPI package)
+  - Documents MedCAT Trainer architecture (Django REST + Vue 3, 95 migrations, 24 components)
+  - Documents MedCAT Service architecture (FastAPI microservice, bulk processing)
+  - Provides 3 integration patterns (REST API, Direct Library, Trainer Extension)
+  - Explains model loading strategies (Model Pack, Component Loading, MedCAT Den)
+  - Documents database schemas, authentication flows, deployment patterns
+  - Guides choosing integration approach for new clinical care tools
+
+  **medcat-ui-patterns** (Vue 3 + Vuetify patterns from MedCAT Trainer):
+  - Documents 24 production Vue components (ClinicalText, ConceptPicker, etc.)
+  - Provides reusable patterns for annotated text display, concept autocomplete, data tables
+  - Shows Django REST API integration patterns (axios, interceptors, service layer)
+  - Explains Token and OIDC/Keycloak authentication flows
+  - Demonstrates Vuetify component usage (v-data-table, v-card, v-chip)
+  - Includes Plotly chart patterns for metrics visualization
+  - Prevents rebuilding components that exist in MedCAT Trainer
+
+  **prd-to-spec** (Convert PRDs to Spec-Kit specifications):
+  - Converts Product Requirement Documents to Spec-Kit format
+  - Extracts Context, Goals, Non-Goals, User Stories, Requirements, Constraints
+  - Validates constitutional alignment (Patient Safety, Privacy, Evidence-Based, etc.)
+  - Ensures acceptance criteria are SMART (Specific, Measurable, Achievable, Relevant, Time-bound)
+  - Documents open questions with status tracking
+  - Guides spec → plan → tasks workflow
+  - Provides Sprint 1 PRD → Spec conversion example
+
+  **modular-app-architect** (Design extensible module/plugin system):
+  - Designs Core + Modules architecture pattern
+  - Defines module independence principles (separate routes, components, APIs)
+  - Plans shared infrastructure (auth, audit, config, module registry)
+  - Provides complete directory structure (frontend/backend)
+  - Shows module registration and loading patterns
+  - Demonstrates module communication (event bus, shared state)
+  - Documents OIDC authentication and audit logging integration
+  - Guides building base app with pluggable modules (patient search, timeline, CDS, etc.)
+
+**Changed**:
+- **Development Approach**: From "implement Sprint 1 immediately" to "design base modular app first, then add modules"
+- **Architecture Pattern**: Established Core + Modules pattern for clinical care tools
+- **Skills Count**: 5 → 9 total skills (5 original + 4 new architecture/planning skills)
+
+**Removed**:
+- None
+
+**Why**:
+- **Strategic Alignment**: User requested "basic app which later will have extra functionalities with modules"
+- **Architecture First**: Need to design extensible foundation before implementing features
+- **Knowledge Capture**: Existing MedCAT ecosystem (Trainer, Service, v2) has valuable patterns to reuse
+- **Spec-Driven Development**: Enable PRD → Spec → Plan → Tasks → Code workflow
+- **Module Independence**: Enable parallel development of features (patient search, timeline, CDS)
+
+**Impact**:
+- ✅ Team can now design modular architecture using `modular-app-architect` skill
+- ✅ Team can understand existing MedCAT components using `medcat-architecture` skill
+- ✅ Team can reuse MedCAT Trainer UI patterns using `medcat-ui-patterns` skill
+- ✅ Team can convert Sprint PRDs to specifications using `prd-to-spec` skill
+- ✅ Foundation for building base app + modules approach (vs monolithic Sprint implementation)
+- ⚠️ Requires architectural planning phase before Sprint 1 implementation
+- ⚠️ Base app infrastructure must be built first (auth, audit, module loader)
+
+**Migration Notes**:
+- No immediate action required (planning phase)
+- Next step: Use `prd-to-spec` to convert Sprint 1 PRD → base app specification
+- Then: Use `modular-app-architect` to design core infrastructure
+- Then: Implement patient search as first pluggable module
+
+**Technical Debt**:
+- None (planning phase)
+
+**Design Pattern Introduced**:
+- **Core + Modules Architecture**: Core app provides shared infrastructure (auth, audit, config, module registry), modules provide features (patient search, timeline, CDS) as independent plugins
+- **Module Registration**: Frontend modules export `ModuleDefinition` with routes, permissions, components; backend modules export FastAPI routers
+- **Shared Infrastructure**: OIDC authentication, audit logging, configuration store, HTTP client, database connections shared across modules
+- **Module Independence**: Each module has own directory, routes, components, API endpoints; can be disabled without affecting core or other modules
+
+**Architecture Decision Added**: See ADR-006 below
+
+---
+
+### ADR-006: Core + Modules Architecture for Clinical Care Tools
+
+**Date**: 2025-11-08
+**Status**: ✅ Accepted
+**Context**: Planning clinical care tools platform with multiple features (patient search, timeline view, clinical decision support, cohort builder, etc.)
+
+**Problem**:
+- Sprint PRDs define 6-9 features to implement
+- Traditional monolithic approach: all features in single codebase
+- Risk: tight coupling, difficult parallel development, hard to disable features
+
+**Decision**: Adopt **Core + Modules** architecture pattern
+
+**Architecture**:
+```
+Clinical Care Tools Platform
+├── Core App (Vue 3 frontend + FastAPI backend)
+│   ├── Authentication (OIDC/Keycloak)
+│   ├── Authorization (RBAC)
+│   ├── Audit Logging
+│   ├── Configuration Management
+│   ├── Module Registry & Loader
+│   └── Shared UI Shell (header, sidebar, routing)
+│
+└── Modules (Pluggable Features)
+    ├── Patient Search Module
+    ├── Timeline View Module
+    ├── Clinical Decision Support Module
+    ├── Cohort Builder Module
+    └── (Future modules)
+```
+
+**Rationale**:
+1. **Module Independence**: Features developed and deployed independently
+2. **Parallel Development**: Small team (1-3 devs) can work on modules sequentially without blocking
+3. **Constitutional Alignment**: "Modularity and Composability" principle (Constitution Principle #4)
+4. **Customer Flexibility**: Enable/disable modules per deployment
+5. **Clear Ownership**: Each module has defined scope and API contract
+6. **Gradual Rollout**: Deploy modules incrementally (patient search first, then timeline, etc.)
+
+**Alternatives Considered**:
+1. **Monolithic App**: All features in single codebase
+   - ❌ Rejected: Tight coupling, difficult to disable features, merge conflicts
+2. **Microservices**: Each feature as separate service with own database
+   - ❌ Rejected: Too complex for small team, operational overhead, distributed transactions
+3. **Hybrid (Core + Modules)**: Shared infrastructure, feature modules
+   - ✅ **Chosen**: Balance of modularity and simplicity
+
+**Consequences**:
+- ✅ **Positive**:
+  - Clear separation of concerns (core vs features)
+  - Easy to add/remove modules
+  - Modules can be open-sourced independently
+  - Testing isolation (module tests don't affect core)
+
+- ⚠️ **Trade-offs**:
+  - Requires upfront core infrastructure implementation
+  - Module communication via defined APIs (not direct imports)
+  - Module versioning and compatibility tracking needed
+
+- ❌ **Risks**:
+  - Over-engineering if only 1-2 modules ever built (mitigated: start simple, add complexity as needed)
+  - Module API changes break compatibility (mitigated: semantic versioning, deprecation policy)
+
+**Implementation**:
+- **Phase 1** (2 weeks): Build core infrastructure (auth, audit, module loader)
+- **Phase 2** (2 weeks): Implement patient search as first module (validates pattern)
+- **Phase 3+**: Add modules incrementally (timeline, CDS, cohort builder)
+
+**For AI Assistants**:
+When implementing clinical care tools:
+1. **Always check**: Is this core infrastructure or a feature module?
+2. **Core changes**: Rare, require team discussion (affects all modules)
+3. **Module changes**: Common, independent (don't affect other modules)
+4. **New features**: Default to new module unless strong reason to add to core
+5. **Module template**: Use `modular-app-architect` skill for structure
+
+**References**:
+- Constitution Principle #4: Modularity and Composability
+- `.claude/skills/modular-app-architect/SKILL.md`
+- `.claude/skills/medcat-architecture/SKILL.md` (existing MedCAT ecosystem patterns)
+
+---
+
 ### 2025-11-07 - Custom Healthcare NLP Skills + Git Hook Installation
 
 **Commits**:
