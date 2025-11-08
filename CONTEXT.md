@@ -770,6 +770,89 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-08 - Implementation Workflow Skills for Spec-Kit Development
+
+**Commits**:
+- [Current] - feat(skills): Add 3 implementation workflow skills
+
+**Added**:
+- **3 New Implementation Workflow Skills** (~4,000 lines total):
+
+  1. **spec-to-tech-plan** (~1,300 lines)
+     - Guides conversion of specifications to technical plans
+     - OpenAPI API design templates
+     - Database schema design patterns (PostgreSQL, UUID, JSONB)
+     - Authentication/authorization architecture
+     - Testing strategy (unit, integration, E2E)
+     - Docker Compose deployment architecture
+     - Risk identification and mitigation planning
+
+  2. **tech-plan-to-tasks** (~1,400 lines)
+     - Breaks technical plans into 1-2 hour tasks
+     - Enforces Test-Driven Development (TDD) workflow
+     - Defines clear acceptance criteria
+     - Creates dependency graphs for parallel execution
+     - Task templates for common patterns (models, APIs, components, migrations)
+     - Example: 8-task breakdown for user authentication feature
+
+  3. **infrastructure-expert** (~1,300 lines)
+     - Production-ready Docker Compose configurations
+     - PostgreSQL security hardening (SCRAM-SHA-256, connection pooling)
+     - JWT authentication with session management
+     - Immutable audit logging implementation
+     - HIPAA/GDPR compliance checklists
+     - Automated backup/restore procedures
+     - Retry logic, circuit breakers, error handling patterns
+
+- **Updated .claude/skills/README.md**:
+  - Added "Implementation Workflow Skills" category
+  - Updated activation triggers table (3 new skills)
+  - Updated integration flow diagram showing full lifecycle
+  - Updated metrics: 5 → 8 skills, ~2,500 → ~6,500 lines
+
+**Changed**:
+- **Skills count**: 5 → 8 (60% increase)
+- **Total guidance**: ~2,500 → ~6,500 lines (160% increase)
+- **Coverage**: Now spans full Spec-Kit workflow (Planning → Implementation)
+
+**Removed**:
+- None
+
+**Why**:
+- **User Request**: "Make sure we have Agent Skills to create technical plans for MedCAT, to do task breakdowns, to implement core infrastructure with Docker, database, authentication, and audit expertise"
+- **Workflow Completion**: Previous skills covered planning (spec-kit-enforcer, prd-to-spec), architecture knowledge (medcat-architecture, medcat-ui-patterns), but lacked implementation guidance
+- **Bridge Spec to Code**: Fill gap between approved specification and working implementation
+- **Consistency**: Ensure all implementations follow same patterns (Docker, PostgreSQL, auth, audit)
+- **Efficiency**: Reduce decision paralysis with battle-tested patterns
+
+**Impact**:
+- ✅ Complete skill coverage for Spec-Kit workflow
+- ✅ Implementation skills guide from spec → plan → tasks → code
+- ✅ Infrastructure patterns ensure security from day one
+- ✅ TDD approach enforced in task breakdown
+- ✅ Parallel execution enabled via dependency graphs
+- ✅ Healthcare-specific patterns (HIPAA, GDPR, audit logging)
+- ✅ Ready to proceed with base app implementation
+
+**Migration Notes**:
+- No migration needed (skill files only)
+- Skills activate automatically based on context
+- Next step: Use spec-to-tech-plan to create technical plan from base app specification
+
+**Design Patterns Introduced**:
+- **Skill Progressive Disclosure**: Metadata → SKILL.md → Reference files (load only what's needed)
+- **TDD Task Structure**: Write tests → Implement → Verify → Commit (enforced in tech-plan-to-tasks)
+- **Infrastructure as Code**: Complete Docker Compose with health checks, security hardening
+- **Immutable Audit Logs**: PostgreSQL rules prevent UPDATE/DELETE on audit_logs
+- **JWT Session Binding**: IP + user-agent hashing for session hijack detection
+
+**Skill Activation Triggers**:
+- `spec-to-tech-plan`: "create technical plan", "architecture design", "API design"
+- `tech-plan-to-tasks`: "break down plan", "create tasks", "estimate work"
+- `infrastructure-expert`: "setup Docker", "PostgreSQL", "authentication", "audit logging"
+
+---
+
 ### 2025-11-08 - Enhanced Base App Specification with Production Readiness Sections
 
 **Commits**:

@@ -76,6 +76,53 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
+### 🔵 Implementation Workflow Skills
+
+#### 6. `spec-to-tech-plan`
+**When**: Converting approved specifications to technical plans
+
+**What it does**:
+- Guides creation of detailed technical plans from specifications
+- Provides OpenAPI API design templates
+- Shows database schema design patterns (PostgreSQL, UUID, JSONB)
+- Documents authentication/authorization architecture
+- Defines testing strategy (unit, integration, E2E)
+- Creates deployment architecture (Docker Compose)
+- Identifies risks and mitigations
+
+**Why useful**: Ensures complete technical planning before implementation, prevents architectural mistakes
+
+---
+
+#### 7. `tech-plan-to-tasks`
+**When**: Breaking down technical plans into implementable tasks
+
+**What it does**:
+- Converts technical plans into 1-2 hour tasks
+- Enforces Test-Driven Development (TDD) approach
+- Defines clear acceptance criteria for each task
+- Creates dependency graphs for parallel execution
+- Provides task templates for common patterns (models, APIs, components)
+
+**Why useful**: Enables granular tracking, facilitates parallel development, ensures testability
+
+---
+
+#### 8. `infrastructure-expert`
+**When**: Implementing Docker, PostgreSQL, authentication, audit logging
+
+**What it does**:
+- Provides production-ready Docker Compose configurations
+- Shows PostgreSQL security hardening patterns
+- Implements JWT authentication with session management
+- Creates immutable audit logging systems
+- Includes HIPAA/GDPR compliance checklists
+- Demonstrates backup/restore procedures
+
+**Why useful**: Battle-tested patterns for healthcare infrastructure, ensures security from day one
+
+---
+
 ## How Skills Work
 
 Skills are **model-invoked**—Claude automatically uses them based on your request and the skill's description. You don't need to explicitly call them.
@@ -165,6 +212,9 @@ Expected: Skill checks for specification, plan, tasks before allowing code
 | vue3-component-reuse | Building: UI components, forms, tables, frontend |
 | fhir-r4-mapper | Mentions: FHIR, EHR integration, clinical decision support |
 | spec-kit-enforcer | Requests: new feature, implementation, "build X" |
+| spec-to-tech-plan | After specification approval, creating technical plan, architecture design |
+| tech-plan-to-tasks | Breaking down plan, creating task list, estimating work |
+| infrastructure-expert | Setting up Docker, PostgreSQL, authentication, audit logging, deployment |
 
 ---
 
@@ -215,16 +265,40 @@ See [Claude Code Skills documentation](https://code.claude.com/docs/skills) for 
 
 ## Integration Points
 
-Skills work together:
+Skills work together across the full development lifecycle:
 
 ```
-Patient Search Implementation:
-├── spec-kit-enforcer (ensures spec exists)
-├── healthcare-compliance-checker (PHI handling)
-├── medcat-meta-annotations (filtering logic)
-├── vue3-component-reuse (UI components)
-└── fhir-r4-mapper (export functionality)
+Complete Feature Implementation Flow:
+│
+├── 1. Planning Phase
+│   ├── spec-kit-enforcer (ensures spec exists)
+│   ├── spec-to-tech-plan (creates technical plan)
+│   └── tech-plan-to-tasks (breaks into tasks)
+│
+├── 2. Infrastructure Phase
+│   ├── infrastructure-expert (Docker, PostgreSQL, auth)
+│   └── healthcare-compliance-checker (security review)
+│
+├── 3. Implementation Phase
+│   ├── medcat-meta-annotations (NLP filtering logic)
+│   ├── vue3-component-reuse (frontend patterns)
+│   ├── healthcare-compliance-checker (PHI handling review)
+│   └── infrastructure-expert (audit logging patterns)
+│
+└── 4. Integration Phase
+    ├── fhir-r4-mapper (export functionality)
+    └── healthcare-compliance-checker (final compliance check)
 ```
+
+**Example: Patient Search Feature**
+1. `spec-kit-enforcer` - Checks specification exists
+2. `spec-to-tech-plan` - Creates API design, database schema, testing strategy
+3. `tech-plan-to-tasks` - Breaks into 8-12 implementable tasks
+4. `infrastructure-expert` - Guides auth implementation, audit logging
+5. `medcat-meta-annotations` - Ensures proper filtering (95% precision)
+6. `vue3-component-reuse` - Finds existing search UI patterns
+7. `healthcare-compliance-checker` - Validates PHI handling
+8. `fhir-r4-mapper` - Adds FHIR export capability
 
 ---
 
@@ -249,14 +323,17 @@ Patient Search Implementation:
 
 ## Metrics
 
-**Total Skills**: 5
-**Lines of Guidance**: ~2,500 (compressed to ~500 tokens/skill via progressive loading)
+**Total Skills**: 8
+**Lines of Guidance**: ~6,500+ (compressed via progressive loading)
 **Coverage**:
-- ✅ Compliance & Safety
-- ✅ NLP Accuracy
-- ✅ Frontend Development
-- ✅ Healthcare Standards (FHIR)
-- ✅ Workflow Enforcement
+- ✅ Compliance & Safety (healthcare-compliance-checker)
+- ✅ NLP Accuracy (medcat-meta-annotations)
+- ✅ Frontend Development (vue3-component-reuse)
+- ✅ Healthcare Standards (fhir-r4-mapper)
+- ✅ Workflow Enforcement (spec-kit-enforcer)
+- ✅ Technical Planning (spec-to-tech-plan)
+- ✅ Task Breakdown (tech-plan-to-tasks)
+- ✅ Infrastructure Implementation (infrastructure-expert)
 
 ---
 
