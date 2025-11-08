@@ -1,8 +1,8 @@
 # Technical Plan: Clinical Care Tools Base Application
 
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Date**: 2025-11-08
-**Status**: Draft
+**Status**: Ready for Review
 **Author**: AI Assistant (Claude Code)
 **Based on Specification**: `.specify/specifications/clinical-care-tools-base-app.md` (v1.1.0)
 
@@ -41,21 +41,23 @@
 │  │  │  Frontend   │      │  Backend    │      │ PostgreSQL  │  │   │
 │  │  │  (Vue 3 +   │◀────▶│  (FastAPI)  │◀────▶│   15+       │  │   │
 │  │  │   Vuetify)  │      │             │      │             │  │   │
-│  │  │             │      │             │      │             │  │   │
-│  │  │ :8080       │      │ :8000       │      │ :5432       │  │   │
-│  │  └─────────────┘      └──────┬──────┘      └─────────────┘  │   │
+│  │  │             │      │      │      │      │             │  │   │
+│  │  │ :8080       │      │ :8000│      │      │ :5432       │  │   │
+│  │  └─────────────┘      └──────┼──────┘      └─────────────┘  │   │
 │  │                              │                                │   │
-│  │                              │                                │   │
-│  │                              ▼                                │   │
-│  │                       ┌─────────────┐                         │   │
-│  │                       │  MedCAT     │                         │   │
-│  │                       │  Service    │                         │   │
-│  │                       │             │                         │   │
-│  │                       │ :5000       │                         │   │
-│  │                       └─────────────┘                         │   │
+│  │                              ├──────────┐                     │   │
+│  │                              ▼          ▼                     │   │
+│  │                       ┌─────────────┐ ┌─────────────┐        │   │
+│  │                       │  MedCAT     │ │   Redis     │        │   │
+│  │                       │  Service    │ │   7.2+      │        │   │
+│  │                       │             │ │  (Sessions, │        │   │
+│  │                       │ :5000       │ │   Cache)    │        │   │
+│  │                       └─────────────┘ │ :6379       │        │   │
+│  │                                        └─────────────┘        │   │
 │  │                                                                │   │
 │  │  Volumes:                                                      │   │
 │  │  - postgres_data (persistent database)                        │   │
+│  │  - redis_data (session store, cache)                          │   │
 │  │  - medcat_models (shared MedCAT models)                       │   │
 │  │  - backend_logs (application + audit logs)                    │   │
 │  └──────────────────────────────────────────────────────────────┘   │
@@ -109,6 +111,17 @@
   - Connection pooling (10 connections, max overflow 20)
 - **Version**: PostgreSQL 15+
 - **Backup Strategy**: Daily automated backups with 8-year retention
+
+#### Redis
+- **Purpose**: Session store, caching layer, future job queue
+- **Key Features**:
+  - Session storage with automatic expiration (TTL)
+  - Cache for frequently accessed patient/concept data
+  - Document deduplication tracking (SHA-256 hashes)
+  - Pub/sub for future real-time notifications
+  - Prepared for distributed session management
+- **Version**: Redis 7.2+
+- **Persistence**: RDB snapshots every 5 minutes, AOF for durability
 
 #### MedCAT Service
 - **Purpose**: NLP entity extraction from clinical documents
@@ -186,6 +199,7 @@ The application follows a **Core + Modules** pattern for extensibility:
 | **Docker** | 24.0+ | Container runtime, proven in MedCAT ecosystem (29 compose files) |
 | **Docker Compose** | 2.20+ | Multi-container orchestration for single workstation |
 | **PostgreSQL** | 15+ | JSONB support, full-text search, ACID compliance, proven (95 migrations in Trainer) |
+| **Redis** | 7.2+ | Session store, caching layer, job queue for future scaling |
 
 ### Alternatives Considered & Rejected
 
@@ -2409,6 +2423,228 @@ test('clinician can view assigned tasks', async ({ page }) => {
 })
 ```
 
+### PHI De-Identification Validation Tests
+
+**Critical Requirement**: Ensure PHI is properly identified, protected, and never exposed in logs or unencrypted storage.
+
+**Test Categories**:
+
+#### 1. PHI Identification Tests (Unit)
+```python
+# tests/unit/test_phi_extraction.py
+import pytest
+from app.services.medcat_client import MedCATClient
+from app.services.phi_classifier import PHIClassifier
+
+@pytest.mark.asyncio
+async def test_phi_extraction_identifies_nhs_number():
+    """Test that NHS numbers are correctly identified as PHI"""
+    # Arrange
+    text = "Patient NHS number: 1234567890"
+    medcat = MedCATClient()
+
+    # Act
+    entities = await medcat.process_text(text)
+
+    # Assert
+    nhs_entities = [e for e in entities if e['type'] == 'phi_nhs_number']
+    assert len(nhs_entities) > 0
+    assert '1234567890' in nhs_entities[0]['pretty_name']
+
+@pytest.mark.asyncio
+async def test_phi_extraction_identifies_patient_names():
+    """Test that patient names are correctly identified as PHI"""
+    # Arrange
+    text = "Patient name: John Smith, DOB: 01/01/1980"
+    medcat = MedCATClient()
+
+    # Act
+    entities = await medcat.process_text(text)
+
+    # Assert
+    name_entities = [e for e in entities if e['type'] == 'phi_name']
+    assert len(name_entities) > 0
+    assert 'John Smith' in [e['pretty_name'] for e in name_entities]
+
+@pytest.mark.asyncio
+async def test_phi_classification_distinguishes_phi_from_clinical():
+    """Test that PHI classifier correctly separates PHI from clinical entities"""
+    # Arrange
+    classifier = PHIClassifier()
+    phi_entity = {"cui": "C1547728", "pretty_name": "NHS number"}
+    clinical_entity = {"cui": "C0011849", "pretty_name": "diabetes mellitus"}
+
+    # Act
+    phi_type = classifier.classify(phi_entity)
+    clinical_type = classifier.classify(clinical_entity)
+
+    # Assert
+    assert phi_type == "phi_nhs_number"
+    assert clinical_type == "clinical"
+```
+
+#### 2. PHI Protection Tests (Integration)
+```python
+# tests/integration/test_phi_protection.py
+import pytest
+from httpx import AsyncClient
+
+@pytest.mark.asyncio
+async def test_document_stored_encrypted(async_client: AsyncClient, test_document):
+    """Test that uploaded documents are encrypted in database"""
+    # Arrange
+    files = {"file": ("test.rtf", test_document, "application/rtf")}
+
+    # Act
+    response = await async_client.post("/api/v1/documents/upload", files=files)
+    document_id = response.json()["id"]
+
+    # Assert - Query database directly
+    result = await db.execute(select(Document).where(Document.id == document_id))
+    document = result.scalar_one()
+
+    # Document content should be encrypted (not plaintext)
+    assert document.encrypted_content != test_document
+    assert document.encrypted_content.startswith(b'encrypted:')  # Custom prefix
+    assert document.encryption_algorithm == "AES-256-GCM"
+
+@pytest.mark.asyncio
+async def test_phi_entities_stored_separately(async_client: AsyncClient, test_document):
+    """Test that PHI entities are stored in separate table"""
+    # Arrange
+    files = {"file": ("patient_letter.rtf", test_document, "application/rtf")}
+
+    # Act
+    response = await async_client.post("/api/v1/documents/upload", files=files)
+    document_id = response.json()["id"]
+
+    # Wait for processing
+    await asyncio.sleep(2)
+
+    # Assert - PHI entities in extracted_entities table
+    result = await db.execute(
+        select(ExtractedEntity).where(
+            ExtractedEntity.document_id == document_id,
+            ExtractedEntity.entity_type.in_(['phi_name', 'phi_nhs_number', 'phi_dob', 'phi_address'])
+        )
+    )
+    phi_entities = result.scalars().all()
+    assert len(phi_entities) > 0
+```
+
+#### 3. PHI Logging Tests (Security)
+```python
+# tests/security/test_phi_logging.py
+import pytest
+import logging
+from io import StringIO
+
+@pytest.mark.asyncio
+async def test_phi_not_in_application_logs(async_client, test_document, caplog):
+    """Test that PHI never appears in application logs"""
+    # Arrange
+    caplog.set_level(logging.DEBUG)  # Capture all logs
+    files = {"file": ("patient_letter.rtf", test_document, "application/rtf")}
+
+    # Act
+    response = await async_client.post("/api/v1/documents/upload", files=files)
+
+    # Assert - Check all log messages
+    for record in caplog.records:
+        # PHI should NEVER appear in logs
+        assert "1234567890" not in record.message  # NHS number
+        assert "John Smith" not in record.message  # Patient name
+        assert "123 Main Street" not in record.message  # Address
+
+        # Only document IDs should appear
+        assert record.message.count(response.json()["id"]) >= 0
+
+@pytest.mark.asyncio
+async def test_phi_access_logged_to_audit_trail(async_client, test_user):
+    """Test that PHI access is logged to audit trail"""
+    # Arrange
+    patient_id = "patient-123"
+
+    # Act
+    response = await async_client.get(f"/api/v1/patients/{patient_id}")
+
+    # Assert - Check audit logs
+    result = await db.execute(
+        select(AuditLog).where(
+            AuditLog.action == "PHI_ACCESS",
+            AuditLog.resource_id == patient_id
+        ).order_by(AuditLog.timestamp.desc())
+    )
+    audit_log = result.scalar_one()
+    assert audit_log.user_id == test_user.id
+    assert audit_log.resource_type == "patient"
+    assert audit_log.details is not None
+```
+
+#### 4. De-Identification Tests (Functional)
+```python
+# tests/functional/test_deidentification.py
+import pytest
+
+@pytest.mark.asyncio
+async def test_patient_aggregation_by_nhs_number():
+    """Test that patients are correctly aggregated by NHS number"""
+    # Arrange
+    doc1_text = "Patient NHS: 1234567890, Name: John Smith, diabetes"
+    doc2_text = "NHS number 1234567890, pneumonia diagnosis"
+
+    # Act
+    await process_document(doc1_text)
+    await process_document(doc2_text)
+
+    # Assert - Should create ONE patient record
+    result = await db.execute(select(Patient).where(Patient.nhs_number == "1234567890"))
+    patients = result.scalars().all()
+    assert len(patients) == 1
+
+    # Patient record should have aggregated data
+    patient = patients[0]
+    assert patient.nhs_number == "1234567890"
+    assert patient.full_name == "John Smith"
+
+    # Both documents linked to same patient
+    result = await db.execute(
+        select(ExtractedEntity).where(ExtractedEntity.patient_id == patient.id)
+    )
+    entities = result.scalars().all()
+    assert len({e.document_id for e in entities}) == 2  # 2 different documents
+
+@pytest.mark.asyncio
+async def test_patient_search_excludes_direct_phi():
+    """Test that patient search API does not return direct PHI"""
+    # Arrange
+    await create_test_patient(
+        nhs_number="1234567890",
+        full_name="John Smith",
+        dob="1980-01-01",
+        address="123 Main Street"
+    )
+
+    # Act
+    response = await async_client.get("/api/v1/patients/search?concept=diabetes")
+
+    # Assert - Response should not contain direct PHI
+    data = response.json()
+    assert response.status_code == 200
+
+    for patient in data["results"]:
+        # Should have patient ID only
+        assert "id" in patient
+
+        # Should NOT have direct PHI (unless explicitly requested and authorized)
+        assert "nhs_number" not in patient
+        assert "full_name" not in patient
+        assert "address" not in patient
+
+        # Can have aggregated clinical concepts
+        assert "concepts" in patient
+```
+
 ### Performance Testing
 
 **Tools**: Locust for load testing
@@ -2713,6 +2949,378 @@ echo "Backup complete: $BACKUP_DIR.tar.gz.enc"
 
 ---
 
+## Document Deduplication Strategy
+
+### Problem Statement
+
+Multiple users may upload the same clinical document (e.g., same discharge letter uploaded by different clinicians), causing:
+- Wasted MedCAT processing time (~30 seconds per document)
+- Duplicate storage (~50 KB per document)
+- Inconsistent patient records
+- Confusion about which document version is canonical
+
+### Solution: SHA-256 Hash-Based Deduplication
+
+**Strategy**: Compute SHA-256 hash of document content before processing. Check if hash exists in Redis cache or database before accepting upload.
+
+### Implementation
+
+#### 1. Document Upload Flow with Deduplication
+
+```python
+# app/api/endpoints/documents.py
+from hashlib import sha256
+import aioredis
+
+@router.post("/api/v1/documents/upload")
+async def upload_document(
+    file: UploadFile,
+    project_id: UUID,
+    user: User = Depends(get_current_user),
+    redis: aioredis.Redis = Depends(get_redis),
+    db: AsyncSession = Depends(get_db)
+):
+    # Read file content
+    content = await file.read()
+
+    # Compute SHA-256 hash
+    content_hash = sha256(content).hexdigest()
+
+    # Check Redis cache first (fast)
+    cached_doc_id = await redis.get(f"doc_hash:{content_hash}")
+    if cached_doc_id:
+        # Document already processed
+        await audit_log(
+            user_id=user.id,
+            action="DOCUMENT_DUPLICATE_DETECTED",
+            resource_id=cached_doc_id,
+            details={"hash": content_hash, "project_id": str(project_id)}
+        )
+
+        # Link existing document to this project (if not already linked)
+        await link_document_to_project(cached_doc_id, project_id)
+
+        return {
+            "id": cached_doc_id,
+            "status": "duplicate",
+            "message": "Document already processed. Linked to your project."
+        }
+
+    # Check database (if not in Redis cache)
+    result = await db.execute(
+        select(Document).where(Document.content_hash == content_hash)
+    )
+    existing_doc = result.scalar_one_or_none()
+
+    if existing_doc:
+        # Document exists in DB but not in cache - update cache
+        await redis.setex(
+            f"doc_hash:{content_hash}",
+            86400 * 30,  # Cache for 30 days
+            str(existing_doc.id)
+        )
+
+        await link_document_to_project(existing_doc.id, project_id)
+
+        return {
+            "id": str(existing_doc.id),
+            "status": "duplicate",
+            "message": "Document already processed. Linked to your project."
+        }
+
+    # New document - proceed with upload and encryption
+    encrypted_content = encrypt_aes_256(content)
+
+    document = Document(
+        filename=file.filename,
+        content_type=file.content_type,
+        content_hash=content_hash,
+        encrypted_content=encrypted_content,
+        encryption_algorithm="AES-256-GCM",
+        uploaded_by=user.id,
+        project_id=project_id,
+        file_size=len(content)
+    )
+
+    db.add(document)
+    await db.commit()
+
+    # Cache the hash → document ID mapping
+    await redis.setex(
+        f"doc_hash:{content_hash}",
+        86400 * 30,  # 30 days
+        str(document.id)
+    )
+
+    # Queue for MedCAT processing
+    await queue_medcat_processing(document.id)
+
+    return {
+        "id": str(document.id),
+        "status": "processing",
+        "message": "Document uploaded and queued for processing."
+    }
+```
+
+#### 2. Database Schema Update
+
+```sql
+-- Add content_hash column to documents table
+ALTER TABLE documents
+ADD COLUMN content_hash VARCHAR(64) NOT NULL,
+ADD CONSTRAINT documents_content_hash_unique UNIQUE (content_hash);
+
+-- Create index for fast hash lookups
+CREATE INDEX idx_documents_content_hash ON documents(content_hash);
+
+-- Create document_projects link table (many-to-many)
+CREATE TABLE document_projects (
+    document_id UUID NOT NULL REFERENCES documents(id),
+    project_id UUID NOT NULL REFERENCES projects(id),
+    linked_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    linked_by UUID NOT NULL REFERENCES users(id),
+
+    PRIMARY KEY (document_id, project_id)
+);
+```
+
+#### 3. Redis Cache Configuration
+
+```yaml
+# docker-compose.yml
+redis:
+  image: redis:7.2-alpine
+  command: >
+    redis-server
+    --save 60 1000
+    --appendonly yes
+    --maxmemory 512mb
+    --maxmemory-policy allkeys-lru
+  volumes:
+    - redis_data:/data
+```
+
+**Cache Keys**:
+- `doc_hash:{sha256}` → `{document_id}` (TTL: 30 days)
+- Eviction policy: LRU (least recently used)
+
+### Benefits
+
+- ✅ **Performance**: Saves ~30 seconds MedCAT processing per duplicate
+- ✅ **Storage**: Saves ~50 KB per duplicate document
+- ✅ **Consistency**: Single source of truth for each unique document
+- ✅ **Cost**: Reduces MedCAT compute costs
+- ✅ **User Experience**: Instant response for duplicates
+
+### Edge Cases
+
+**Scenario 1: Same document, different filename**
+- **Detection**: SHA-256 hash identical → duplicate detected
+- **Action**: Link to existing document, notify user
+
+**Scenario 2: Different document, same filename**
+- **Detection**: SHA-256 hash different → new document
+- **Action**: Upload as new document
+
+**Scenario 3: Document modified after upload**
+- **Detection**: SHA-256 hash different → new document
+- **Action**: Upload as new version (different document_id)
+
+**Scenario 4: User intentionally re-uploads for re-processing**
+- **User action**: Admin can force re-upload with `?force=true` parameter
+- **Action**: Bypass deduplication check, create new document record
+
+### Monitoring
+
+**Metrics to track**:
+- Deduplication rate: `duplicates / total_uploads`
+- Cache hit rate: `redis_hits / (redis_hits + db_checks)`
+- Storage saved: `duplicate_count * avg_file_size`
+- Processing time saved: `duplicate_count * 30 seconds`
+
+---
+
+## Scaling Strategy: Upgrade Path Beyond Single Workstation
+
+### Current Architecture (Single Workstation)
+
+**Capacity**: 10 concurrent users, 1 workstation, shared Docker Compose deployment
+
+**Limitations**:
+- No horizontal scaling
+- Single point of failure
+- Limited to workstation resources (CPU, RAM, disk)
+- No geographic distribution
+
+### Scaling Triggers
+
+**When to scale**:
+1. **User load**: >10 concurrent users
+2. **Performance**: Response times >1 second
+3. **Availability**: Uptime requirements >99.5% (need redundancy)
+4. **Geographic**: Multiple hospital sites
+5. **Compliance**: Data residency requirements
+
+### Tier 1: Vertical Scaling (Single Workstation Optimization)
+
+**Capacity**: 20-30 concurrent users
+
+**Changes**:
+- Upgrade workstation hardware (32 GB RAM, 8 cores)
+- Add GPU for MedCAT processing (2-3x speedup)
+- Use NVMe SSD for PostgreSQL (faster I/O)
+- Increase PostgreSQL connection pool (max 30 connections)
+- Add Redis memory (2 GB)
+
+**Cost**: ~$2,000 hardware upgrade
+**Timeline**: 1-2 days
+
+---
+
+### Tier 2: Multi-Node Deployment (Small Cluster)
+
+**Capacity**: 50-100 concurrent users
+
+#### Architecture Changes
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Hospital Network                                                     │
+│                                                                       │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ Load Balancer (nginx)                                           │ │
+│  │ :443 (HTTPS)                                                    │ │
+│  └────────┬───────────────────────────────────────────────────────┘ │
+│           │                                                           │
+│  ┌────────┼────────────────┐                                         │
+│  │        │                │                                         │
+│  ▼        ▼                ▼                                         │
+│ ┌────┐  ┌────┐           ┌────┐                                     │
+│ │App │  │App │    ...    │App │  (3 replicas)                       │
+│ │ 1  │  │ 2  │           │ N  │                                      │
+│ └──┬─┘  └──┬─┘           └──┬─┘                                     │
+│    │       │                │                                        │
+│    └───────┼────────────────┘                                        │
+│            │                                                          │
+│  ┌─────────┴─────────────────────────────┐                          │
+│  │                                         │                          │
+│  ▼                                         ▼                          │
+│ ┌────────────────┐            ┌────────────────────┐                │
+│ │ PostgreSQL     │            │ Redis Cluster      │                │
+│ │ Primary +      │            │ (3 nodes)          │                │
+│ │ 2 Replicas     │            │                    │                │
+│ └────────────────┘            └────────────────────┘                │
+│                                                                       │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ MedCAT Service Pool (3 instances)                            │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### Key Changes
+
+1. **Load Balancer** (nginx or HAProxy)
+   - Distributes requests across backend replicas
+   - SSL termination
+   - Health checks
+   - Session sticky routing (via Redis sessions)
+
+2. **Backend Application Replicas** (3+ instances)
+   - Stateless FastAPI containers
+   - Shared Redis for sessions
+   - Horizontal autoscaling based on CPU/memory
+
+3. **PostgreSQL High Availability**
+   - Primary + 2 read replicas (Patroni + etcd)
+   - Automatic failover (<30 seconds)
+   - Write to primary, reads from replicas
+   - Connection pooling via PgBouncer
+
+4. **Redis Cluster** (3 nodes)
+   - High availability via Redis Sentinel
+   - Automatic failover
+   - Shared sessions across all app instances
+
+5. **MedCAT Service Pool**
+   - 3+ MedCAT instances for parallel processing
+   - Load balanced via internal DNS
+   - Shared model volume (NFS or CephFS)
+
+#### Migration Steps
+
+1. **Week 1: Infrastructure Setup**
+   - Deploy Kubernetes cluster (K3s for edge) or Docker Swarm
+   - Configure shared storage (NFS/Ceph)
+   - Setup PostgreSQL replication
+   - Setup Redis cluster
+
+2. **Week 2: Application Changes**
+   - Move sessions from PostgreSQL to Redis
+   - Update connection strings for replicas
+   - Implement health check endpoints
+   - Add graceful shutdown handlers
+
+3. **Week 3: Load Balancer & Testing**
+   - Configure nginx load balancer
+   - Setup SSL certificates
+   - Load testing with 50 concurrent users
+   - Failover testing
+
+4. **Week 4: Migration & Cutover**
+   - Blue-green deployment
+   - Gradual traffic shift (10% → 50% → 100%)
+   - Monitor performance and errors
+   - Rollback plan ready
+
+**Cost**: ~$10,000 (3 servers) + ~40 hours labor
+**Timeline**: 4 weeks
+
+---
+
+### Tier 3: Cloud-Native Deployment (Enterprise Scale)
+
+**Capacity**: 500+ concurrent users, multi-site
+
+#### Architecture
+
+- **Kubernetes** (AWS EKS, Azure AKS, or on-prem)
+- **Managed PostgreSQL** (AWS RDS, Azure Database for PostgreSQL)
+- **Managed Redis** (AWS ElastiCache, Azure Cache for Redis)
+- **Object Storage** (S3, Azure Blob) for documents
+- **CDN** (CloudFront, Azure CDN) for frontend assets
+- **Auto-scaling**: 5-50 backend pods based on load
+- **Geographic distribution**: Multi-region deployment
+
+**Cost**: ~$5,000/month cloud infrastructure
+**Timeline**: 8-12 weeks
+
+---
+
+### Backward Compatibility
+
+**All scaling tiers maintain**:
+- Same API contracts (OpenAPI spec unchanged)
+- Same database schema
+- Same authentication flow
+- Same frontend code
+- Same Docker images
+
+**Environment Variables**: Different configs, same codebase
+
+```bash
+# Single workstation (.env)
+DATABASE_URL=postgresql://localhost:5432/clinical_care_tools
+REDIS_URL=redis://localhost:6379
+
+# Multi-node (.env)
+DATABASE_URL=postgresql://postgres-primary:5432/clinical_care_tools
+DATABASE_REPLICA_URLS=postgresql://postgres-replica-1:5432/...,postgresql://postgres-replica-2:5432/...
+REDIS_URL=redis://redis-sentinel:26379/0
+REDIS_SENTINEL_NODES=redis-sentinel-1:26379,redis-sentinel-2:26379
+```
+
+---
+
 ## Risks & Mitigations
 
 | Risk | Impact | Probability | Mitigation |
@@ -2731,6 +3339,95 @@ echo "Backup complete: $BACKUP_DIR.tar.gz.enc"
 ---
 
 ## Implementation Phases
+
+### Phase 0: Environment Setup & MedCAT Model Preparation (Week 0, ~20 hours)
+
+**Goal**: Prepare development environment, download MedCAT models, verify all infrastructure components
+
+**Why This Phase**: Environment setup and model preparation often take longer than expected due to:
+- Large model downloads (2-5 GB)
+- Dependency conflicts
+- Docker configuration issues
+- Network connectivity problems
+- Model compatibility verification
+
+**Tasks**:
+1. **Development Workstation Setup** (~3 hours)
+   - Install Docker Desktop 24.0+ (Windows/Linux)
+   - Install Docker Compose 2.20+
+   - Configure Docker resource limits (8 GB RAM, 4 CPU cores minimum)
+   - Verify Docker installation: `docker --version`, `docker-compose --version`
+
+2. **MedCAT Model Download** (~8 hours, mostly waiting)
+   - Download SNOMED-CT model from MedCAT Model Zoo (or custom model)
+   - Download UMLS model (if required)
+   - Verify model integrity (checksums)
+   - Extract models to `medcat_models/` directory
+   - Test model loading with simple MedCAT script
+
+3. **Docker Compose Initial Configuration** (~3 hours)
+   - Create initial `docker-compose.yml` with all services
+   - Create `.env` file template with required variables
+   - Create shared volumes: `postgres_data`, `redis_data`, `medcat_models`, `backend_logs`
+   - Test `docker-compose up` with empty services (health checks)
+
+4. **Database Setup** (~2 hours)
+   - Start PostgreSQL container
+   - Create initial database: `clinical_care_tools`
+   - Create database user with appropriate permissions
+   - Test database connection from host machine
+   - Install PostgreSQL client tools (psql, pg_dump)
+
+5. **Redis Setup** (~1 hour)
+   - Start Redis container
+   - Configure persistence (RDB + AOF)
+   - Test Redis connection: `redis-cli ping`
+   - Verify TTL expiration works
+
+6. **MedCAT Service Setup** (~2 hours)
+   - Build/pull MedCAT Service Docker image
+   - Configure model paths in environment variables
+   - Start MedCAT Service
+   - Test `/api/info` endpoint
+   - Test simple text processing: POST `/api/process`
+
+7. **Verification Script** (~1 hour)
+   - Create `scripts/verify-environment.sh` to check:
+     - Docker and Docker Compose installed
+     - All volumes created
+     - PostgreSQL accepting connections
+     - Redis responding to PING
+     - MedCAT Service processing text
+     - Models loaded successfully
+   - Run verification script and fix any issues
+
+**Deliverables**:
+- Running Docker Compose environment with all services
+- MedCAT models downloaded and verified
+- PostgreSQL database created and accessible
+- Redis cache operational
+- MedCAT Service processing test documents
+- Verification script passing all checks
+- Documentation of any environment-specific issues
+
+**Acceptance Criteria**:
+- ✅ `docker-compose up` starts all 5 services (frontend, backend, postgres, redis, medcat)
+- ✅ All health checks passing
+- ✅ MedCAT models load in <30 seconds
+- ✅ MedCAT can process sample clinical text
+- ✅ PostgreSQL accepts connections
+- ✅ Redis PING returns PONG
+- ✅ `scripts/verify-environment.sh` exits with status 0
+- ✅ Team members can replicate setup from documentation
+
+**Common Issues & Fixes**:
+- **Docker out of memory**: Increase Docker Desktop RAM to 8+ GB
+- **Model download timeout**: Use wget/curl with resume support
+- **PostgreSQL auth failure**: Check `POSTGRES_HOST_AUTH_METHOD` in docker-compose.yml
+- **MedCAT model not found**: Verify volume mount paths match model directory
+- **Redis permission denied**: Check volume ownership: `chown -R 999:999 redis_data/`
+
+---
 
 ### Phase 1: Core Infrastructure (Week 1-2, ~60 hours)
 
@@ -2963,25 +3660,36 @@ echo "Backup complete: $BACKUP_DIR.tar.gz.enc"
 
 This Technical Plan provides comprehensive guidance for implementing the Clinical Care Tools Base Application. The plan covers:
 
-1. **Architecture**: Core + Modules pattern for extensibility
-2. **Technology Stack**: FastAPI + Vue 3 + PostgreSQL + Docker
+1. **Architecture**: Core + Modules pattern for extensibility, Redis for sessions/cache
+2. **Technology Stack**: FastAPI + Vue 3 + PostgreSQL + Redis + Docker
 3. **API Design**: RESTful endpoints with OpenAPI documentation
 4. **Database**: 13 core tables with migrations, audit trail, PHI storage
-5. **Security**: JWT auth, RBAC, session binding, break-glass access, encryption
+5. **Security**: JWT auth, RBAC, session binding, break-glass access, AES-256 encryption
 6. **MedCAT Integration**: Async client with retry logic, PHI extraction workflow
-7. **Testing**: Test pyramid (70% unit, 25% integration, 5% E2E), ≥80% coverage
-8. **Deployment**: Docker Compose, single workstation, RDP access
-9. **Performance**: <500ms API responses, 10 concurrent users
-10. **Implementation**: 7 phases over 10 weeks (~290 hours total)
+7. **Document Deduplication**: SHA-256 hash-based duplicate detection, Redis caching
+8. **PHI Validation**: Comprehensive test suite for de-identification and protection
+9. **Testing**: Test pyramid (70% unit, 25% integration, 5% E2E), ≥80% coverage, PHI-specific tests
+10. **Deployment**: Docker Compose, single workstation, RDP access
+11. **Scaling Strategy**: 3-tier upgrade path (vertical → multi-node → cloud-native)
+12. **Performance**: <500ms API responses, 10 concurrent users (20-30 with vertical scaling)
+13. **Implementation**: 8 phases (Phase 0 + 7 implementation phases) over 11 weeks (~310 hours total)
+
+**Key Enhancements (v1.1)**:
+- ✅ Phase 0 added for environment setup and MedCAT model preparation (~20 hours)
+- ✅ Redis integrated for session management, caching, and deduplication
+- ✅ Document deduplication strategy to prevent duplicate uploads
+- ✅ PHI validation tests for compliance verification
+- ✅ 3-tier scaling strategy documented (10 → 30 → 100+ users)
 
 **Next Steps**:
 1. User reviews and approves this Technical Plan
 2. Create Task Breakdown using `tech-plan-to-tasks` skill
-3. Begin Phase 1: Core Infrastructure implementation
+3. Begin Phase 0: Environment Setup & MedCAT Model Preparation
 
 ---
 
 **Plan Author**: AI Assistant (Claude Code)
 **Date**: 2025-11-08
-**Estimated Implementation Time**: 10 weeks (2 developers)
-**Total Estimated Hours**: ~290 hours
+**Version**: 1.1.0
+**Estimated Implementation Time**: 11 weeks (2 developers)
+**Total Estimated Hours**: ~310 hours (Phase 0: 20h, Phases 1-7: 290h)
