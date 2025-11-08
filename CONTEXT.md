@@ -770,6 +770,77 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-08 - Base App Specification with PHI Extraction Workflow
+
+**Commits**:
+- [Current] - feat(spec): Add base app specification with PHI extraction workflow
+
+**Added**:
+- **Complete Base App Specification** (`.specify/specifications/clinical-care-tools-base-app.md`) - 69KB
+  - 13 core database tables (10 core + 3 PHI/document tables)
+  - Comprehensive PHI extraction workflow (document upload → MedCAT processing → patient aggregation)
+  - Multi-user architecture (workstation deployment, remote desktop access)
+  - JWT authentication, RBAC, audit logging
+  - Module system design (Core + pluggable modules)
+  - Docker Compose deployment model
+
+- **3 New Database Tables** for PHI handling:
+  - `documents` - Encrypted RTF files (~50KB, AES-256)
+  - `extracted_entities` - Structured data from MedCAT (PHI + clinical concepts)
+  - `patients` - Aggregated patient records (NHS number, demographics)
+
+- **PHI Extraction Workflow Section** (4-step process):
+  1. Document upload (encrypt RTF, audit log)
+  2. MedCAT processing (extract entities, classify PHI vs clinical)
+  3. Patient aggregation (NHS number matching, fuzzy name/DOB matching)
+  4. Search & timeline access (SQL query patterns)
+
+**Changed**:
+- **Architecture**: Confirmed workstation deployment (not cloud SaaS)
+- **Storage Model**: RTF files in PostgreSQL BYTEA (not file system)
+- **PHI Approach**: Store identifiable PHI (for clinical care), extract to structured data
+- **Model Storage**: Shared Docker volume (all users share MedCAT models)
+
+**Removed**:
+- None
+
+**Why**:
+- **User Requirements**: Clarified deployment scenario (RDP to workstation, multiple users, shared resources)
+- **PHI Handling**: Documents contain NHS #, name, address, DOB → need extraction pipeline
+- **Data Size**: RTF files ~50KB → perfect for PostgreSQL BYTEA (<1MB recommendation)
+- **Clinical Workflow**: Transform unstructured letters → structured searchable patient data
+
+**Impact**:
+- ✅ Complete database schema for PHI-aware system
+- ✅ Security requirements defined (AES-256 encryption, audit logging, RBAC)
+- ✅ MedCAT integration workflow documented (document → entities → patients)
+- ✅ Patient matching algorithm specified (NHS number primary, name+DOB fallback)
+- ✅ SQL query patterns for patient search and timeline modules
+- ⚠️ Requires encryption key management (KMS or HSM)
+- ⚠️ Requires background worker (Celery or FastAPI BackgroundTasks) for async processing
+
+**Migration Notes**:
+- No migration needed (spec phase only)
+- Next step: Create Technical Plan (API design, architecture diagrams, testing strategy)
+- Then: Create Task breakdown (implementation steps)
+- Then: Implement core infrastructure (Docker Compose, database, auth, audit)
+
+**Technical Debt**:
+- None (specification phase)
+
+**Design Patterns Introduced**:
+- **Encrypted-at-Rest Documents**: AES-256 encryption of PHI documents in PostgreSQL BYTEA
+- **Entity Extraction Pipeline**: MedCAT async processing with structured data storage
+- **Patient Aggregation**: NHS number-based record matching with confidence scoring
+- **Audit-First PHI Access**: All PHI queries logged before execution
+
+**Architecture Decisions Confirmed**:
+1. **Q1 (MedCAT Models)**: Shared volume - all users share models ✅
+2. **Q2 (Document Storage)**: PostgreSQL BYTEA for RTF files (~50KB) ✅
+3. **Q3 (PHI Storage)**: Store identifiable PHI, extract to structured data via MedCAT ✅
+
+---
+
 ### 2025-11-08 - Architecture & Planning Skills + Modular App Design
 
 **Commits**:
