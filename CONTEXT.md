@@ -40,11 +40,13 @@ The current development focus is **extending** this ecosystem with **clinical ca
 - ✅ **Research/Annotation Platform**: Production-ready (MedCAT v2, Trainer, Service)
 - ✅ **Infrastructure**: Docker deployments, authentication, databases operational
 - ✅ **Base App Specification**: Complete with 5 CRITICAL production readiness sections (v1.1.0)
+- ✅ **Base App Technical Plan**: Complete (v1.1.0) with 8 phases, 310 hours estimated
+- ✅ **Base App Task Breakdown**: Complete (~90 tasks) following TDD approach
 - ✅ **Implementation Skills**: 8 skills covering full Spec-Kit workflow (Planning → Implementation)
-- 🚧 **Clinical Care Interfaces**: Ready for Technical Plan phase
+- 🚧 **Clinical Care Interfaces**: Ready for Phase 0 implementation (Environment Setup)
 
 **Sprint**: Pre-Sprint 1 (for clinical workflow tools)
-**Next Milestone**: Create Task Breakdown from Technical Plan, then begin Phase 1 (Core Infrastructure)
+**Next Milestone**: Begin Phase 0: Environment Setup (Docker, MedCAT models, PostgreSQL, Redis)
 
 ### Team
 - **Size**: 1-3 developers (small team, sequential development acceptable)
@@ -772,11 +774,123 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-08 - Task Breakdown for Clinical Care Tools Base Application
+
+**Commits**:
+- [Current] - docs(tasks): Create detailed task breakdown from technical plan (~90 tasks, 310 hours)
+
+**Added**:
+- **Task Breakdown File**: `.specify/tasks/clinical-care-tools-base-tasks.md` (~2,750 lines, ~90 tasks)
+  - Phase 0: Environment Setup (7 tasks, 20 hours)
+    - Docker Desktop installation and configuration
+    - MedCAT model download and verification (2-5 GB)
+    - Initial Docker Compose configuration
+    - PostgreSQL and Redis initialization
+    - MedCAT Service verification
+    - Environment verification script
+    - Troubleshooting documentation
+  - Phase 1: Core Infrastructure (12 tasks, 60 hours)
+    - Database setup (PostgreSQL 15+, Alembic migrations)
+    - JWT authentication service
+    - User management API
+    - RBAC implementation
+    - Immutable audit logging
+    - Backend infrastructure
+  - Phase 2: User & Project Management (7 tasks, 30 hours)
+    - User CRUD operations
+    - Project management system
+    - Role assignment
+    - Admin dashboard
+  - Phase 3: Document Upload & PHI Extraction (12 tasks, 40 hours)
+    - Document encryption (AES-256-GCM)
+    - MedCAT integration with retry logic
+    - PHI extraction workflow
+    - Patient aggregation (NHS number matching)
+    - Document deduplication (SHA-256 + Redis)
+  - Phase 4: Module System & Patient Search (4+ tasks, 50 hours)
+    - Module registry and loader
+    - Patient search module (first pluggable module)
+    - Elasticsearch integration
+  - Phase 5: Session Security & Break-Glass (6 tasks, 30 hours)
+    - Session binding (IP + user-agent)
+    - Concurrent session limits
+    - Break-glass emergency access
+    - Security notifications
+  - Phase 6: Data Retention & Clinical Safety (5 tasks, 30 hours)
+    - Automated purging scripts
+    - Clinical override tracking
+    - Critical findings alerts
+  - Phase 7: Testing & Deployment (10 tasks, 50 hours)
+    - Integration tests (≥25% coverage)
+    - E2E tests (critical user flows)
+    - Load testing (500 concurrent users)
+    - Production deployment validation
+
+**Changed**:
+- **CONTEXT.md**: Updated "Next Milestone" from "Create Task Breakdown from Technical Plan" to "Begin Phase 0: Environment Setup"
+- **Current Phase**: Clinical Care Interfaces moved from "Technical Plan Complete" to "Task Breakdown Complete, Ready for Implementation"
+
+**Removed**:
+- None
+
+**Why**:
+- **Spec-Kit Workflow**: Following Constitution → Specification → Technical Plan → Tasks → Code
+- **TDD Approach**: Each task follows Test-Driven Development (write tests → implement → verify)
+- **Granular Breakdown**: Tasks sized at 1-2 hours each for manageable implementation
+- **Clear Dependencies**: Tasks organized with prerequisites clearly marked
+- **Parallel Execution**: Independent tasks can be done in any order within phases
+- **Implementation Readiness**: Complete roadmap from environment setup to production deployment
+
+**Impact**:
+- ✅ Complete task breakdown ready (310 hours across 8 phases)
+- ✅ Each task has: Goal, Prerequisites, TDD steps, Acceptance criteria, Files, Time estimate
+- ✅ Clear dependency graph enables efficient execution
+- ✅ TDD approach enforced (write tests first for every task)
+- ✅ Average task time: ~3.4 hours (manageable chunks)
+- ✅ Phases can be validated independently (clear milestones)
+- ✅ Ready to begin Phase 0: Environment Setup
+- ⏭️ **Next Step**: Begin implementation of Phase 0 tasks (environment setup)
+
+**Migration Notes**:
+- No migration needed (task breakdown document only)
+- Ready to begin implementation
+- Review task breakdown at `.specify/tasks/clinical-care-tools-base-tasks.md`
+
+**Task Breakdown Principles Applied**:
+1. **Granularity**: 1-2 hour tasks (90 tasks total)
+2. **TDD Workflow**: Write tests → Implement → Verify → Commit (every task)
+3. **Clear Dependencies**: Prerequisites listed for each task
+4. **Independence**: Tasks within phases can be parallelized when possible
+5. **Acceptance Criteria**: Specific, measurable, testable criteria for each task
+6. **File Tracking**: Lists all files created/modified per task
+7. **Time Estimates**: Realistic estimates based on task complexity
+
+**Phase Summary**:
+```
+Phase 0: Environment Setup         - 7 tasks,  20 hours (0.5 weeks)
+Phase 1: Core Infrastructure       - 12 tasks, 60 hours (1.5 weeks)
+Phase 2: User & Project Management - 7 tasks,  30 hours (1 week)
+Phase 3: Document Upload & PHI     - 12 tasks, 40 hours (1 week)
+Phase 4: Module System & Search    - 4+ tasks, 50 hours (1.5 weeks)
+Phase 5: Session Security          - 6 tasks,  30 hours (1 week)
+Phase 6: Data Retention & Safety   - 5 tasks,  30 hours (1 week)
+Phase 7: Testing & Deployment      - 10 tasks, 50 hours (1.5 weeks)
+────────────────────────────────────────────────────────────────
+Total: ~90 tasks, ~310 hours (11 weeks for 1 developer)
+```
+
+**Key Files**:
+- Task Breakdown: `.specify/tasks/clinical-care-tools-base-tasks.md`
+- Based on Plan: `.specify/plans/clinical-care-tools-base-plan.md` (v1.1.0)
+- Based on Spec: `.specify/specifications/clinical-care-tools-base-app.md` (v1.1.0)
+
+---
+
 ### 2025-11-08 - Technical Plan for Clinical Care Tools Base Application (v1.1.0)
 
 **Commits**:
 - 012f8447 - docs(plan): Create comprehensive technical plan for base app (v1.0.0)
-- [Current] - docs(plan): Enhance technical plan with Phase 0, Redis, deduplication, PHI tests, scaling strategy (v1.1.0)
+- 46c14586 - Merge technical plan for Clinical Care Tools Base Application (v1.1.0)
 
 **Added** (v1.1.0):
 - **Phase 0: Environment Setup & MedCAT Model Preparation** (~20 hours, 7 tasks)
