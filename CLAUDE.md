@@ -1,6 +1,6 @@
 # AI Assistant Guide for CogStack NLP
 
-**Version**: 1.3.0
+**Version**: 1.4.0
 **Last Updated**: 2025-11-08
 **Purpose**: Guide AI assistants (Claude Code, GitHub Copilot, etc.) on project conventions and best practices
 
@@ -41,6 +41,47 @@
 
 **⚠️ CRITICAL**: Monitor context usage throughout the session to prevent abrupt cutoffs
 
+### ⛔ BEFORE Starting ANY Big Task - CHECK CONTEXT FIRST!
+
+**🔴 MANDATORY CHECK**: Before starting ANY significant task (creating plans, task breakdowns, major implementations), check your current context usage:
+
+```
+Current token usage visible in system messages:
+Token usage: X/200000; Y remaining
+```
+
+**Decision Tree**:
+
+**If ≥70% used** (≤30% remaining):
+- ❌ **DO NOT start big task**
+- ✅ **Create session summary immediately** (using template below)
+- ✅ **Generate continuation prompt for user**
+- ✅ **Tell user**: "Context at 70%. I recommend starting a fresh session for this large task. I've prepared a detailed continuation prompt for you."
+- ✅ **Start NEW session** with the continuation prompt
+
+**If 50-70% used** (30-50% remaining):
+- ⚠️ **Proceed with caution**
+- ✅ **Warn user**: "Context at X%. This task may require summarizing mid-way. Recommend breaking into smaller chunks or starting fresh session."
+- ✅ **Check context every 10% during task**
+- ✅ **Prepare to summarize at 80%**
+
+**If <50% used** (>50% remaining):
+- ✅ **Safe to proceed** with big task
+- ✅ **Still check context periodically** (every major step)
+
+**Examples of "Big Tasks"**:
+- Creating technical plans (3,000+ lines)
+- Creating task breakdowns (2,000+ lines)
+- Implementing full features (multiple files)
+- Major refactoring (touching many files)
+- Writing comprehensive documentation
+
+**This prevents**:
+- Running out of context mid-task (frustrating!)
+- Losing work progress (incomplete commits)
+- Context amnesia (forgetting decisions made earlier)
+- User having to repeat context in new session
+
 ### When to Summarize
 
 **Trigger**: When context usage reaches **≥80%** (≤20% remaining)
@@ -48,6 +89,7 @@
 **Check context usage regularly**:
 - Look for `<budget:token_budget>` or token usage indicators in system messages
 - Example: "Token usage: 160000/200000" means 80% used → **TIME TO SUMMARIZE**
+- **PROACTIVE**: Check at start of every major task, not just when low
 
 ### How to Create Session Summary
 
@@ -209,9 +251,10 @@ Token usage: 160000/200000; 40000 remaining
 - Remaining: 40000 / 200000 = 20%
 
 **Thresholds**:
-- **≥80% used** (≤20% remaining): **CREATE SUMMARY NOW**
-- **≥90% used** (≤10% remaining): **URGENT** - Summarize immediately, risk of cutoff
-- **≥95% used** (≤5% remaining): **CRITICAL** - May be cut off mid-response
+- **≥70% used** (≤30% remaining): **⛔ DO NOT START BIG TASKS** - Recommend new session to user
+- **≥80% used** (≤20% remaining): **CREATE SUMMARY NOW** - Stop work, summarize immediately
+- **≥90% used** (≤10% remaining): **URGENT** - Summarize immediately, high risk of cutoff
+- **≥95% used** (≤5% remaining): **CRITICAL** - May be cut off mid-response, summarize instantly
 
 ### Preventing Context Loss
 

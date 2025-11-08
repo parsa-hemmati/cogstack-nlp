@@ -774,10 +774,70 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-08 - Enhanced Session Management Guidance in CLAUDE.md (v1.4.0)
+
+**Commits**:
+- [Current] - docs(claude): Add proactive context checking before big tasks
+
+**Added**:
+- **"BEFORE Starting ANY Big Task - CHECK CONTEXT FIRST!" section** in CLAUDE.md
+  - Mandatory context check before starting significant tasks (plans, task breakdowns, implementations)
+  - Decision tree: 70%+ = new session, 50-70% = caution, <50% = safe
+  - Specific examples of "big tasks" (3,000+ line plans, 2,000+ line breakdowns, etc.)
+  - Prevents running out of context mid-task
+- **Updated thresholds** to be more proactive:
+  - 70% used: DO NOT start big tasks, recommend new session
+  - 80% used: CREATE SUMMARY NOW
+  - 90% used: URGENT
+  - 95% used: CRITICAL
+
+**Changed**:
+- **CLAUDE.md version**: 1.3.0 → 1.4.0
+- **Session management approach**: From reactive (summarize at 80%) to proactive (check before big tasks)
+- **Threshold enforcement**: Added 70% threshold for blocking big tasks
+
+**Removed**:
+- None
+
+**Why**:
+- **User feedback**: "This is second time reaching 0% context... should summarize and start new session PRIOR to big task"
+- **Prevent mid-task context loss**: Running out mid-task loses work, frustrates user, requires re-explaining
+- **Proactive vs reactive**: Check context BEFORE committing to large work, not during
+- **Better user experience**: Provide continuation prompt upfront when context is insufficient
+
+**Impact**:
+- ✅ AI assistants will check context before big tasks (mandatory)
+- ✅ Users will receive recommendation to start new session if <30% context remains
+- ✅ Prevents frustrating mid-task context loss (happened twice already)
+- ✅ Clearer decision tree: 70% threshold added
+- ✅ Comprehensive continuation prompts provided to users
+- ✅ Reduces wasted tokens on large tasks that can't complete
+
+**Migration Notes**:
+- AI assistants should follow new "BEFORE Big Task" workflow
+- Check system messages for token usage before starting plans, task breakdowns, features
+- If ≥70% used, recommend new session to user with detailed continuation prompt
+
+**Lessons Learned**:
+- **Reactive summarization at 80% is too late** for big tasks (3,000+ lines)
+- **Proactive checking at 70%** allows graceful session transition
+- **User experience matters**: Better to start fresh than run out mid-task
+- **Continuation prompts essential**: Detailed handoff prevents context loss
+
+**Design Pattern Introduced**:
+- **Proactive Context Management**: Check → Decide → Inform user → Provide continuation prompt
+- **Decision Tree Pattern**: Clear thresholds with specific actions (70%, 80%, 90%, 95%)
+- **Big Task Definition**: Explicit examples (plans 3,000+ lines, task breakdowns 2,000+ lines)
+
+**Key Files**:
+- CLAUDE.md (v1.4.0) - Session Management & Context Preservation section enhanced
+
+---
+
 ### 2025-11-08 - Task Breakdown for Clinical Care Tools Base Application
 
 **Commits**:
-- [Current] - docs(tasks): Create detailed task breakdown from technical plan (~90 tasks, 310 hours)
+- a5def8d4 - docs(tasks): Create detailed task breakdown from technical plan (~90 tasks, 310 hours)
 
 **Added**:
 - **Task Breakdown File**: `.specify/tasks/clinical-care-tools-base-tasks.md` (~2,750 lines, ~90 tasks)
