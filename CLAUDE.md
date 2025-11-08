@@ -1,6 +1,6 @@
 # AI Assistant Guide for CogStack NLP
 
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Last Updated**: 2025-11-08
 **Purpose**: Guide AI assistants (Claude Code, GitHub Copilot, etc.) on project conventions and best practices
 
@@ -34,6 +34,199 @@
 **Update requirement**: CONTEXT.md MUST be updated with EVERY commit (no exceptions).
 
 **Read it now**: [CONTEXT.md](CONTEXT.md) (15-20 minutes)
+
+---
+
+## 📊 Session Management & Context Preservation
+
+**⚠️ CRITICAL**: Monitor context usage throughout the session to prevent abrupt cutoffs
+
+### When to Summarize
+
+**Trigger**: When context usage reaches **≥80%** (≤20% remaining)
+
+**Check context usage regularly**:
+- Look for `<budget:token_budget>` or token usage indicators in system messages
+- Example: "Token usage: 160000/200000" means 80% used → **TIME TO SUMMARIZE**
+
+### How to Create Session Summary
+
+When context is running low, **PROACTIVELY** create a comprehensive summary following this structure:
+
+```markdown
+## Session Summary for Continuation
+
+### 1. Current Objective
+[What we're working on - be specific]
+
+Example: "Creating Technical Plan for Clinical Care Tools Base Application"
+
+### 2. Work Completed This Session
+[List everything accomplished with specific details]
+
+- ✅ Created 3 implementation workflow skills (spec-to-tech-plan, tech-plan-to-tasks, infrastructure-expert)
+- ✅ Enhanced base app specification with 5 CRITICAL sections (v1.1.0)
+- ✅ Updated CLAUDE.md and CONTEXT.md with new skills
+- ✅ Added git hooks for quality enforcement (commit-msg, prepare-commit-msg)
+
+### 3. Current State
+[Describe the exact state of the project right now]
+
+- Base app specification: Complete (v1.1.0) at `.specify/specifications/clinical-care-tools-base-app.md`
+- Implementation skills: 8 skills covering full Spec-Kit workflow
+- Git hooks: Installed and tested (pre-commit, commit-msg, prepare-commit-msg)
+- Next phase: Ready to create Technical Plan
+
+### 4. Files Modified/Created
+[List all files touched with brief description]
+
+**Created**:
+- `.claude/skills/spec-to-tech-plan/SKILL.md` - Technical plan generation guidance
+- `.claude/skills/tech-plan-to-tasks/SKILL.md` - Task breakdown guidance
+- `.claude/skills/infrastructure-expert/SKILL.md` - Infrastructure patterns
+- `.git-hooks/commit-msg` - Commit message format enforcement
+- `.git-hooks/prepare-commit-msg` - Commit message template
+
+**Modified**:
+- `CLAUDE.md` - Updated to v1.2.0 with 8 skills
+- `CONTEXT.md` - Updated current phase status
+- `.git-hooks/README.md` - Documented all hooks
+
+**Commits**: 645c303b, ccf3311d
+
+### 5. Immediate Next Steps
+[Clear, actionable steps for the next session]
+
+**Next Task**: Create Technical Plan for Clinical Care Tools Base Application
+
+**Steps**:
+1. Read base app specification: `.specify/specifications/clinical-care-tools-base-app.md`
+2. Use `spec-to-tech-plan` skill to guide technical plan creation
+3. Create `.specify/plans/clinical-care-tools-base-plan.md`
+4. Include: API design, database schema, testing strategy, deployment architecture
+5. Get user approval before proceeding to task breakdown
+
+### 6. Important Context
+[Any decisions, constraints, or key information for the next session]
+
+**Key Decisions**:
+- Deployment: Single workstation with RDP access (not cloud)
+- Storage: RTF files (~50KB) in PostgreSQL BYTEA
+- Models: Shared MedCAT models volume (all users)
+- PHI Handling: Store identifiable PHI, extract via MedCAT
+- Retention: 8 years for clinical records (NHS compliance)
+
+**Constraints**:
+- Must follow Spec-Kit workflow (no code before plan + tasks)
+- HIPAA/GDPR compliance required
+- CONTEXT.md must be updated with every commit
+
+### 7. Open Questions/Blockers
+[Anything that needs user input or decision]
+
+- None currently - ready to proceed with Technical Plan
+
+### 8. References
+[Links to key files/documentation]
+
+- Specification: `.specify/specifications/clinical-care-tools-base-app.md` (v1.1.0)
+- Skills: `.claude/skills/README.md` (8 skills documented)
+- Constitution: `.specify/constitution/project-constitution.md`
+- CONTEXT.md: Recent changes and ADRs
+```
+
+### Creating Continuation Prompt
+
+**After creating summary**, generate a continuation prompt following **Claude 4 best practices** (see [docs](https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices)):
+
+```markdown
+## Continuation Prompt for Next Session
+
+This session is being continued from a previous conversation that ran out of context.
+
+**Previous Session Summary**:
+
+[Paste the session summary here]
+
+**Your task**: Continue from where we left off.
+
+**Immediate next steps**:
+1. Read CONTEXT.md to understand current project state
+2. Review base app specification at `.specify/specifications/clinical-care-tools-base-app.md`
+3. Begin creating Technical Plan using `spec-to-tech-plan` skill
+4. Save plan to `.specify/plans/clinical-care-tools-base-plan.md`
+5. Get user approval before proceeding
+
+**Important**:
+- Follow Spec-Kit workflow strictly (Constitution → Spec → Plan → Tasks → Code)
+- Use the 8 implementation skills (they activate automatically)
+- Update CONTEXT.md with every commit (git hooks enforce this)
+- Maintain HIPAA/GDPR compliance throughout
+
+**Ask the user**: "I've reviewed the context. Ready to create the Technical Plan for the Clinical Care Tools Base Application. Should I proceed?"
+```
+
+### Best Practices for Continuation Prompts
+
+Following [Claude 4 best practices](https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices):
+
+**DO**:
+- ✅ **Be specific**: Include exact file paths, commit SHAs, version numbers
+- ✅ **Provide structure**: Use clear sections (Summary, Context, Next Steps)
+- ✅ **Reference artifacts**: Link to files, specs, documentation
+- ✅ **State current phase**: Where are we in the workflow?
+- ✅ **List decisions made**: Architecture choices, constraints, rationale
+- ✅ **Include open questions**: What needs user input?
+- ✅ **Provide immediate action**: Clear first step for the new session
+
+**DON'T**:
+- ❌ **Be vague**: "Continue working on the project" is not helpful
+- ❌ **Omit context**: Assume the next session will remember everything
+- ❌ **Skip file paths**: Always include specific file locations
+- ❌ **Forget constraints**: Healthcare compliance, deployment model, etc.
+- ❌ **Leave open loops**: Document all decisions and their rationale
+
+### Example Workflow
+
+**At 80% context usage** (160k/200k tokens):
+
+1. **Stop current work** (finish current commit if possible)
+2. **Create session summary** using template above
+3. **Generate continuation prompt** with full context
+4. **Save summary** (optional: commit to repo as `.specify/sessions/YYYY-MM-DD-summary.md`)
+5. **Share with user**: "Context running low. I've created a summary for the next session. Here's what we accomplished..."
+
+### Checking Context Usage
+
+**System messages show token usage**:
+```
+<budget:token_budget>200000</budget:token_budget>
+Token usage: 160000/200000; 40000 remaining
+```
+
+**Calculate percentage**:
+- Used: 160000 / 200000 = 80% ✅ **TIME TO SUMMARIZE**
+- Remaining: 40000 / 200000 = 20%
+
+**Thresholds**:
+- **≥80% used** (≤20% remaining): **CREATE SUMMARY NOW**
+- **≥90% used** (≤10% remaining): **URGENT** - Summarize immediately, risk of cutoff
+- **≥95% used** (≤5% remaining): **CRITICAL** - May be cut off mid-response
+
+### Preventing Context Loss
+
+**Throughout the session**:
+1. **Update CONTEXT.md frequently** - Git hooks enforce this, but do it proactively
+2. **Commit often** - Atomic commits preserve state
+3. **Document decisions** - ADRs in CONTEXT.md for architecture choices
+4. **Reference specs** - Always link to specification files
+5. **Track progress** - Use TodoWrite tool to maintain task list
+
+**This prevents**:
+- Lost context between sessions
+- Repeated questions or work
+- Inconsistent decisions
+- Missing implementation details
 
 ---
 

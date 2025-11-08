@@ -772,6 +772,78 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-08 - Session Management Guidance in CLAUDE.md
+
+**Commits**:
+- [Current] - docs(claude): Add session management and context preservation guidance
+
+**Added**:
+- **Session Management & Context Preservation Section** in CLAUDE.md (~200 lines)
+  - When to summarize: ≥80% context usage (≤20% remaining)
+  - How to create session summary (8-section template)
+  - How to create continuation prompt (following Claude 4 best practices)
+  - Best practices for continuation prompts (DOs and DON'Ts)
+  - Example workflow for handling low context
+  - Context usage checking (thresholds: 80%, 90%, 95%)
+  - Preventing context loss strategies
+
+- **Session Summary Template** with 8 sections:
+  1. Current Objective
+  2. Work Completed This Session
+  3. Current State
+  4. Files Modified/Created
+  5. Immediate Next Steps
+  6. Important Context (decisions, constraints)
+  7. Open Questions/Blockers
+  8. References (key files/docs)
+
+- **Continuation Prompt Template** following Claude 4 best practices
+  - Includes previous session summary
+  - Immediate next steps
+  - Important constraints and requirements
+  - Clear ask for user confirmation
+
+**Changed**:
+- **CLAUDE.md version**: 1.2.0 → 1.3.0
+
+**Removed**:
+- None
+
+**Why**:
+- **User Request**: "We should be prompting Claude in CLAUDE.md to summarize the session, and create a prompt for next session when less than 20% of context is left"
+- **Prevent Context Loss**: Sessions running out of context lose critical information
+- **Claude 4 Best Practices**: Follow recommended prompt engineering patterns for continuity
+- **Proactive Management**: Check context at 80%, 90%, 95% thresholds
+- **Structured Handoff**: 8-section template ensures no information loss
+- **Team Consistency**: All AI assistants follow same session management approach
+
+**Impact**:
+- ✅ Prevents abrupt session cutoffs
+- ✅ Maintains continuity across sessions
+- ✅ Preserves decisions, context, and state
+- ✅ Reduces repeated questions and work
+- ✅ Clear handoff between sessions
+- ✅ Follows Claude 4 prompt engineering best practices
+- ✅ Team members can continue work seamlessly
+
+**Migration Notes**:
+- No migration needed (documentation only)
+- AI assistants should check context usage regularly
+- Create summary at 80% context usage
+- Save summaries to `.specify/sessions/` directory (optional)
+
+**Design Patterns Introduced**:
+- **Progressive Context Warning**: 80% (warn), 90% (urgent), 95% (critical)
+- **8-Section Summary Template**: Comprehensive session state capture
+- **Continuation Prompt Pattern**: Structured handoff with clear next steps
+- **Context Usage Calculation**: Used/Total ratio with percentage thresholds
+
+**Best Practices Referenced**:
+- [Claude 4 Best Practices](https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices)
+- Specific guidance: Be specific, provide structure, reference artifacts, state current phase, list decisions
+
+---
+
 ### 2025-11-08 - Implementation Workflow Skills for Spec-Kit Development
 
 **Commits**:
