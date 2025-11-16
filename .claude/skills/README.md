@@ -123,6 +123,84 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
+
+#### 9. `medcat-architecture`
+**When**: Designing clinical care tools that integrate with existing MedCAT components
+
+**What it does**:
+- Guides integration patterns (REST API vs library vs Trainer extension)
+- Documents MedCAT ecosystem architecture (v2, Trainer, Service)
+- Provides model loading strategies and deployment patterns
+- Explains database schema (94 migrations, 17 models)
+
+**Why useful**: Prevents reinventing existing infrastructure, ensures proper integration
+
+---
+
+#### 10. `medcat-ui-patterns`
+**When**: Building Vue 3 interfaces for clinical tools
+
+**What it does**:
+- Documents 31 production Vue files from MedCAT Trainer
+- Provides Vuetify + Composition API patterns
+- Shows Django REST API integration examples
+- Guides authentication flows (Token, OIDC)
+
+**Why useful**: Reuses battle-tested UI patterns, consistent UX across tools
+
+---
+
+#### 11. `modular-app-architect`
+**When**: Planning modular platform architecture
+
+**What it does**:
+- Designs core + modules pattern for extensibility
+- Defines module extension points and APIs
+- Plans shared infrastructure (auth, audit, config)
+- Ensures independent module deployment
+
+**Why useful**: Enables parallel development, clear ownership boundaries
+
+---
+
+#### 12. `prd-to-spec`
+**When**: Converting Product Requirements to Spec-Kit specifications
+
+**What it does**:
+- Transforms Sprint PRDs into technical specifications
+- Ensures constitutional alignment (Patient Safety, Privacy by Design)
+- Guides spec → plan → tasks workflow
+- Validates compliance with project principles
+
+**Why useful**: Systematic requirements engineering, prevents scope creep
+
+---
+
+#### 13. `architecture-decision-helper`
+**When**: Deciding between FastAPI vs Django for new features
+
+**What it does**:
+- Guides backend architecture decisions (stateless vs stateful)
+- Provides decision tree for framework selection
+- Documents dual-backend pattern (ADR-002)
+- Shows integration patterns between FastAPI and Django
+
+**Why useful**: Ensures consistency with existing architecture, prevents framework mixing
+
+---
+
+#### 14. `context-validator`
+**When**: Updating CONTEXT.md or before PRs
+
+**What it does**:
+- Validates CONTEXT.md metrics against actual codebase
+- Checks Vue component counts, file sizes, migration counts
+- Detects internal inconsistencies
+- Prevents documentation drift
+
+**Why useful**: Maintains documentation accuracy, prevents metric discrepancies like Nov 2025 incident
+
+---
 ## How Skills Work
 
 Skills are **model-invoked**—Claude automatically uses them based on your request and the skill's description. You don't need to explicitly call them.
@@ -323,17 +401,19 @@ Complete Feature Implementation Flow:
 
 ## Metrics
 
-**Total Skills**: 8
-**Lines of Guidance**: ~6,500+ (compressed via progressive loading)
+**Total Skills**: 14
+**Lines of Guidance**: ~10,000+ (compressed via progressive loading)
 **Coverage**:
 - ✅ Compliance & Safety (healthcare-compliance-checker)
 - ✅ NLP Accuracy (medcat-meta-annotations)
-- ✅ Frontend Development (vue3-component-reuse)
+- ✅ Frontend Development (vue3-component-reuse, medcat-ui-patterns)
 - ✅ Healthcare Standards (fhir-r4-mapper)
-- ✅ Workflow Enforcement (spec-kit-enforcer)
+- ✅ Workflow Enforcement (spec-kit-enforcer, prd-to-spec)
 - ✅ Technical Planning (spec-to-tech-plan)
 - ✅ Task Breakdown (tech-plan-to-tasks)
 - ✅ Infrastructure Implementation (infrastructure-expert)
+- ✅ Architecture Guidance (medcat-architecture, modular-app-architect, architecture-decision-helper)
+- ✅ Documentation Quality (context-validator)
 
 ---
 
