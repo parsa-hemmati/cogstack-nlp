@@ -1,7 +1,7 @@
 # Project Context - Living Architecture & Decisions
 
 **Status**: Living Document - Updated with EVERY commit
-**Last Updated**: 2025-11-08
+**Last Updated**: 2025-11-16
 **Version**: 1.0.0
 
 > ⚠️ **CRITICAL**: This document MUST be updated before any code commit. No PR can be merged without context updates.
@@ -52,7 +52,7 @@ The current development focus is **extending** this ecosystem with **clinical ca
 - **Size**: 1-3 developers (small team, sequential development acceptable)
 - **Roles**: Full-stack developers + clinical SME input
 - **AI Assistance**: Claude Code (primary), GitHub Copilot (optional)
-- **Existing Codebase**: ~400+ Python files, 65 Vue components, 95 database migrations
+- **Existing Codebase**: ~400+ Python files, 31 Vue files (24 components + 6 views + App.vue), 94 database migrations
 
 ---
 
@@ -67,9 +67,9 @@ The repository contains **3 production applications** + supporting libraries:
 │  PRODUCTION-READY ECOSYSTEM (IMPLEMENTED)                        │
 │                                                                   │
 │  1. MedCAT Trainer (Full Web Application)                       │
-│     ├── Frontend: Vue 3.5 + TypeScript + Vuetify (65 components)│
+│     ├── Frontend: Vue 3.5 + TypeScript + Vuetify (31 Vue files)│
 │     ├── Backend: Django REST Framework                           │
-│     ├── Database: PostgreSQL (95 migrations)                     │
+│     ├── Database: PostgreSQL (94 migrations)                     │
 │     ├── Auth: Django auth + OIDC support                         │
 │     └── Features: Annotation, training, metrics, project mgmt    │
 │                                                                   │
@@ -118,7 +118,7 @@ The repository contains **3 production applications** + supporting libraries:
 **Key Architecture Notes**:
 - **Dual Backend Stack**: FastAPI (microservice) + Django (monolith)
 - **Vue 3 Frontend**: Already implemented for annotation platform
-- **PostgreSQL**: In production use with 95 database migrations
+- **PostgreSQL**: In production use with 94 database migrations
 - **Authentication**: Fully operational in MedCAT Trainer
 - **Docker Deployments**: 29 compose files across projects
 
@@ -164,12 +164,12 @@ The repository contains **3 production-ready applications** and **4 supporting l
 **Status**: Production web application
 
 **Frontend** (Vue 3.5.12 + TypeScript):
-- ✅ Annotation interface (`TrainAnnotations.vue` - 34,490 lines)
-- ✅ Metrics dashboard (`Metrics.vue` - 25,991 lines)
+- ✅ Annotation interface (`TrainAnnotations.vue` - 986 lines)
+- ✅ Metrics dashboard (`Metrics.vue` - 771 lines)
 - ✅ Concept database management
 - ✅ Project management
 - ✅ User authentication UI
-- 65 Vue components total
+- 31 Vue files (24 components + 6 views + App.vue) total
 
 **Backend** (Django REST Framework):
 - ✅ User authentication & authorization (Token + OIDC)
@@ -182,14 +182,14 @@ The repository contains **3 production-ready applications** and **4 supporting l
 
 **Database** (PostgreSQL):
 - ✅ 17 Django models (ModelPack, ConceptDB, Project, Document, Entity, etc.)
-- ✅ 95 database migrations
+- ✅ 94 database migrations
 - ✅ Annotation history tracking
 - ✅ User permissions system
 
 **Key Files**:
 - `webapp/api/api/models.py` (578 lines)
 - `webapp/api/api/views.py` (962 lines)
-- `webapp/frontend/src/` (65 Vue components)
+- `webapp/frontend/src/` (31 Vue files (24 components + 6 views + App.vue))
 
 ---
 
@@ -306,12 +306,12 @@ These are **NEW clinical workflow tools** to be built on top of the existing NLP
 
 | Component | Choice | Status | Evidence |
 |-----------|--------|--------|----------|
-| **Frontend** | Vue 3.5.12 + TypeScript 5.6 | ✅ Production | 65 components in MedCAT Trainer |
+| **Frontend** | Vue 3.5.12 + TypeScript 5.6 | ✅ Production | 31 Vue files in MedCAT Trainer |
 | **UI Framework** | Vuetify 3.7.3 | ✅ Production | Material Design components |
 | **Build Tool** | Vite 6.3.4 | ✅ Production | Fast HMR, optimized builds |
 | **Backend (API)** | FastAPI 0.115.2 | ✅ Production | MedCAT Service REST API |
 | **Backend (Web)** | Django REST Framework | ✅ Production | MedCAT Trainer application |
-| **Database** | PostgreSQL | ✅ Production | 95 migrations, 17 models |
+| **Database** | PostgreSQL | ✅ Production | 94 migrations, 17 models |
 | **Search** | Elasticsearch | ⚠️ Library ready | CogStack-ES implemented, not integrated |
 | **Caching** | Redis | ❌ Not implemented | Planned for future |
 | **Container** | Docker + Compose | ✅ Production | 29 compose files |
@@ -427,7 +427,7 @@ These are **NEW clinical workflow tools** to be built on top of the existing NLP
 Used Claude Code's Explore agent to analyze entire repository structure. Found:
 - 3 production-ready applications (MedCAT v2, MedCAT Trainer, MedCAT Service)
 - ~400+ Python files across projects
-- 65 Vue 3 components in production
+- 31 Vue 3 files (24 components + 6 views + App.vue) in production
 - 95 PostgreSQL database migrations
 - Dual backend architecture (FastAPI + Django)
 - 29 Docker compose files
@@ -885,6 +885,56 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ### Migration Notes
 - What users/developers need to do
+```
+
+---
+
+### 2025-11-16 - Correction of Codebase Metrics in CONTEXT.md
+
+**Commits**: [Pending] - docs: Fix incorrect codebase metrics in CONTEXT.md
+
+**Changed**:
+- **Vue component count**: Corrected from "65 components" to "31 Vue files (24 components + 6 views + App.vue)"
+- **TrainAnnotations.vue size**: Corrected from "34,490 lines" to "986 lines"
+- **Metrics.vue size**: Corrected from "25,991 lines" to "771 lines"
+- **Database migrations count**: Corrected from "95 migrations" to "94 migrations"
+- **Last Updated date**: Updated from 2025-11-08 to 2025-11-16
+
+**Why**:
+- **Accuracy**: CONTEXT.md contained incorrect metrics introduced on 2025-11-07
+- **Verification**: Manual verification revealed actual codebase counts differ significantly
+  - Actual Vue files: 31 total (find medcat-trainer/webapp/frontend/src -name "*.vue" | wc -l)
+  - Actual TrainAnnotations.vue: 986 lines (wc -l TrainAnnotations.vue)
+  - Actual Metrics.vue: 771 lines (wc -l Metrics.vue)
+  - Actual migrations: 94 files (find medcat-trainer -path "*/migrations/*.py" -name "[0-9]*.py" | wc -l)
+- **Root cause**: November 7th Explore agent incorrectly counted components and file sizes
+- **Impact**: Incorrect metrics could mislead developers about codebase complexity
+
+**Impact**:
+- ✅ **Accurate documentation**: CONTEXT.md now reflects actual codebase metrics
+- ✅ **Developer expectations**: Correct understanding of component library size (24 reusable components)
+- ✅ **File size clarity**: Vue files are ~1,000 lines each, not 30,000+ (manageable complexity)
+- ✅ **Resource planning**: Can accurately assess reuse opportunities from 24 components
+- ⚠️ **Internal inconsistency resolved**: Line 1604 previously had "24 components" while other sections claimed "65"
+
+**Migration Notes**:
+- No code changes required (documentation-only correction)
+- AI assistants: Use corrected count of 31 Vue files (24 components) when recommending component reuse
+- Developers: MedCAT Trainer has 24 reusable components in /components/ directory
+
+**Verification Commands**:
+```bash
+# Vue files count
+find medcat-trainer/webapp/frontend/src -name "*.vue" | wc -l  # Returns: 31
+
+# TrainAnnotations.vue size
+wc -l medcat-trainer/webapp/frontend/src/views/TrainAnnotations.vue  # Returns: 986
+
+# Metrics.vue size
+wc -l medcat-trainer/webapp/frontend/src/views/Metrics.vue  # Returns: 771
+
+# Migrations count
+find medcat-trainer -path "*/migrations/*.py" -name "[0-9]*.py" | wc -l  # Returns: 94
 ```
 
 ---
@@ -1601,7 +1651,7 @@ Total: ~90 tasks, ~310 hours (11 weeks for 1 developer)
 
   **medcat-architecture** (Expert knowledge of existing MedCAT ecosystem):
   - Documents MedCAT v2 core library architecture (228 files, PyPI package)
-  - Documents MedCAT Trainer architecture (Django REST + Vue 3, 95 migrations, 24 components)
+  - Documents MedCAT Trainer architecture (Django REST + Vue 3, 94 migrations, 24 components)
   - Documents MedCAT Service architecture (FastAPI microservice, bulk processing)
   - Provides 3 integration patterns (REST API, Direct Library, Trainer Extension)
   - Explains model loading strategies (Model Pack, Component Loading, MedCAT Den)
@@ -1784,7 +1834,7 @@ When implementing clinical care tools:
     - Shows real-world impact with clinical examples
 
   **Priority 2 (Highly Recommended)**:
-  - `vue3-component-reuse` - Leverage existing 65 Vue components
+  - `vue3-component-reuse` - Leverage existing 31 Vue files (24 components + 6 views + App.vue)
     - Searches MedCAT Trainer for reusable patterns
     - Provides Composition API + TypeScript templates
     - Prevents rebuilding components that already exist
@@ -1824,7 +1874,7 @@ When implementing clinical care tools:
 **Why**:
 - **Domain expertise**: Generic skills don't cover healthcare-specific needs (compliance, MedCAT, FHIR)
 - **Safety critical**: Healthcare development requires compliance validation and NLP accuracy
-- **Efficiency**: Reusing existing patterns (65 Vue components) saves development time
+- **Efficiency**: Reusing existing patterns (31 Vue files (24 components + 6 views + App.vue)) saves development time
 - **Quality**: Enforcing Spec-Kit workflow prevents rework and ensures documentation
 - **Team knowledge**: Skills provide consistent expertise across all AI-assisted sessions
 - **Context preservation**: Skills bundle domain knowledge, reducing context repetition
@@ -1915,7 +1965,7 @@ git commit -m "update docs"
 - **Project Overview**: Changed phase from "Planning & Foundation" → "Production + Clinical Care Tools"
 - **System Architecture**: Completely rewritten to document 3 production applications
   - MedCAT v2 (228 Python files, PyPI published)
-  - MedCAT Trainer (Vue 3 + Django + PostgreSQL, 65 components, 95 migrations)
+  - MedCAT Trainer (Vue 3 + Django + PostgreSQL, 31 Vue files, 94 migrations)
   - MedCAT Service (FastAPI REST API, Docker deployment)
   - Supporting libraries (MedCAT Den, CogStack-ES, scripts, demos)
 
@@ -1927,7 +1977,7 @@ git commit -m "update docs"
 - **Technology Stack (ADR-002)**: Updated to reflect actual dual backend architecture
   - Documented Vue 3.5.12 + TypeScript 5.6 (production)
   - FastAPI 0.115.2 (MedCAT Service) + Django (MedCAT Trainer)
-  - PostgreSQL with 95 migrations (operational)
+  - PostgreSQL with 94 migrations (operational)
   - Elasticsearch library ready (integration pending)
 
 - **Planned Features**: Clarified these are NEW clinical care tools for clinicians/researchers, not the first implementations
@@ -1939,7 +1989,7 @@ git commit -m "update docs"
   - Documents the discovery of mature codebase using Explore agent
   - Explains critical misalignment between docs and reality
   - Provides guidance for AI assistants on leveraging existing code
-  - Emphasizes studying 65 Vue components, Django models, FastAPI patterns
+  - Emphasizes studying 31 Vue files (24 components + 6 views + App.vue), Django models, FastAPI patterns
 
 **Why**:
 - **CRITICAL context loss prevention**: CONTEXT.md claimed "no implementation" but 3 production apps exist
@@ -1955,7 +2005,7 @@ git commit -m "update docs"
 - ✅ **Clearer scope**: Distinguish research/annotation platform from planned clinical care tools
 - ✅ **Terminology clarity**: "Clinical care tools" accurately describes tools for clinicians, not patients
 - ✅ **Technology constraints clear**: Must use Vue 3 + TypeScript (already implemented)
-- ✅ **Resource efficiency**: Can reuse 65 Vue components, Django auth, FastAPI patterns
+- ✅ **Resource efficiency**: Can reuse 31 Vue files (24 components + 6 views + App.vue), Django auth, FastAPI patterns
 - ⚠️ **Learning curve**: Must study substantial existing codebase (~400+ Python files)
 - ⚠️ **Architecture decision needed**: FastAPI microservice vs Django extension for clinical tools
 
@@ -1972,7 +2022,7 @@ Used Claude Code's Explore agent with "very thorough" analysis to:
 - **Terminology correction**: "Patient-facing" → "Clinical care tools" (for clinicians, not patients)
 - **Before implementing clinical tools**: Study MedCAT Trainer code for Vue 3 patterns
 - **Architecture decisions**: Consult ADR-005 for guidance on leveraging existing systems
-- **Don't reinvent**: Check existing 65 Vue components for reusable patterns
+- **Don't reinvent**: Check existing 31 Vue files (24 components + 6 views + App.vue) for reusable patterns
 
 ---
 
