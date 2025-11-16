@@ -889,6 +889,69 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-16 - NHS Hospital Deployment Guidance (RTF Support + RDP Multi-User)
+
+**Commits**: [Current] - docs(deployment): Add NHS Windows RDP deployment guide and RTF converter
+
+**Added**:
+- **scripts/rtf_to_csv_converter.py** - Python script to convert RTF clinical documents to CSV for MedCAT Trainer upload
+- **scripts/requirements-rtf.txt** - Dependencies for RTF converter (`striprtf==0.0.26`)
+- **scripts/RTF_CONVERTER_README.md** - User guide for RTF conversion workflow
+- **docs/deployment/nhs-windows-rdp-deployment.md** - Comprehensive 6-phase deployment guide for NHS hospital Windows workstation with RDP multi-user access
+
+**Why**:
+- **Real-world NHS use case**: NHS hospital needs to deploy MedCAT Trainer on Windows workstation for multiple clinicians via RDP
+- **RTF file format**: Clinical documents stored as RTF files (~50KB each), but MedCAT Trainer only accepts CSV/XLSX (medcat-trainer/webapp/api/api/models.py:237-242)
+- **RDP multi-user architecture**: Multiple clinicians RDP to same Windows workstation with different Windows credentials, need to access shared MedCAT Trainer instance
+- **No development needed**: Existing MedCAT Trainer supports use case 100% (Dataset upload, ProjectGroup for document distribution, OIDC auth) - only preprocessing and infrastructure configuration required
+
+**Impact**:
+- ✅ **RTF support via preprocessing**: Converts RTF → CSV without modifying MedCAT Trainer codebase
+- ✅ **Multi-user RDP architecture clarified**: Docker containers bind to `localhost:8000` shared across all RDP sessions on same physical machine
+- ✅ **Production deployment guide**: 6 phases covering Windows configuration, Docker setup, RTF conversion, ProjectGroup configuration, auto-start, network access
+- ✅ **No Spec-Kit workflow needed**: Existing functionality covers 100% of NHS requirements (ProjectGroup feature is perfect for document distribution)
+- ⚠️ **Windows 10 limitation**: Only 1 simultaneous RDP session (clinicians take turns); recommend Windows Server 2019/2022 for true multi-user (2-10+ simultaneous sessions)
+
+**Use Case Validation**:
+The NHS hospital scenario validates that existing MedCAT Trainer production features fully support:
+1. **Windows Docker deployment**: Works on Windows 10/Server with Docker Desktop
+2. **Admin user management**: Django admin interface for creating clinician accounts
+3. **Document upload**: Dataset model accepts CSV (RTF preprocessing script provided)
+4. **Document distribution**: **ProjectGroup model** automatically creates one ProjectAnnotateEntities per clinician, sharing same dataset
+5. **Multi-user access**: Docker containers on `localhost:8000` accessible from all RDP sessions
+6. **Progress tracking**: Admin monitors validation progress via Django admin
+7. **Annotation workflow**: Clinicians validate documents independently via MedCAT Trainer UI
+
+**Migration Notes**:
+- **For NHS deployments**: Use preprocessing workflow (RTF → CSV → Dataset upload) - no code changes needed
+- **For future RTF native support**: Would require Spec-Kit workflow to extend Dataset model (estimated 8-12 hours)
+- **RDP architecture**: Admin installs Docker, runs containers once, disconnects RDP; clinicians RDP and access `localhost:8000`
+- **Production checklist**: See docs/deployment/nhs-windows-rdp-deployment.md Phase 6 (16-item checklist for go-live)
+
+**Key Technical Findings**:
+- **ProjectGroup.create_associated_projects**: When `True`, automatically creates one ProjectAnnotateEntities for each annotator (medcat-trainer/webapp/api/api/admin/models.py:126-131)
+- **All share same dataset**: All clinicians see same 150 documents, validate independently until quota met
+- **DatasetForm validation**: Explicitly rejects non-CSV/XLSX files (medcat-trainer/webapp/api/api/models.py:242)
+- **RDP localhost sharing**: Windows localhost is physical machine, not RDP session - all RDP users access same Docker containers
+
+**Documentation Structure**:
+```
+docs/deployment/nhs-windows-rdp-deployment.md
+├── Phase 1: Admin Workstation Preparation (Windows config, Docker install, service mode)
+├── Phase 2: MedCAT Trainer Installation (clone, env config, docker-compose)
+├── Phase 3: Multi-User RDP Access Configuration (test clinician access)
+├── Phase 4: RTF Clinical Document Upload (convert RTF → CSV, upload Dataset)
+├── Phase 5: Auto-Start Configuration (Task Scheduler, startup scripts)
+└── Phase 6: Network Access (optional - direct access without RDP, firewall, security)
+```
+
+**Workflow Testing Result**:
+- **Question**: "Do we need to follow our workflow to add any functionality?"
+- **Answer**: **NO** - Existing MedCAT Trainer functionality is 100% sufficient
+- **Conclusion**: Spec-Kit workflow is for **new feature development only**; use existing features when they already solve the problem
+
+---
+
 ### 2025-11-16 - Correction of Codebase Metrics in CONTEXT.md
 
 **Commits**: [Pending] - docs: Fix incorrect codebase metrics in CONTEXT.md
