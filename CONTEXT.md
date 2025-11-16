@@ -889,9 +889,56 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-16 - HTTPS/TLS Security Guide for NHS Deployment
+
+**Commits**: [Current] - docs(security): Add comprehensive HTTPS/TLS configuration guide with Nginx
+
+**Added**:
+- **docs/deployment/https-tls-nginx-guide.md** - Comprehensive HTTPS/TLS educational guide (31KB, 9 parts)
+
+**Why**:
+- **HIPAA/GDPR requirement**: PHI must be encrypted in transit (TLS 1.2+ mandatory)
+- **Educational request**: User asked to "learn HTTPS/TLS configuration guide (Nginx reverse proxy)"
+- **Production security**: Self-signed certificates insufficient for NHS deployment with real PHI
+- **NHS CA workflow**: Document NHS Enterprise CA certificate request process for internal deployments
+
+**Impact**:
+- ✅ **Educational resource**: Explains WHY (HTTPS concepts), HOW (implementation), WHAT (reverse proxy)
+- ✅ **3 deployment scenarios**: Self-signed (testing), Let's Encrypt (internet), NHS Enterprise CA (recommended for RDP)
+- ✅ **Production-ready**: Nginx configs with TLS 1.2+, strong ciphers, HSTS, rate limiting, security headers
+- ✅ **Monitoring guidance**: Certificate expiration alerts, brute-force detection, SSL Labs testing
+- ✅ **NHS-specific**: NHS CA certificate request workflow (CSR generation, IT submission, installation)
+
+**Key Content**:
+- Part 1: Understanding HTTPS/TLS (encryption, TLS handshake, certificates, reverse proxy)
+- Part 2: Certificate Options (4 types with pros/cons: self-signed, Let's Encrypt, NHS CA, commercial)
+- Part 3: Implementation (3 step-by-step scenarios with full Nginx configs)
+- Part 4: Security Hardening (TLS 1.2+, cipher suites, HSTS, OCSP stapling, DH params, headers)
+- Part 5: Testing (SSL Labs, OpenSSL CLI, browser testing, certificate verification)
+- Part 6: Troubleshooting (cert errors, protocol errors, mixed content, expiration)
+- Part 7: Monitoring (expiration scripts, log monitoring, brute-force detection)
+- Part 8: NHS Production Checklist (16 items for go-live)
+- Part 9: Summary + Resources + FAQs
+
+**NHS CA Workflow** (Recommended for RDP Deployment):
+1. Generate CSR: `openssl req -new -newkey rsa:2048 -nodes -keyout private.key -out request.csr`
+2. Submit CSR to NHS IT Certificate Services
+3. Receive: server.crt + intermediate.crt + root.crt
+4. Create fullchain: `cat server.crt intermediate.crt root.crt > fullchain.crt`
+5. Configure Nginx: `ssl_certificate fullchain.crt; ssl_certificate_key private.key;`
+6. Verify: No browser warnings on NHS computers (NHS Root CA pre-trusted)
+
+**Migration Notes**:
+- **For NHS RDP**: Use Scenario 3 (NHS Enterprise CA) - trusted by NHS devices, 1-2 year validity
+- **Docker Compose**: Add Nginx service, bind MedCAT Trainer to 127.0.0.1:8000 (localhost only)
+- **Firewall**: Open ports 80, 443; block 8000 externally (only Nginx forwards to it)
+- **Complements**: docs/deployment/nhs-windows-rdp-deployment.md Phase 6 (Network Access)
+
+---
+
 ### 2025-11-16 - NHS Hospital Deployment Guidance (RTF Support + RDP Multi-User)
 
-**Commits**: [Current] - docs(deployment): Add NHS Windows RDP deployment guide and RTF converter
+**Commits**: f5e23e4 - docs(deployment): Add NHS Windows RDP deployment guide and RTF converter
 
 **Added**:
 - **scripts/rtf_to_csv_converter.py** - Python script to convert RTF clinical documents to CSV for MedCAT Trainer upload
