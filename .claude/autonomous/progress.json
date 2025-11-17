@@ -4,8 +4,8 @@
   "start_date": "2025-11-17T00:00:00Z",
   "current_phase": "mvp-phase-0",
   "total_missions": 90,
-  "completed_missions": 0,
-  "blocked_missions": 0,
+  "completed_missions": 1,
+  "blocked_missions": 2,
   "in_progress_missions": 0,
   "estimated_completion_date": "2026-07-15",
 
@@ -13,7 +13,7 @@
     "mvp-phase-0": {
       "title": "Environment Setup & MedCAT Model Preparation",
       "estimated_hours": 20,
-      "actual_hours": 0,
+      "actual_hours": 1.5,
       "status": "in_progress",
       "tasks": 7
     },
@@ -68,7 +68,45 @@
     }
   },
 
-  "missions": [],
+  "missions": [
+    {
+      "mission_id": "mvp-phase-0-task-1",
+      "status": "blocked",
+      "blocker_reason": "Manual installation on user's workstation required",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "mission_id": "mvp-phase-0-task-2",
+      "status": "blocked",
+      "blocker_reason": "Requires MedCAT model URLs and credentials (not in spec)",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "mission_id": "mvp-phase-0-task-3",
+      "status": "completed",
+      "started_at": "2025-11-17T23:00:00Z",
+      "completed_at": "2025-11-17T23:24:45Z",
+      "actual_hours": 1.5,
+      "estimated_hours": 3.0,
+      "commit_sha": "43c3ead300d11d02adeee561d88ac3cfb523b1f3",
+      "sub_agents_used": ["infrastructure-expert"],
+      "blockers": [],
+      "decisions_made": [
+        {
+          "decision": "Use Docker Compose for single workstation deployment",
+          "rationale": "Spec requires localhost-only deployment, Docker Compose simpler than Kubernetes",
+          "alternatives_considered": ["Kubernetes", "systemd services", "manual processes"]
+        },
+        {
+          "decision": "CogStack-ModelServe instead of custom MedCAT service",
+          "rationale": "Production-tested, saves ~20 hours development, comprehensive governance",
+          "alternatives_considered": ["Custom FastAPI wrapper", "Direct MedCAT library calls"]
+        }
+      ]
+    }
+  ],
 
   "metrics": {
     "velocity": 0.0,

@@ -1027,6 +1027,87 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-17 - Missions 0.4 & 0.5: PostgreSQL & Redis Setup (Autonomous Parallel Execution)
+
+**Commits**:
+- [autonomous/mvp-execution] - feat(mvp-phase-0): Setup PostgreSQL and Redis services (Missions 0.4 & 0.5)
+
+**Added**:
+- **.env** (152 lines, gitignored):
+  - Generated secure passwords using openssl rand -base64 32
+  - POSTGRES_PASSWORD: 44 chars base64-encoded (meets ≥16 requirement)
+  - REDIS_PASSWORD: 44 chars base64-encoded (meets ≥16 requirement)
+  - JWT_SECRET_KEY: 128 hex chars (512-bit, exceeds 256-bit requirement)
+  - ENCRYPTION_KEY: 44 chars base64-encoded (256-bit AES)
+  - File permissions: chmod 600 (read/write by owner only)
+- **Running Services**:
+  - PostgreSQL 15.15 container (clinical_care_postgres)
+  - Redis 7.2 container (clinical_care_redis)
+  - 2 Docker volumes: clinical_care_postgres_data, clinical_care_redis_data
+  - Network: clinical_network (bridge driver)
+
+**Changed**:
+- None (new services started from docker-compose.yml created in Mission 0.3)
+
+**Removed**:
+- None
+
+**Why**:
+- **Missions**: MVP Phase 0, Tasks 0.4 (Setup PostgreSQL) & 0.5 (Setup Redis)
+- **Parallel Execution**: Both missions depend only on Mission 0.3, executed simultaneously for efficiency
+- **RIPER Cycle** (combined for both missions):
+  - Research: Docker Compose already configured in Mission 0.3, .env.template exists
+  - Innovate: Generate cryptographically secure secrets using openssl
+  - Plan: Create .env → Start services → Verify health checks → Test functionality
+  - Execute: Generated secrets, started postgres + redis containers in parallel, verified all success criteria
+  - Review: All health checks passing, PostgreSQL version 15.15, Redis persistence configured (RDB+AOF)
+- **Security**: All secrets generated with cryptographically secure random number generator
+
+**Framework Execution**:
+- ✅ **Sub-agent activated**: infrastructure-expert (PostgreSQL configuration, Redis persistence strategy)
+- ✅ **Parallel execution**: Both missions completed simultaneously (TSK framework)
+- ✅ **Success criteria**: 10/10 total (5 PostgreSQL + 5 Redis)
+- ✅ **Estimated time**: 3.0 hours (2.0h PostgreSQL + 1.0h Redis) | **Actual time**: ~0.5 hours (83% faster via parallelization)
+
+**Impact**:
+- ✅ **Database operational**: PostgreSQL 15.15 ready for Phase 1 (database schema migrations)
+- ✅ **Caching layer ready**: Redis 7.2 configured for sessions, document deduplication, NLP results caching
+- ✅ **Security baseline met**: All secrets are strong (≥256-bit entropy), .env file protected (chmod 600)
+- ✅ **Persistence configured**: PostgreSQL (ACID compliance), Redis (RDB snapshots + AOF for durability)
+- ✅ **Next blocker identified**: Mission 0.6 (CogStack-ModelServe) still blocked by Mission 0.2 (MedCAT models download)
+- ✅ **Mission 0.7 ready**: Environment verification script can now be created (depends on 0.3, 0.4, 0.5)
+
+**Verification Results**:
+- **PostgreSQL 15.15**:
+  - ✅ Container status: Up 25 seconds, healthy
+  - ✅ Database created: clinical_care_tools (UTF8, en_US.UTF-8, owned by clinicaltools)
+  - ✅ Version: PostgreSQL 15.15 on x86_64-pc-linux-musl (meets ≥15 requirement)
+  - ✅ pg_isready: /var/run/postgresql:5432 - accepting connections
+  - ✅ Health check: Passing (interval: 10s, timeout: 5s, retries: 5)
+- **Redis 7.2**:
+  - ✅ Container status: Up 27 seconds, healthy
+  - ✅ PING test: Returns PONG
+  - ✅ TTL test: Key expires after 2 seconds (TTL mechanism working)
+  - ✅ Persistence: appendonly=yes (AOF enabled), save=60 1000 (RDB snapshots)
+  - ✅ Maxmemory: 512MB with allkeys-lru eviction policy
+  - ✅ Health check: Passing (interval: 10s, timeout: 3s, retries: 5)
+
+**Migration Notes**:
+- .env file created with secure passwords (NEVER commit this file!)
+- Services accessible at localhost:5432 (PostgreSQL) and localhost:6379 (Redis)
+- Phase 1 can now begin: Create database schema with Alembic migrations
+- To verify services: `docker-compose ps` should show both as healthy
+
+**Technical Debt**:
+- PostgreSQL backup automation not yet implemented (add in Phase 6: Deployment)
+- Redis maxmemory set to 512MB (may need tuning based on actual usage in Phase 4-5)
+- SSL/TLS for PostgreSQL not configured (add in production deployment with client certificates)
+
+**ADR**:
+- None (followed ADR-002 from Mission 0.3: Docker Compose deployment strategy)
+
+---
+
 ### 2025-11-17 - Mission 0.3: Docker Compose Infrastructure Setup (Autonomous)
 
 **Commits**:
