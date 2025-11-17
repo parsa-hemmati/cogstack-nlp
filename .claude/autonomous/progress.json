@@ -1,0 +1,114 @@
+{
+  "roadmap_version": "2.0.0",
+  "framework_version": "1.0.0",
+  "start_date": "2025-11-17T00:00:00Z",
+  "current_phase": "mvp-phase-0",
+  "total_missions": 90,
+  "completed_missions": 0,
+  "blocked_missions": 0,
+  "in_progress_missions": 0,
+  "estimated_completion_date": "2026-07-15",
+
+  "phases": {
+    "mvp-phase-0": {
+      "title": "Environment Setup & MedCAT Model Preparation",
+      "estimated_hours": 20,
+      "actual_hours": 0,
+      "status": "in_progress",
+      "tasks": 7
+    },
+    "mvp-phase-1": {
+      "title": "Core Infrastructure",
+      "estimated_hours": 60,
+      "actual_hours": 0,
+      "status": "pending",
+      "tasks": 18
+    },
+    "mvp-phase-2": {
+      "title": "User Management",
+      "estimated_hours": 40,
+      "actual_hours": 0,
+      "status": "pending",
+      "tasks": 12
+    },
+    "mvp-phase-3": {
+      "title": "Document Management",
+      "estimated_hours": 50,
+      "actual_hours": 0,
+      "status": "pending",
+      "tasks": 15
+    },
+    "mvp-phase-4": {
+      "title": "Patient Search",
+      "estimated_hours": 60,
+      "actual_hours": 0,
+      "status": "pending",
+      "tasks": 18
+    },
+    "mvp-phase-5": {
+      "title": "Testing & Optimization",
+      "estimated_hours": 30,
+      "actual_hours": 0,
+      "status": "pending",
+      "tasks": 10
+    },
+    "mvp-phase-6": {
+      "title": "Deployment",
+      "estimated_hours": 20,
+      "actual_hours": 0,
+      "status": "pending",
+      "tasks": 8
+    },
+    "mvp-phase-7": {
+      "title": "Documentation & Training",
+      "estimated_hours": 20,
+      "actual_hours": 0,
+      "status": "pending",
+      "tasks": 2
+    }
+  },
+
+  "missions": [],
+
+  "metrics": {
+    "velocity": 0.0,
+    "accuracy": 0.0,
+    "blocker_rate": 0.0,
+    "rework_rate": 0.0,
+    "autonomous_percentage": 0.0
+  },
+
+  "checkpoints": [
+    {
+      "checkpoint_id": "mvp-phase-0-review",
+      "phase": "mvp-phase-0",
+      "scheduled_date": "2025-11-24",
+      "status": "pending",
+      "type": "human_review",
+      "required_action": "Review environment setup, verify all services running, approve to continue",
+      "estimated_duration": "15 minutes"
+    },
+    {
+      "checkpoint_id": "mvp-phase-3-review",
+      "phase": "mvp-phase-3",
+      "scheduled_date": "2025-12-15",
+      "status": "pending",
+      "type": "human_review",
+      "required_action": "Review document upload + PHI extraction (CRITICAL - patient safety)",
+      "estimated_duration": "30 minutes"
+    },
+    {
+      "checkpoint_id": "mvp-phase-7-uat",
+      "phase": "mvp-phase-7",
+      "scheduled_date": "2026-02-15",
+      "status": "pending",
+      "type": "uat_testing",
+      "required_action": "UAT testing before Sprint 2",
+      "estimated_duration": "2 hours"
+    }
+  ],
+
+  "blockers": [],
+
+  "notes": "Autonomous execution initialized. Framework v1.0.0 combining AB Method + RIPER + TSK + Spec-Kit."
+}
