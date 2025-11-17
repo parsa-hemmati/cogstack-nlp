@@ -1,9 +1,14 @@
 # Clinical Care Tools: Complete Product Roadmap
 
-**Version**: 1.0.0
+**Version**: 2.0.0
 **Date**: 2025-11-17
-**Status**: Approved for Implementation
+**Status**: Revised After Critical Analysis
 **Author**: AI Assistant (Claude Code)
+**Reviewers**: [To be assigned]
+
+**Version History**:
+- **1.0.0** (2025-11-17): Initial 47-week roadmap
+- **2.0.0** (2025-11-17): **MAJOR UPDATE** - Revised to 69-week timeline after comprehensive critical analysis, Meditech Expanse bidirectional integration, added 20% buffer, Sprint 5.5 (Event Bus), Sprint 9.5 (Hardening)
 
 ---
 
@@ -11,11 +16,22 @@
 
 **Vision**: Build a comprehensive, modular platform that leverages the full potential of CogStack NLP to transform healthcare research, delivery, and governance.
 
-**Scope**: Complete CogStack product suite (all 6 products) over 9 sprints
+**Scope**: Complete CogStack product suite (all 6 products) over 9 sprints + 2 hardening sprints
 
-**Timeline**: 47 weeks (~11 months) from MVP to full platform
+**Timeline**: **69 weeks (~16 months)** from MVP to production-ready platform (**revised from 47 weeks**)
+
+**Effort**: **2,130 hours** total development effort (**revised from 1,410 hours**)
+
+**Budget**: **~$433,000** total project cost (**revised from $206,000**)
 
 **Coverage**: 100% of CogStack products (vs 26% in original plan)
+
+**Key Revisions in v2.0**:
+- ✅ **Sprint 6 expanded**: 5 weeks → 12 weeks (Meditech Expanse bidirectional integration with NHS FHIR UK Core)
+- ✅ **20% buffer added**: All sprints include contingency for rework, bug fixes, optimization
+- ✅ **Sprint 5.5 added**: Event Bus Foundation (1 week, 30 hours) - enables module communication
+- ✅ **Sprint 9.5 added**: Hardening Sprint (3 weeks, 110 hours) - monitoring, training, disaster recovery
+- ✅ **Realistic timeline**: Based on critical analysis of healthcare project complexity
 
 ---
 
@@ -34,58 +50,75 @@
 
 ---
 
-## Roadmap Timeline
+## Roadmap Timeline (v2.0 - Revised)
 
 ```
-Week 1 ─────────────────────────────────────────────────────────────────── Week 47
+Week 0 (CRITICAL): Meditech API Verification (1.5 weeks, parallel to MVP planning)
+
+Week 1 ─────────────────────────────────────────────────────────────────────── Week 69
 
 MVP (Base App + Patient Search)
-├─ Phase 0-7: 11 weeks
-├─ ~310 hours
-└─ Week 1-11
+├─ Phase 0-7: 14 weeks (revised from 11 weeks)
+├─ ~388 hours (310h + 20% buffer + ModelServe verification)
+└─ Week 1-14
 
 Sprint 2 (Timeline View)
-├─ 4 weeks
-├─ ~120 hours
-└─ Week 12-15
+├─ 5 weeks (revised from 4 weeks)
+├─ ~144 hours (120h + 20% buffer)
+└─ Week 15-19
 
 Sprint 3 (Full-Text Search)
-├─ 4 weeks
-├─ ~120 hours
-└─ Week 16-19
+├─ 6 weeks (revised from 4 weeks)
+├─ ~168 hours (120h + 20% buffer + Elasticsearch optimization)
+└─ Week 20-25
 
 Sprint 4 (De-Identification)
-├─ 4 weeks
-├─ ~120 hours
-└─ Week 20-23
+├─ 5 weeks (revised from 4 weeks)
+├─ ~144 hours (120h + 20% buffer)
+└─ Week 26-30
 
 Sprint 5 (Clinical Coding)
-├─ 4 weeks
-├─ ~120 hours
-└─ Week 24-27
+├─ 5 weeks (revised from 4 weeks)
+├─ ~144 hours (120h + 20% buffer)
+└─ Week 31-35
 
-Sprint 6 (Clinical Decision Support)
-├─ 5 weeks
-├─ ~150 hours
-└─ Week 28-32
+Sprint 5.5 (Event Bus Foundation) **[NEW in v2.0]**
+├─ 1 week
+├─ ~30 hours (Redis pub/sub for module communication)
+└─ Week 36
+
+Sprint 6 (Clinical Decision Support + Meditech Expanse) **[EXPANDED in v2.0]**
+├─ 12 weeks (revised from 5 weeks) ⚠️ CRITICAL EXPANSION
+├─ ~360 hours (bidirectional FHIR R4, NHS UK Core, dm+d codes, clinical governance)
+└─ Week 37-48
 
 Sprint 7 (Automated Alerting)
-├─ 5 weeks
-├─ ~150 hours
-└─ Week 33-37
+├─ 6 weeks (revised from 5 weeks)
+├─ ~180 hours (150h + 20% buffer)
+└─ Week 49-54
 
 Sprint 8 (Population Health Dashboards)
-├─ 5 weeks
-├─ ~150 hours
-└─ Week 38-42
+├─ 6 weeks (revised from 5 weeks)
+├─ ~180 hours (150h + 20% buffer)
+└─ Week 55-60
 
 Sprint 9 (Advanced Analytics)
-├─ 5 weeks
-├─ ~150 hours
-└─ Week 43-47
+├─ 6 weeks (revised from 5 weeks)
+├─ ~180 hours (150h + 20% buffer)
+└─ Week 61-66
 
-────────────────────────────────────────────────────────────────────────────
-Total: 47 weeks (~11 months), ~1,410 hours
+Sprint 9.5 (Hardening Sprint) **[NEW in v2.0]**
+├─ 3 weeks
+├─ ~110 hours (monitoring, user training, disaster recovery, resilience patterns)
+└─ Week 67-69
+
+─────────────────────────────────────────────────────────────────────────────────
+Total: 69 weeks (~16 months), ~2,130 hours
+
+v1.0 → v2.0 Changes:
+- Timeline: 47 weeks → 69 weeks (+22 weeks / +47% increase)
+- Effort: 1,410 hours → 2,130 hours (+720 hours / +51% increase)
+- Reason: Meditech bidirectional integration, 20% buffer, hardening sprint, realistic healthcare project timeline
 ```
 
 ---
@@ -188,22 +221,62 @@ Total: 47 weeks (~11 months), ~1,410 hours
 
 ---
 
-### Sprint 6: Clinical Decision Support Module (Weeks 28-32)
+### Sprint 5.5: Event Bus Foundation (Week 36) **[NEW in v2.0]**
 
-**Duration**: 5 weeks | **Effort**: ~150 hours
+**Duration**: 1 week | **Effort**: ~30 hours
 
 **Deliverables**:
-- ✅ CDS Hooks integration (patient-view, order-select, order-sign)
-- ✅ FHIR R4 interoperability (Patient, Condition, Observation, MedicationRequest)
-- ✅ Evidence-based recommendations (clinical guidelines database: ADA, AHA, USPSTF, NICE)
-- ✅ Drug interaction checking (RxNorm database)
-- ✅ EHR integration (Epic, Cerner)
+- ✅ Redis pub/sub for module events (ICD10_CODES_UPDATED, PATIENT_DATA_CHANGED)
+- ✅ Event schema standardization (event type, patient_id, payload)
+- ✅ Module subscription patterns (Sprint 7 Alerting, Sprint 8 Dashboards subscribe to events)
+- ✅ Event logging for debugging
 
-**Dependencies**: MVP, FHIR R4 support
+**Dependencies**: MVP (Redis already deployed)
 
-**CogStack Products**: Clinical Decision Support (though not explicitly in CogStack suite, fills gap)
+**Why Added**: Prevents tight coupling between modules. Sprint 5 (ICD-10 coding) feeds Sprint 6-8, but no event bus → modules query each other's tables directly (brittle). Event bus enables loose coupling.
 
-**Specification**: `.specify/specifications/sprint-6-clinical-decision-support.md`
+**Specification**: To be created before Sprint 5.5 starts
+
+---
+
+### Sprint 6: Clinical Decision Support + Meditech Expanse Integration (Weeks 37-48) **[EXPANDED in v2.0]**
+
+**Duration**: 12 weeks (revised from 5 weeks) | **Effort**: ~360 hours (revised from 150 hours)
+
+**⚠️ CRITICAL EXPANSION**: Bidirectional Meditech Expanse integration (read + write) vs original read-only CDS
+
+**Deliverables**:
+- ✅ **Meditech Read Integration**: OAuth 2.0 with meditech-uk.cloud, read Patient/Condition/Observation/MedicationRequest via FHIR R4 API
+- ✅ **Clinical Decision Support Engine**: Clinical guidelines database (ADA, AHA, USPSTF, NICE), rule engine, evidence grading (A/B/C)
+- ✅ **Drug Interaction Checking**: NHS dm+d medication database, interaction detection, alternative suggestions
+- ✅ **Meditech Write Integration** (NEW): Create draft MedicationRequest, ServiceRequest, Task, CommunicationRequest in Meditech
+- ✅ **Clinical Governance** (NEW): RBAC for write permissions, approval workflows (draft orders), clinical safety checks (allergies, contraindications)
+- ✅ **Meditech Workflow Integration** (NEW): InBasket integration, order entry pre-population, task creation
+- ✅ **NHS FHIR UK Core Compliance** (NEW): NHS numbers, ODS codes, dm+d codes, SNOMED CT UK edition
+- ✅ **Comprehensive Audit Logging**: All Meditech API calls (read + write), CDS recommendations, clinician actions
+
+**Dependencies**:
+- MVP
+- Sprint 5 (ICD-10 codes for guideline matching)
+- **Week 0 Meditech API Verification** (MUST complete before Sprint 6 starts - see `.specify/week-0-meditech-verification-checklist.md`)
+
+**CogStack Products**: Clinical Decision Support (though not explicitly in CogStack suite, fills critical gap)
+
+**EHR Platform**: Meditech Expanse on meditech-uk.cloud (sandbox + test + production environments)
+
+**Integration Type**: Bidirectional FHIR R4 (read patient data from Meditech, write draft orders to Meditech)
+
+**Specification**: `.specify/specifications/sprint-6-clinical-decision-support.md` (v2.0 - updated for Meditech bidirectional integration)
+
+**Risks**:
+- 🔴 **HIGH**: Meditech API write permissions may not be granted (contingency: reduce to read-only CDS, 6 weeks instead of 12 weeks)
+- 🟡 **MEDIUM**: NHS dm+d medication code mapping complexity if Meditech uses RxNorm instead
+- 🟡 **MEDIUM**: Clinical governance may reject automated ordering (contingency: draft orders only with clinician approval)
+
+**Critical Success Factors**:
+- ✅ Complete Week 0 Meditech API verification BEFORE Sprint 6 starts
+- ✅ Obtain Meditech write permissions for MedicationRequest, ServiceRequest, Task
+- ✅ Engage NHS trust clinical safety officer early (Week 4-6)
 
 ---
 
@@ -261,6 +334,46 @@ Total: 47 weeks (~11 months), ~1,410 hours
 **CogStack Products**: Population Health/Caseload Dashboards (advanced features)
 
 **Specification**: `.specify/specifications/sprint-9-advanced-analytics.md`
+
+---
+
+### Sprint 9.5: Hardening & Production Readiness (Weeks 67-69) **[NEW in v2.0]**
+
+**Duration**: 3 weeks | **Effort**: ~110 hours
+
+**Why Added**: v1.0 roadmap had NO time for monitoring, user training, disaster recovery, or resilience patterns. These are CRITICAL for production healthcare systems.
+
+**Deliverables**:
+- ✅ **Monitoring Stack** (30 hours):
+  - Prometheus metrics for FastAPI, Elasticsearch, PostgreSQL, Meditech API
+  - Grafana dashboards (response times, error rates, resource usage)
+  - Alerting (email/SMS if service down >5 minutes)
+
+- ✅ **User Onboarding & Training** (40 hours):
+  - Video tutorials (5-10 minutes per module: Patient Search, Timeline, CDS, etc.)
+  - In-app help tooltips and guided tours
+  - User guide PDF (20-30 pages)
+  - Admin training session (2 hours live)
+
+- ✅ **Disaster Recovery** (20 hours):
+  - Test backup restore (PostgreSQL, Elasticsearch)
+  - Document rollback procedures (database migration, code deployment)
+  - Practice disaster recovery scenario (simulate server failure)
+
+- ✅ **Resilience Patterns** (20 hours):
+  - Circuit breaker for CogStack-ModelServe, Meditech API, Elasticsearch
+  - Fallback logic (if ModelServe down, show cached concepts or warning message)
+  - Retry with exponential backoff
+
+**Dependencies**: Sprints 1-9 complete
+
+**Why Critical**: Production healthcare systems CANNOT be deployed without:
+- Monitoring (how do you know if services are down?)
+- Training (clinicians won't use unfamiliar tools)
+- Disaster recovery (what if database corrupts?)
+- Resilience (what if Meditech API is temporarily unavailable?)
+
+**Specification**: To be created before Sprint 9.5 starts
 
 ---
 
@@ -453,38 +566,57 @@ All sprints depend on MVP. Sprints 2-9 are independent of each other (can be par
 
 ---
 
-## Budget Estimate
+## Budget Estimate (v2.0 - Revised)
 
 ### Development Costs (Estimated)
 
 **Assumptions**:
 - Full-stack developer: $100/hour
 - DevOps engineer: $120/hour
-- Clinical SME: $150/hour (part-time)
+- Clinical SME: $150/hour (increased from 10% → 20% time)
+- QA Engineer: $80/hour (NEW - 20% time)
+- Security Auditor: $150/hour (NEW - consulting, 80 hours total)
+- FHIR/NHS UK Expert: $150/hour (NEW - consulting, 120 hours for Sprint 6 only)
 - Project manager: $90/hour (for parallel execution only)
 
-**Sequential Execution** (1 dev):
-- Development: 1,410 hours × $100 = $141,000
-- DevOps (20% of dev time): 282 hours × $120 = $33,840
-- Clinical SME (10% of dev time): 141 hours × $150 = $21,150
-- **Total**: ~$196,000
+**Sequential Execution (v2.0)**:
+- Development: **2,130 hours** × $100 = $213,000 (**revised from 1,410 hours**)
+- DevOps (30% of dev time): 639 hours × $120 = $76,680
+- Clinical SME (20% of dev time): 426 hours × $150 = $63,900
+- QA Engineer (NEW, 20% of dev time): 426 hours × $80 = $34,080
+- Security Auditor (NEW, 80 hours): 80 hours × $150 = $12,000
+- FHIR/NHS UK Expert (NEW, 120 hours Sprint 6): 120 hours × $150 = $18,000
+- **Total Labor**: ~$417,660 (**revised from $196,000**)
 
-**Parallel Execution** (3 devs after MVP):
-- Development: 1,410 hours × $100 = $141,000
-- DevOps (30% of dev time): 423 hours × $120 = $50,760
-- Clinical SME (15% of dev time): 212 hours × $150 = $31,800
-- Project manager (25% of dev time): 353 hours × $90 = $31,770
-- **Total**: ~$255,000
+**Parallel Execution (v2.0)** (3 devs after MVP):
+- Development: 2,130 hours × $100 = $213,000
+- DevOps (40% of dev time): 852 hours × $120 = $102,240
+- Clinical SME (25% of dev time): 533 hours × $150 = $79,950
+- QA Engineer (NEW, 25% of dev time): 533 hours × $80 = $42,640
+- Security Auditor (NEW, 100 hours): 100 hours × $150 = $15,000
+- FHIR/NHS UK Expert (NEW, 120 hours Sprint 6): 120 hours × $150 = $18,000
+- Project manager (30% of dev time): 639 hours × $90 = $57,510
+- **Total Labor**: ~$528,340 (**revised from $255,000**)
 
 **Infrastructure Costs** (Annual):
-- Servers (workstation): $5,000/year
+- Servers (workstation): $5,000/year (**upgraded hardware: 32-64GB RAM, 8-16 cores, 500GB SSD**)
 - Docker/infrastructure: $2,000/year
 - CogStack-ModelServe hosting: $3,000/year
-- **Total**: ~$10,000/year
+- NHS dm+d database: Free (NHS TRUD)
+- Drug interaction database: $5,000/year (commercial: Lexicomp/Micromedex) OR $0 (open-source: OpenFDA)
+- **Total**: ~$15,000/year (**revised from $10,000/year**)
 
-**Total Project Cost**:
-- Sequential: ~$206,000
-- Parallel: ~$265,000
+**Total Project Cost (v2.0)**:
+- Sequential: **~$432,660** (**revised from $206,000**)
+- Parallel: **~$543,340** (**revised from $265,000**)
+
+**Budget Increase Breakdown**:
+- +$72,000: Sprint 6 expansion (Meditech bidirectional integration: 150h → 360h)
+- +$60,000: 20% buffer across all sprints (rework, bug fixes, optimization)
+- +$34,080: QA Engineer (NEW role - 20% time for testing)
+- +$12,000: Security Auditor (NEW role - HIPAA/GDPR compliance review)
+- +$18,000: FHIR/NHS UK Expert (NEW role - Sprint 6 Meditech integration)
+- +$30,000: Event Bus (Sprint 5.5) + Hardening (Sprint 9.5)
 
 ---
 
