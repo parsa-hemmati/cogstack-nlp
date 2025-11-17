@@ -836,29 +836,167 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ## 🗺️ Roadmap & Future Plans
 
-### Phase 1: Foundation (Weeks 1-8) - NOT STARTED
-- [ ] Sprint 1: Patient Search & Discovery
-- [ ] Sprint 2: Patient Timeline View
-- [ ] Sprint 3: Real-Time Clinical Decision Support
-- [ ] Sprint 4: Authentication & Authorization
+**🎯 Vision**: Complete CogStack product suite coverage (all 6 products)
 
-### Phase 2: Research & Analytics (Weeks 9-16) - PLANNED
-- [ ] Sprint 5: Cohort Builder
-- [ ] Sprint 6: Concept Analytics Dashboard
-- [ ] Sprint 7: Clinical Trial Recruitment
-- [ ] Sprint 8: Export & Integration Tools
+**📊 CogStack Product Coverage**: 100% (6/6 products)
 
-### Phase 3: Governance & Quality (Weeks 17-22) - PLANNED
-- [ ] Sprint 9: Quality Dashboard
-- [ ] Sprint 10: Clinical Coding Assistant
-- [ ] Sprint 11: Privacy & Compliance Monitor
-- [ ] Sprint 12: Adverse Event Surveillance
+**⏱️ Timeline**: 47 weeks (~11 months) | **Effort**: ~1,410 hours
 
-### Phase 4: Polish & Launch (Weeks 23-24) - PLANNED
-- [ ] Sprint 13: Performance Optimization
-- [ ] Sprint 14: Documentation & Training
+**📄 Reference**: [.specify/PRODUCT_ROADMAP.md](.specify/PRODUCT_ROADMAP.md)
 
-**Reference**: [docs/PROJECT_PLAN.md]
+### MVP: Base Application + Patient Search (Weeks 1-11) - ✅ PLANNED
+**Duration**: 11 weeks | **Effort**: ~310 hours
+
+**Deliverables**:
+- Base application infrastructure (auth, audit, module system)
+- Patient Search module (SNOMED-CT, meta-annotations)
+- CogStack-ModelServe integration
+- Docker Compose deployment
+
+**CogStack Products**: Clinical Language AI (80%), Enterprise Search (40%)
+
+**Specification**: `.specify/specifications/clinical-care-tools-base-app.md`
+
+---
+
+### Sprint 2: Timeline View (Weeks 12-15) - ✅ PLANNED
+**Duration**: 4 weeks | **Effort**: ~120 hours
+
+**Deliverables**:
+- Chronological document timeline (D3.js)
+- Clinical concept timeline
+- Temporal pattern detection
+- Export to PDF, FHIR R4, JSON
+
+**CogStack Products**: Enterprise Search (visualization)
+
+**Specification**: `.specify/specifications/sprint-2-timeline-view.md`
+
+---
+
+### Sprint 3: Full-Text Search (Weeks 16-19) - ✅ PLANNED
+**Duration**: 4 weeks | **Effort**: ~120 hours
+
+**Deliverables**:
+- Document-level full-text search (Elasticsearch)
+- Structured field exploration
+- Advanced query builder (Boolean operators)
+- Relevance ranking (BM25)
+- Saved searches, search analytics
+
+**CogStack Products**: Enterprise Search (full-text search)
+
+**Specification**: `.specify/specifications/sprint-3-full-text-search.md`
+
+---
+
+### Sprint 4: De-Identification (Weeks 20-23) - ✅ PLANNED
+**Duration**: 4 weeks | **Effort**: ~120 hours
+
+**Deliverables**:
+- Automated PHI detection (medcat_deid model)
+- De-ID strategies (Redaction, Safe Harbor, Pseudonymization)
+- Batch processing (Celery)
+- Export de-identified corpus
+
+**CogStack Products**: EHR De-Identification
+
+**Specification**: `.specify/specifications/sprint-4-ehr-deidentification.md`
+
+---
+
+### Sprint 5: Clinical Coding (Weeks 24-27) - ✅ PLANNED
+**Duration**: 4 weeks | **Effort**: ~120 hours
+
+**Deliverables**:
+- Automated ICD-10 extraction (medcat_icd10 model)
+- Clinical coder assistance UI
+- Code validation
+- Coding quality metrics
+- Bulk coding workflow
+
+**CogStack Products**: Clinical Coding
+
+**Specification**: `.specify/specifications/sprint-5-clinical-coding.md`
+
+---
+
+### Sprint 6: Clinical Decision Support (Weeks 28-32) - ✅ PLANNED
+**Duration**: 5 weeks | **Effort**: ~150 hours
+
+**Deliverables**:
+- CDS Hooks integration
+- FHIR R4 interoperability
+- Evidence-based recommendations (ADA, AHA, USPSTF, NICE)
+- Drug interaction checking
+- EHR integration (Epic, Cerner)
+
+**CogStack Products**: Clinical Decision Support
+
+**Specification**: `.specify/specifications/sprint-6-clinical-decision-support.md`
+
+---
+
+### Sprint 7: Automated Alerting (Weeks 33-37) - ✅ PLANNED
+**Duration**: 5 weeks | **Effort**: ~150 hours
+
+**Deliverables**:
+- Real-time event detection (drug combos, comorbidities)
+- Notification infrastructure (Email, SMS, in-app)
+- Alert management UI
+- Alert rules engine
+- Escalation workflows
+
+**CogStack Products**: Automated Alerting
+
+**Specification**: `.specify/specifications/sprint-7-automated-alerting.md`
+
+---
+
+### Sprint 8: Population Health Dashboards (Weeks 38-42) - ✅ PLANNED
+**Duration**: 5 weeks | **Effort**: ~150 hours
+
+**Deliverables**:
+- Cohort analytics dashboard
+- Quality metrics dashboard
+- Service planning dashboard
+- Clinical audit dashboard
+- Data export (CSV, Excel, PDF, API)
+
+**CogStack Products**: Population Health Dashboards
+
+**Specification**: `.specify/specifications/sprint-8-population-health-dashboards.md`
+
+---
+
+### Sprint 9: Advanced Analytics (Weeks 43-47) - ✅ PLANNED
+**Duration**: 5 weeks | **Effort**: ~150 hours
+
+**Deliverables**:
+- Registry support (diabetes, cancer, chronic disease)
+- Cohort deep phenotyping
+- Custom report builder
+- Data export for statistical analysis (R, Python, SAS)
+- Predictive analytics (optional)
+
+**CogStack Products**: Population Health Dashboards (advanced)
+
+**Specification**: `.specify/specifications/sprint-9-advanced-analytics.md`
+
+---
+
+### Product Coverage Summary
+
+| CogStack Product | Coverage | Sprints |
+|-----------------|----------|---------|
+| **Clinical Language AI** | ✅ 100% | All Sprints (CogStack-ModelServe) |
+| **Enterprise Search** | ✅ 100% | MVP, Sprint 1, 2, 3 |
+| **EHR De-Identification** | ✅ 100% | Sprint 4 |
+| **Clinical Coding** | ✅ 100% | Sprint 5 |
+| **Automated Alerting** | ✅ 100% | Sprint 7 |
+| **Population Health** | ✅ 100% | Sprint 8, 9 |
+
+**Total**: 100% (6/6 products)
 
 ---
 
@@ -886,6 +1024,94 @@ MEDCAT_TIMEOUT = 5  # seconds
 ### Migration Notes
 - What users/developers need to do
 ```
+
+---
+
+### 2025-11-17 - Aggressive Expansion: Complete CogStack Product Suite Roadmap
+
+**Commits**:
+- [Current] - feat: Aggressive expansion - 8 sprint specifications + master roadmap
+
+**Added**:
+- **8 Sprint Specifications** (Sprints 2-9):
+  - `.specify/specifications/sprint-2-timeline-view.md` (~1,100 lines)
+  - `.specify/specifications/sprint-3-full-text-search.md` (~1,200 lines)
+  - `.specify/specifications/sprint-4-ehr-deidentification.md` (~1,100 lines)
+  - `.specify/specifications/sprint-5-clinical-coding.md` (~800 lines)
+  - `.specify/specifications/sprint-6-clinical-decision-support.md` (~600 lines)
+  - `.specify/specifications/sprint-7-automated-alerting.md` (~500 lines)
+  - `.specify/specifications/sprint-8-population-health-dashboards.md` (~450 lines)
+  - `.specify/specifications/sprint-9-advanced-analytics.md` (~450 lines)
+- **Master Product Roadmap** (~600 lines):
+  - `.specify/PRODUCT_ROADMAP.md` - Complete 47-week roadmap covering all 6 CogStack products
+  - Timeline breakdown (MVP + 8 sprints)
+  - Dependency graph (all sprints depend on MVP only)
+  - Resource allocation (1-3 developers, sequential or parallel execution)
+  - Milestones & deliverables
+  - Risk management
+  - Success metrics per sprint
+  - Budget estimates ($196k sequential, $265k parallel)
+
+**Changed**:
+- **CONTEXT.md** - Updated Roadmap & Future Plans section:
+  - Old: 4 phases, 14 sprints (incomplete CogStack coverage: 26%)
+  - New: MVP + 8 sprints (complete CogStack coverage: 100%)
+  - Detailed deliverables per sprint
+  - CogStack product mapping table
+- **Last Updated**: 2025-11-08 → 2025-11-17
+
+**Removed**:
+- None (old roadmap replaced)
+
+**Why**:
+- **User requirement**: "We have no limitation on ai agents, expand and plan agressively now (option 1)"
+- **Complete CogStack alignment**: Cover all 6 CogStack products (vs 2 in original plan)
+- **Research gap identified**: PRODUCT_ROADMAP_ALIGNMENT.md showed 26% coverage → now 100%
+- **Future-proofing**: All major CogStack capabilities planned upfront
+
+**CogStack Products Covered** (100%, 6/6):
+1. ✅ **Clinical Language AI** (CogStack-ModelServe): All sprints
+2. ✅ **Enterprise Search**: MVP, Sprint 2 (Timeline), Sprint 3 (Full-Text Search)
+3. ✅ **EHR De-Identification**: Sprint 4
+4. ✅ **Clinical Coding**: Sprint 5
+5. ✅ **Automated Alerting**: Sprint 7
+6. ✅ **Population Health Dashboards**: Sprint 8, 9
+
+**Impact**:
+- ✅ **Complete product vision**: All 6 CogStack products now planned (vs 2 previously)
+- ✅ **Clear roadmap**: 47 weeks timeline with dependencies, milestones, budget
+- ✅ **Modular execution**: MVP completes first (11 weeks), then Sprints 2-9 can be parallelized
+- ✅ **Resource planning**: Two execution modes (sequential: 47 weeks, parallel: ~25 weeks)
+- ✅ **Stakeholder alignment**: Comprehensive scope for funding/approval discussions
+- ✅ **Specification-first**: All sprints have complete specifications before implementation
+
+**Timeline**:
+- **MVP** (Weeks 1-11): Base app + Patient Search | ~310 hours
+- **Sprint 2** (Weeks 12-15): Timeline View | ~120 hours
+- **Sprint 3** (Weeks 16-19): Full-Text Search | ~120 hours
+- **Sprint 4** (Weeks 20-23): De-Identification | ~120 hours
+- **Sprint 5** (Weeks 24-27): Clinical Coding | ~120 hours
+- **Sprint 6** (Weeks 28-32): Clinical Decision Support | ~150 hours
+- **Sprint 7** (Weeks 33-37): Automated Alerting | ~150 hours
+- **Sprint 8** (Weeks 38-42): Population Health Dashboards | ~150 hours
+- **Sprint 9** (Weeks 43-47): Advanced Analytics | ~150 hours
+- **Total**: 47 weeks (~11 months), ~1,410 hours
+
+**Migration Notes**:
+- Read `.specify/PRODUCT_ROADMAP.md` for complete roadmap details
+- Each sprint has dedicated specification file in `.specify/specifications/`
+- MVP remains unchanged (Technical Plan v1.2.0, Tasks ready)
+- Sprints 2-9 require Technical Plans and Task Breakdowns (create as needed)
+
+**Design Pattern Reinforced**:
+- **Specification-First Development**: All 9 sprints have complete specifications before any coding
+- **Modular Dependencies**: MVP is foundation, all sprints depend only on MVP (not on each other)
+- **Phased Delivery**: Incremental value delivery (MVP → Search → Research → CDS → Analytics)
+
+**Key Files**:
+- `.specify/PRODUCT_ROADMAP.md` - Master roadmap (47 weeks, all 6 products)
+- `.specify/specifications/sprint-*.md` - 8 sprint specifications
+- `PRODUCT_ROADMAP_ALIGNMENT.md` - Gap analysis (26% → 100% coverage)
 
 ---
 
