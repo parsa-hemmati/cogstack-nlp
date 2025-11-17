@@ -889,9 +889,91 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-16 - Large-Scale Deployment Guide (10,000+ Documents, Overlapping Batches)
+
+**Commits**: [Current] - docs(deployment): Add large-scale multi-clinician deployment with overlapping batches
+
+**Added**:
+- **scripts/split_rtf_batches.py** - Python script to split large RTF datasets into overlapping batches
+- **scripts/LARGE_SCALE_DEPLOYMENT_README.md** - Comprehensive guide for deploying 5,000-10,000+ documents with 5+ clinicians
+
+**Why**:
+- **Scale requirements**: User clarified 10,000 documents (not 150), 5+ clinicians, asynchronous work
+- **Poor communication**: Can't rely on manual coordination ("Dr. Smith does docs 1-2000")
+- **Quality validation needed**: Overlap acceptable for inter-rater reliability checks
+- **Flexibility required**: Clinicians work different schedules, need to help each other if someone is slow
+
+**Impact**:
+- ✅ **Overlapping batch strategy**: Automatic boundaries (no coordination), 20% quality validation, flexibility
+- ✅ **No custom development**: Uses existing MedCAT Trainer features (separate datasets, separate projects)
+- ✅ **Automated splitting**: Python script calculates optimal batch ranges with configurable overlap
+- ✅ **Quality analysis**: Overlap zones (500 docs per pair) enable inter-rater reliability calculation (Cohen's Kappa)
+- ✅ **Load balancing**: Admin can add fast clinicians to slow clinicians' projects mid-validation
+
+**Batch Design** (Example: 10,000 docs, 5 clinicians, 500-doc overlap):
+```
+Batch A (Dr. Smith):   Docs 1-2500     (2,500 docs)
+Batch B (Dr. Jones):   Docs 2001-4500  (2,500 docs, 500 overlap with A)
+Batch C (Dr. Brown):   Docs 4001-6500  (2,500 docs, 500 overlap with B)
+Batch D (Dr. White):   Docs 6001-8500  (2,500 docs, 500 overlap with C)
+Batch E (Dr. Green):   Docs 8001-10000 (2,000 docs, 500 overlap with D)
+
+Total unique docs: 10,000
+Total overlap docs: 2,000 (20% validation rate)
+Total validations: 12,000
+```
+
+**Overlap Zones** (Quality Validation):
+- Docs 2001-2500: Validated by Dr. Smith AND Dr. Jones (inter-rater reliability check)
+- Docs 4001-4500: Validated by Dr. Jones AND Dr. Brown
+- Docs 6001-6500: Validated by Dr. Brown AND Dr. White
+- Docs 8001-8500: Validated by Dr. White AND Dr. Green
+
+**Key Technical Features**:
+- **Automated batch calculation**: Script computes optimal ranges for N batches with M overlap
+- **Alphabetical sorting**: RTF files sorted alphabetically for consistent batch assignment
+- **Zero-padded naming**: Patient-0001.rtf (not Patient-1.rtf) for correct sorting
+- **Configurable parameters**: `--num-batches` (5-10), `--overlap` (0-1000), `--batch-prefix`
+- **Progress tracking**: Each project shows completion rate (1,250/2,500 = 50%)
+
+**Migration Notes**:
+- **For 10,000+ docs**: Use overlapping batches (this guide), NOT single ProjectGroup
+- **For <1,000 docs**: Single ProjectGroup with manual coordination is OK
+- **Overlap tuning**: 500 docs (20%) for quality, 1000 docs (40%) for high confidence, 0 for max efficiency
+- **Load balancing**: Admin adds fast clinicians to slow projects mid-validation (Members field)
+- **Quality analysis**: Export all projects, calculate Cohen's Kappa for overlap zones (IRR check)
+
+**Workflow**:
+1. Organize RTF files with zero-padded names (Patient-0001.rtf to Patient-10000.rtf)
+2. Run `split_rtf_batches.py` → Generates 5 CSV files (batch_A.csv to batch_E.csv)
+3. Upload 5 datasets to MedCAT Trainer
+4. Create 5 separate ProjectAnnotateEntities (one per clinician)
+5. Clinicians work independently on their batches (2,500 docs each)
+6. Admin monitors progress, redistributes if needed
+7. Export all projects, analyze overlap zones for quality
+
+**Performance Estimates**:
+- Batch preparation: 2 hours (10,000 RTF → 5 CSV files)
+- User setup: 1 hour (5 accounts, 5 projects)
+- Validation work: ~200 hours total (12,000 validations × 1 min/doc average)
+- Timeline: ~6 weeks (5 clinicians × 8 hours/day × 5 days/week)
+
+**Customization Options**:
+- Increase overlap: `--overlap 1000` (40% validation, slower but higher confidence)
+- More clinicians: `--num-batches 10` (1,250 docs each, faster completion)
+- No overlap: `--overlap 0` (max efficiency, no quality checks)
+
+**Troubleshooting**:
+- Uneven batches: Last batch may be smaller (10,000 ÷ 5 = 2,000 remainder)
+- Clinician finishes early: Add to another project (Members field) to help
+- Clinician too slow: Redistribute remaining docs to fast clinicians
+- Too much duplicate work: Reduce overlap to 250 docs (10% validation rate)
+
+---
+
 ### 2025-11-16 - HTTPS/TLS Security Guide for NHS Deployment
 
-**Commits**: [Current] - docs(security): Add comprehensive HTTPS/TLS configuration guide with Nginx
+**Commits**: 17767ef - docs(security): Add comprehensive HTTPS/TLS configuration guide with Nginx
 
 **Added**:
 - **docs/deployment/https-tls-nginx-guide.md** - Comprehensive HTTPS/TLS educational guide (31KB, 9 parts)
