@@ -94,6 +94,107 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-18] - Multi-Layered PRD Validation System (Quality Assurance Enhancement)
+
+**Commits**: (this commit) - Implement 5-layer PRD compliance validation system
+
+**Added**:
+- **PRD Compliance Checker Skill** (`.claude/skills/prd-compliance-checker/SKILL.md`):
+  - Comprehensive guide for validating API implementation against PRD specifications
+  - Quick compliance checklist (endpoint, request schema, response schema, errors, auth)
+  - Deep validation agent prompt template
+  - Common PRD drift patterns documentation
+  - Integration with pre-push hook and validation script
+
+- **Pre-Push Hook** (`.git-hooks/pre-push`, `.git/hooks/pre-push`):
+  - Detects API file changes since last push
+  - Suggests running PRD validation for API endpoint changes
+  - Non-blocking (warns but doesn't abort push)
+  - Provides exact commands to run validation
+  - Activated automatically for: `backend/app/api/`, `backend/app/schemas/`, service files
+
+- **Validation Script Enhancement** (`scripts/validate-code.sh`):
+  - Added `--prd-check` flag for PRD compliance validation
+  - Generates comprehensive validation agent prompt
+  - Lists all PRD files and API files to validate
+  - Detects recently modified API files automatically
+  - Provides step-by-step validation instructions
+
+**Changed**:
+- **CLAUDE.md** (v1.3.0):
+  - Updated from 4-layer to **5-layer validation framework**
+  - Added Layer 4: PRD Compliance Check (manual, for API changes)
+  - Renumbered CI/CD to Layer 5
+  - Updated skill count from 8 to **10 skills**
+  - Added PRD validation workflow documentation
+  - Updated validation quick reference table (now includes Layer 4 & 5)
+  - Added `prd-compliance-checker` to skills list (Priority 3 - Quality Assurance)
+
+- **Skills README** (`.claude/skills/README.md`):
+  - Added `prd-compliance-checker` as skill #5 (Priority 3)
+  - Renumbered remaining skills (#6-10)
+  - Total skills: 10 (was 9)
+
+**Why**:
+- Prevents API contract drift (PRD → implementation mismatch)
+- Catches discrepancies early (during development, not after)
+- Reduces frontend integration issues (breaking changes detected pre-commit)
+- Provides multiple validation layers: quick checklist, deep agent validation, pre-push warning
+- Learned from recent PRD drift incident (query → concept, total_count → total, etc.)
+
+**How It Works** (Multi-Layered Defense):
+
+**Layer 1: Skill Activation** (Automatic)
+- `prd-compliance-checker` skill activates when modifying API files
+- Provides quick checklist in skill prompt
+- No action required, just awareness
+
+**Layer 2: Quick Checklist** (Manual, 2-5 minutes)
+- Developer reads PRD specification
+- Compares field names, types, nesting character-by-character
+- Uses checklist from skill documentation
+
+**Layer 3: Deep Validation** (Automated, 1-3 minutes)
+- Run: `./scripts/validate-code.sh --prd-check`
+- Generates validation agent prompt
+- Agent compares ALL endpoints, schemas, errors against PRD
+- Reports breaking changes with file paths and line numbers
+
+**Layer 4: Pre-Push Hook** (Automatic warning, non-blocking)
+- Detects API file changes before push
+- Suggests running PRD validation
+- Waits 5 seconds (user can Ctrl+C to abort and validate first)
+- Continues push after countdown (non-blocking)
+
+**Layer 5: CI/CD** (Future - not yet implemented)
+- Contract tests validate against OpenAPI spec
+- Automatic PRD drift detection on pull requests
+
+**Impact**:
+- ✅ PRD discrepancies caught during development (not after commit)
+- ✅ API contract stability improved
+- ✅ Frontend team gets stable, documented API contracts
+- ✅ Reduces back-and-forth on "unexpected API changes"
+- ✅ Developer confidence increased (validation agent provides immediate feedback)
+
+**Migration Notes**:
+- Pre-push hook is **non-blocking** - it warns but doesn't force validation
+- Developers can skip validation with manual override (not recommended)
+- PRD validation is **MANDATORY** for new API endpoints and schema changes
+- Quick checklist suitable for minor changes, agent validation for major changes
+
+**Files Added/Modified** (6 files):
+1. `.claude/skills/prd-compliance-checker/SKILL.md` (NEW - 500+ lines)
+2. `.git-hooks/pre-push` (NEW - 100 lines)
+3. `.git/hooks/pre-push` (NEW - installed hook)
+4. `scripts/validate-code.sh` (ENHANCED - added 290 lines for --prd-check)
+5. `CLAUDE.md` (UPDATED - 5-layer framework, PRD validation docs)
+6. `.claude/skills/README.md` (UPDATED - added skill #5, renumbered)
+
+**Technical Debt**: None introduced
+
+---
+
 #### [2025-11-18] - PRD Schema Alignment: Patient Search API (BREAKING CHANGES ⚠️)
 
 **Commits**: (this commit) - Align patient search schemas with Sprint 1 PRD specification

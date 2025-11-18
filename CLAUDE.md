@@ -275,7 +275,7 @@ Token usage: 160000/200000; 40000 remaining
 
 ## 🛠️ Custom Healthcare NLP Skills
 
-**8 specialized skills** are available to assist with healthcare-specific development. They **activate automatically** based on context—you don't need to invoke them explicitly.
+**10 specialized skills** are available to assist with healthcare-specific development. They **activate automatically** based on context—you don't need to invoke them explicitly.
 
 ### Available Skills
 
@@ -304,6 +304,11 @@ Token usage: 160000/200000; 40000 remaining
 - **Why useful**: Required for EHR integration (Sprint 3+)
 
 #### 🟢 Priority 3 (Quality Assurance)
+
+**`prd-compliance-checker`** - PRD validation
+- **Activates when**: Modifying API endpoints, changing schemas, implementing Sprint PRDs
+- **What it does**: Validates API implementation against PRD specifications, detects breaking changes (field names, types, structure)
+- **Why useful**: Prevents API contract drift, catches PRD discrepancies early (during development, not after)
 
 **`spec-kit-enforcer`** - Workflow enforcement
 - **Activates when**: Starting new features, before writing code
@@ -343,6 +348,7 @@ Implementation Phase:
 ✓ infrastructure-expert - Guides Docker, PostgreSQL, auth, audit logging
 ✓ medcat-meta-annotations - Ensures proper NLP filtering (95% precision)
 ✓ healthcare-compliance-checker - Validates PHI handling, audit logging
+✓ prd-compliance-checker - Validates API schema matches PRD (no drift)
 
 Integration Phase:
 ✓ vue3-component-reuse - Finds existing UI patterns
@@ -391,18 +397,19 @@ Result: Complete, compliant, production-ready implementation
 
 ## 🛡️ Code Quality & Validation (MANDATORY)
 
-**⚠️ CRITICAL**: This project has **4 layers of validation** to ensure code integrity. You MUST use them proactively.
+**⚠️ CRITICAL**: This project has **5 layers of validation** to ensure code integrity and PRD compliance. You MUST use them proactively.
 
-### The 4-Layer Validation Framework
+### The 5-Layer Validation Framework
 
 ```
 Layer 1: Pre-Commit Hook (Automatic)     → Every commit
 Layer 2: Validation Script (Manual)      → Before phase completion
 Layer 3: Validation Agent (AI-powered)   → Complex features
-Layer 4: CI/CD Pipeline (Automatic)      → Every push
+Layer 4: PRD Compliance Check (Manual)   → API changes
+Layer 5: CI/CD Pipeline (Automatic)      → Every push
 ```
 
-**Documentation**: See `.claude/SAFEGUARDS.md` and `.claude/VALIDATION_CHECKLIST.md`
+**Documentation**: See `.claude/SAFEGUARDS.md`, `.claude/VALIDATION_CHECKLIST.md`, and `.claude/skills/prd-compliance-checker/SKILL.md`
 
 ---
 
@@ -571,7 +578,77 @@ This skill automatically activates for PHI-related code, but invoke it explicitl
 
 ---
 
-#### Layer 4: CI/CD Pipeline (Automatic - No Action Needed)
+#### Layer 4: PRD Compliance Check (Manual - Use for API Changes)
+
+**⚠️ MANDATORY: Run when modifying API endpoints, schemas, or service layer**
+
+**When to run**:
+- ✅ **BEFORE committing new API endpoints**
+- ✅ **BEFORE committing schema changes (request/response)**
+- ✅ BEFORE committing changes to API service layer
+- ✅ BEFORE creating PR for Sprint implementation
+- ✅ When implementing PRD specifications
+
+**How to run**:
+```bash
+# Option 1: Quick checklist (manual validation)
+# Read .claude/skills/prd-compliance-checker/SKILL.md
+# Compare implementation against PRD specification
+
+# Option 2: Deep validation (automated agent)
+./scripts/validate-code.sh --prd-check
+# Copy the generated prompt and paste into your AI session
+```
+
+**What it checks**:
+1. **Endpoint Compliance**: Path, method, parameters match PRD exactly
+2. **Request Schema**: Field names, types, nesting match PRD
+3. **Response Schema**: Field names (camelCase!), structure match PRD
+4. **Error Responses**: HTTP codes, error schema match PRD
+5. **Authentication**: Auth requirements match PRD
+6. **Performance**: Response time targets noted
+
+**Why critical**:
+- Prevents API contract drift
+- Avoids breaking frontend integration
+- Catches mismatches early (during development, not after)
+- Reduces back-and-forth with frontend team
+
+**Example workflow**:
+```python
+# You just implemented POST /api/v1/patients/search
+
+# 1. Run quick checklist
+# Read: .specify/sprints/sprint-1-prd.md
+# Compare field names: concept vs query? ✅ concept matches!
+# Compare pagination: nested { pagination: {...} } vs flat? ✅ nested matches!
+
+# 2. OR spawn validation agent for deep check
+./scripts/validate-code.sh --prd-check
+# Agent compares ALL fields character-by-character
+# Reports: 0 breaking changes found ✅
+
+# 3. Commit with confidence
+git add .
+git commit -m "feat(patient-search): implement search endpoint (PRD-compliant)"
+```
+
+**Pre-Push Hook**:
+A git pre-push hook will automatically detect API file changes and suggest running PRD validation. The hook is **non-blocking** - it warns but doesn't abort the push.
+
+**Skill Activation**:
+The `prd-compliance-checker` skill automatically activates when you modify:
+- `backend/app/api/v*/endpoints/*.py` (API endpoints)
+- `backend/app/schemas/*.py` (Request/response schemas)
+- `backend/app/services/*_service.py` (Service layer for API features)
+
+The skill provides quick checklist and guidance without forcing agent spawn.
+
+**Documentation**: See `.claude/skills/prd-compliance-checker/SKILL.md` for comprehensive guide
+
+---
+
+#### Layer 5: CI/CD Pipeline (Automatic - No Action Needed)
 
 **Runs automatically** when you push to GitHub. You don't invoke this.
 
@@ -646,14 +723,16 @@ git push
 
 ### Quick Reference: When to Validate
 
-| Scenario | Layer 1 | Layer 2 | Layer 3 | Layer 4 |
-|----------|---------|---------|---------|---------|
-| Small bug fix (<50 lines) | ✅ Auto | ❌ Skip | ❌ Skip | ✅ Auto |
-| Medium feature (50-500 lines) | ✅ Auto | ✅ Run | ❌ Optional | ✅ Auto |
-| Complex feature (>500 lines) | ✅ Auto | ✅ Run | **✅ MUST** | ✅ Auto |
-| PHI-related code | ✅ Auto | ✅ Run | **✅ MUST** | ✅ Auto |
-| Phase completion | ✅ Auto | **✅ MUST** | **✅ MUST** | ✅ Auto |
-| Major refactoring | ✅ Auto | ✅ Run | **✅ MUST** | ✅ Auto |
+| Scenario | Layer 1 | Layer 2 | Layer 3 | Layer 4 | Layer 5 |
+|----------|---------|---------|---------|---------|---------|
+| Small bug fix (<50 lines) | ✅ Auto | ❌ Skip | ❌ Skip | ❌ Skip | ✅ Auto |
+| Medium feature (50-500 lines) | ✅ Auto | ✅ Run | ❌ Optional | ❌ Skip | ✅ Auto |
+| Complex feature (>500 lines) | ✅ Auto | ✅ Run | **✅ MUST** | ❌ Skip | ✅ Auto |
+| **New API endpoint** | ✅ Auto | ✅ Run | **✅ MUST** | **✅ MUST** | ✅ Auto |
+| **Schema changes (API)** | ✅ Auto | ✅ Run | **✅ MUST** | **✅ MUST** | ✅ Auto |
+| PHI-related code | ✅ Auto | ✅ Run | **✅ MUST** | ❌ Skip | ✅ Auto |
+| Phase completion | ✅ Auto | **✅ MUST** | **✅ MUST** | ✅ Run | ✅ Auto |
+| Major refactoring | ✅ Auto | ✅ Run | **✅ MUST** | ❌ Skip | ✅ Auto |
 
 **Legend**:
 - ✅ Auto = Runs automatically
@@ -661,6 +740,8 @@ git push
 - ✅ MUST = Required, don't skip
 - ❌ Skip = Not needed
 - ❌ Optional = Use if unsure
+
+**Note**: Layer 4 (PRD Compliance) is MANDATORY for all API-related changes to prevent contract drift.
 
 ---
 

@@ -63,7 +63,27 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ### 🟢 Priority 3 (Quality Assurance)
 
-#### 5. `spec-kit-enforcer`
+#### 5. `prd-compliance-checker`
+**When**: Modifying API endpoints, changing schemas, updating service layer for APIs, implementing Sprint PRDs
+
+**What it does**:
+- Validates API implementation against PRD specifications
+- Checks endpoint paths, methods, parameters
+- Validates request/response schema field names (camelCase vs snake_case)
+- Detects breaking changes (field renames, type changes, structure changes)
+- Provides quick checklist and deep validation agent prompt
+
+**Why useful**: Prevents API contract drift, catches PRD discrepancies early (during development, not after), avoids breaking frontend integration
+
+**Key Features**:
+- Quick compliance checklist for manual validation
+- Comprehensive validation agent prompt generator
+- Pre-push hook integration (warns when API files change)
+- Validation script support (`./scripts/validate-code.sh --prd-check`)
+
+---
+
+#### 6. `spec-kit-enforcer`
 **When**: Starting new features, before writing code
 
 **What it does**:
@@ -78,7 +98,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ### 🔵 Implementation Workflow Skills
 
-#### 6. `spec-to-tech-plan`
+#### 7. `spec-to-tech-plan`
 **When**: Converting approved specifications to technical plans
 
 **What it does**:
@@ -94,7 +114,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 7. `tech-plan-to-tasks`
+#### 8. `tech-plan-to-tasks`
 **When**: Breaking down technical plans into implementable tasks
 
 **What it does**:
@@ -108,7 +128,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 8. `infrastructure-expert`
+#### 9. `infrastructure-expert`
 **When**: Implementing Docker, PostgreSQL, authentication, audit logging
 
 **What it does**:
@@ -123,7 +143,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 9. `document-management-patterns` ✨ NEW (Phase 3)
+#### 10. `document-management-patterns` ✨ NEW (Phase 3)
 **When**: Implementing document upload, file deduplication, async processing, patient aggregation
 
 **What it does**:

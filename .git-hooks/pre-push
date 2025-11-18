@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# Pre-push hook for PRD compliance validation
+#
+# Detects if API-related files changed since last push and suggests
+# running PRD validation to catch discrepancies early.
+#
+# This hook is NON-BLOCKING - it warns but doesn't abort the push.
+#
+# To install: cp .git-hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+#
+
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Get the remote and URL being pushed to
+remote="$1"
+url="$2"
+
+# Get list of commits being pushed
+# Format: <local ref> <local sha> <remote ref> <remote sha>
+while read local_ref local_sha remote_ref remote_sha; do
+    # Skip if deleting a branch
+    if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+        continue
+    fi
+
+    # Determine range of commits to check
+    if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+        # New branch - check all commits
+        range="$local_sha"
+    else
+        # Existing branch - check commits since last push
+        range="$remote_sha..$local_sha"
+    fi
+
+    # Get list of changed files in this push
+    changed_files=$(git diff --name-only "$range" 2>/dev/null)
+
+    # Check if any API-related files changed
+    api_files_changed=false
+    api_files=""
+
+    while IFS= read -r file; do
+        # Check for API endpoint files
+        if echo "$file" | grep -qE '^backend/app/api/v[0-9]+/endpoints/.*\.py$'; then
+            api_files_changed=true
+            api_files="$api_files\n  - $file (endpoint)"
+        fi
+
+        # Check for schema files
+        if echo "$file" | grep -qE '^backend/app/schemas/.*\.py$'; then
+            api_files_changed=true
+            api_files="$api_files\n  - $file (schema)"
+        fi
+
+        # Check for service files (only those related to API features)
+        if echo "$file" | grep -qE '^backend/app/services/.*_service\.py$'; then
+            api_files_changed=true
+            api_files="$api_files\n  - $file (service)"
+        fi
+    done <<< "$changed_files"
+
+    # If API files changed, suggest PRD validation
+    if [ "$api_files_changed" = true ]; then
+        echo ""
+        echo -e "${YELLOW}⚠️  API-RELATED FILES CHANGED${NC}"
+        echo ""
+        echo "The following API files were modified in this push:"
+        echo -e "$api_files"
+        echo ""
+        echo -e "${BLUE}📋 PRD Compliance Validation Recommended${NC}"
+        echo ""
+        echo "To ensure implementation matches PRD specification:"
+        echo ""
+        echo "  1. Run quick checklist (manual):"
+        echo "     - Read .specify/sprints/sprint-*-prd.md"
+        echo "     - Compare endpoint paths, schemas, field names"
+        echo "     - Check for breaking changes"
+        echo ""
+        echo "  2. OR run deep validation (automated):"
+        echo "     ./scripts/validate-code.sh --prd-check"
+        echo ""
+        echo "  3. OR spawn validation agent manually:"
+        echo "     - Use 'prd-compliance-checker' skill guidance"
+        echo "     - See .claude/skills/prd-compliance-checker/SKILL.md"
+        echo ""
+        echo -e "${YELLOW}This is a suggestion, not a requirement.${NC}"
+        echo "Push will continue in 5 seconds..."
+        echo ""
+        echo "Press Ctrl+C to abort and run validation first."
+        echo "Or wait to continue pushing..."
+        echo ""
+
+        # Wait 5 seconds (user can Ctrl+C to abort)
+        for i in 5 4 3 2 1; do
+            echo -n "$i... "
+            sleep 1
+        done
+        echo ""
+        echo ""
+    fi
+done
+
+# Always exit 0 (non-blocking hook)
+echo -e "${GREEN}✅ Pre-push checks complete (continuing push)${NC}"
+exit 0
