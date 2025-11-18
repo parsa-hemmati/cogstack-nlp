@@ -72,6 +72,65 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-18] - CLAUDE.md v1.5.0: Comprehensive Validation Guidance
+
+**Commits**: 8be3c9bf - Add validation guidance to AI assistant guide
+
+**Added**:
+- **"Code Quality & Validation (MANDATORY)" section** in CLAUDE.md (385+ lines):
+  - Overview of 4-layer validation framework
+  - Layer 1: Pre-commit hook usage (automatic, blocks commits)
+  - Layer 2: Validation script usage (manual, comprehensive)
+  - Layer 3: Validation agent workflow (AI-powered, deep analysis)
+    - Exact Task tool prompts for spawning validation agents
+    - When to use healthcare-compliance-checker skill
+    - HIPAA compliance checking workflow
+  - Layer 4: CI/CD pipeline (automatic, full suite)
+  - Quick reference decision matrix (when to use each layer)
+  - Step-by-step workflows for different scenarios
+  - Concrete examples (small fix vs complex feature vs PHI code)
+  - Failure handling guide
+  - Bypass guidance (emergency only)
+
+**Changed**:
+- Updated CLAUDE.md version from 1.4.0 to 1.5.0
+- Updated last modified date to 2025-11-18
+- Inserted validation section before "Workflow: Spec-Kit Framework"
+
+**Removed**:
+- None
+
+**Why**:
+- User requested: "Do we need to add lines to claude.md to advise for checking with skills before relevant steps?"
+- Ensures future AI assistants use validation safeguards proactively
+- Documents mandatory validation points (PHI code, complex features, phase completion)
+- Prevents future sessions from skipping validation
+- Completes 4-layer validation framework with AI assistant integration
+
+**Impact**:
+- ✅ Future AI assistants have clear, mandatory validation guidance
+- ✅ Validation becomes part of standard development workflow
+- ✅ Mandatory checkpoints documented (no ambiguity)
+- ✅ Exact prompts provided (no guessing how to spawn agents)
+- ✅ **Safeguards implementation 100% complete** (code + docs + AI guidance)
+- ⚠️ AI assistants MUST follow validation workflows in CLAUDE.md
+
+**Migration Notes**:
+- All future AI sessions will automatically read updated CLAUDE.md
+- Validation guidance is mandatory for complex features and PHI code
+- Healthcare compliance checker skill usage documented
+
+**Technical Debt**:
+- None (safeguards documentation complete)
+
+**Design Pattern**:
+- Proactive validation (before problems occur)
+- Clear decision matrix (when to use which layer)
+- Exact prompts (no ambiguity for AI assistants)
+- Mandatory checkpoints (complex features, PHI, phase completion)
+
+---
+
 #### [2025-11-18] - Code Integrity Safeguards: 4-Layer Validation Framework
 
 **Commits**: (pending commit) - Comprehensive validation safeguards
