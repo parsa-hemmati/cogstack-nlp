@@ -143,6 +143,12 @@ class Document(Base):
 
     # Relationships
     patient = relationship("Patient", back_populates="documents")
+    annotations = relationship(
+        "Annotation",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
     def __repr__(self) -> str:
         """String representation."""

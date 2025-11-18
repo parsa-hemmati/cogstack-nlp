@@ -1,5 +1,6 @@
 """SQLAlchemy database models."""
 
+from app.models.annotation import Annotation
 from app.models.audit_log import AuditLog
 from app.models.clinical_incident import (
     ClinicalIncident,
@@ -20,6 +21,7 @@ __all__ = [
     "Document",
     "DocumentType",
     "DocumentStatus",
+    "Annotation",
     "AuditLog",
     "ClinicalOverride",
     "CriticalFindingAlert",
