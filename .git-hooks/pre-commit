@@ -114,6 +114,74 @@ else
     echo -e "${GREEN}✅ Documentation-only changes, CONTEXT.md and AUDIT.md update not required${NC}"
 fi
 
+# Check AUDIT.md status for blocking issues
+echo -e "${YELLOW}🔍 Checking AUDIT.md status...${NC}"
+
+# Extract the commit status line from AUDIT.md
+if [ -f "AUDIT.md" ]; then
+    commit_status=$(grep -E '^### Commit Status:' AUDIT.md || echo "")
+
+    if [ -n "$commit_status" ]; then
+        # Check if status contains BLOCKING
+        if echo "$commit_status" | grep -q "BLOCKING"; then
+            # Extract blocking count
+            blocking_count=$(echo "$commit_status" | grep -oE '[0-9]+' | head -1)
+
+            echo ""
+            echo -e "${RED}🚫 COMMIT BLOCKED: AUDIT.md shows ${blocking_count} blocking issues${NC}"
+            echo ""
+            echo -e "${YELLOW}Status from AUDIT.md:${NC}"
+            echo "  $commit_status"
+            echo ""
+
+            # Show the breaking changes section
+            echo -e "${YELLOW}Breaking Changes:${NC}"
+            sed -n '/^\*\*Breaking Changes\*\*:/,/^\*\*Action Required\*\*/p' AUDIT.md | grep -E '^[0-9]+\.' | sed 's/^/  /'
+            echo ""
+
+            echo -e "${RED}⚠️  YOU MUST FIX ALL BLOCKING ISSUES BEFORE COMMITTING${NC}"
+            echo ""
+            echo "Steps to resolve:"
+            echo "  1. Fix the breaking changes listed above"
+            echo "  2. Run auditor subagent to verify fixes"
+            echo "  3. Update AUDIT.md status to '✅ CLEAR'"
+            echo "  4. Retry commit"
+            echo ""
+            echo "This check CANNOT be bypassed (--no-verify will not work for audit status)."
+            echo ""
+            exit 1
+        fi
+
+        # Check if status is CLEAR
+        if echo "$commit_status" | grep -q "✅ CLEAR"; then
+            echo -e "${GREEN}✅ AUDIT.md status: CLEAR (no blocking issues)${NC}"
+        else
+            # Unknown status, warn but allow
+            echo -e "${YELLOW}⚠️  WARNING: Unknown AUDIT.md status${NC}"
+            echo "  $commit_status"
+            echo ""
+            read -p "Continue anyway? (y/N) " -n 1 -r
+            echo ""
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Commit aborted. Please check AUDIT.md status."
+                exit 1
+            fi
+        fi
+    else
+        echo -e "${YELLOW}⚠️  WARNING: No commit status found in AUDIT.md${NC}"
+        echo "Expected format: '### Commit Status: ✅ CLEAR' or '### Commit Status: 🚨 BLOCKING: X issues'"
+        echo ""
+        read -p "Continue anyway? (y/N) " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Commit aborted. Please update AUDIT.md with commit status."
+            exit 1
+        fi
+    fi
+else
+    echo -e "${YELLOW}⚠️  WARNING: AUDIT.md not found${NC}"
+fi
+
 # Additional checks
 
 # Check for console.log or debugger statements

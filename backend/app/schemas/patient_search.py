@@ -203,31 +203,64 @@ class PatientSearchResult(BaseModel):
     lastUpdated: str = Field(..., description="Last document timestamp (ISO 8601)")
 
 
+class PaginationInfo(BaseModel):
+    """
+    Pagination information (PRD-compliant nested object).
+
+    Attributes:
+        page: Current page number (1-indexed)
+        pageSize: Number of results per page
+        totalResults: Total number of matching results across all pages
+        totalPages: Total number of pages
+
+    Example:
+        >>> pagination = PaginationInfo(
+        ...     page=1,
+        ...     pageSize=20,
+        ...     totalResults=145,
+        ...     totalPages=8
+        ... )
+    """
+    page: int = Field(..., ge=1, description="Current page number")
+    pageSize: int = Field(..., ge=1, le=100, description="Results per page")
+    totalResults: int = Field(..., ge=0, description="Total matching results")
+    totalPages: int = Field(..., ge=0, description="Total pages")
+
+
+class PerformanceInfo(BaseModel):
+    """
+    Performance metrics (PRD-compliant nested object).
+
+    Attributes:
+        searchTime: Query execution time in milliseconds
+        source: Data source ('cache' for cached results, 'live' for database query)
+
+    Example:
+        >>> performance = PerformanceInfo(searchTime=245, source="live")
+    """
+    searchTime: int = Field(..., ge=0, description="Query time (milliseconds)")
+    source: str = Field(..., description="Data source: 'cache' or 'live'")
+
+
 class PatientSearchResponse(BaseModel):
     """
-    Response schema for patient search (PRD-compliant).
+    Response schema for patient search (PRD-compliant with nested objects).
 
     Attributes:
         results: List of patient search results
-        total: Total number of matching patients (across all pages)
-        page: Current page number
-        pageSize: Results per page
-        queryTimeMs: Query execution time in milliseconds
+        pagination: Nested pagination information
+        performance: Nested performance metrics
 
     Example:
         >>> response = PatientSearchResponse(
         ...     results=[...],
-        ...     total=145,
-        ...     page=1,
-        ...     pageSize=20,
-        ...     queryTimeMs=234
+        ...     pagination=PaginationInfo(page=1, pageSize=20, totalResults=145, totalPages=8),
+        ...     performance=PerformanceInfo(searchTime=234, source="live")
         ... )
     """
     results: List[PatientSearchResult] = Field(..., description="Search results")
-    total: int = Field(..., description="Total matching patients")
-    page: int = Field(..., description="Current page number")
-    pageSize: int = Field(..., description="Results per page")
-    queryTimeMs: int = Field(..., description="Query time (ms)")
+    pagination: PaginationInfo = Field(..., description="Pagination information")
+    performance: PerformanceInfo = Field(..., description="Performance metrics")
 
 
 # ============================================================================

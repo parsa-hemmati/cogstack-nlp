@@ -23,9 +23,11 @@ from app.schemas.patient_search import (
     DocumentHighlight,
     MetaAnnotationDisplay,
     MetaAnnotations,
+    PaginationInfo,
     PatientSearchRequest,
     PatientSearchResponse,
     PatientSearchResult,
+    PerformanceInfo,
     SearchFilters,
 )
 from app.services.encryption_service import EncryptionService
@@ -140,12 +142,21 @@ class PatientSearchService:
         # Calculate query time
         query_time_ms = int((time.time() - start_time) * 1000)
 
+        # Calculate total pages (ceiling division)
+        total_pages = (total_count + page_size - 1) // page_size
+
         return PatientSearchResponse(
             results=results,
-            total=total_count,
-            page=page,
-            pageSize=page_size,
-            queryTimeMs=query_time_ms,
+            pagination=PaginationInfo(
+                page=page,
+                pageSize=page_size,
+                totalResults=total_count,
+                totalPages=total_pages,
+            ),
+            performance=PerformanceInfo(
+                searchTime=query_time_ms,
+                source="live",  # Note: Caching detection not yet implemented (see CONTEXT.md technical debt)
+            ),
         )
 
     async def _fetch_annotations(
