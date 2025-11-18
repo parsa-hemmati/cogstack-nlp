@@ -168,9 +168,18 @@ async def create_user(
     existing_user = result.scalar_one_or_none()
 
     if existing_user is not None:
+        # Audit log the failure (details in audit trail, not user-facing error)
+        await audit_service.log_action(
+            db=db,
+            user=current_user,
+            action="CREATE_USER_FAILED",
+            resource_type="user",
+            details={"reason": "duplicate_username", "attempted_username": user_data.username},
+            success="failure",
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Username '{user_data.username}' already exists",
+            detail="Username already exists. Please choose a different username.",
         )
 
     # Check for duplicate email
@@ -179,9 +188,18 @@ async def create_user(
     existing_email = result.scalar_one_or_none()
 
     if existing_email is not None:
+        # Audit log the failure (details in audit trail, not user-facing error)
+        await audit_service.log_action(
+            db=db,
+            user=current_user,
+            action="CREATE_USER_FAILED",
+            resource_type="user",
+            details={"reason": "duplicate_email", "attempted_email": user_data.email},
+            success="failure",
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Email '{user_data.email}' already exists",
+            detail="Email address already registered. Please use a different email.",
         )
 
     # Create user
@@ -200,9 +218,18 @@ async def create_user(
         await db.refresh(new_user)
     except IntegrityError as e:
         await db.rollback()
+        # Audit log the failure with full details (not exposed to user)
+        await audit_service.log_action(
+            db=db,
+            user=current_user,
+            action="CREATE_USER_FAILED",
+            resource_type="user",
+            details={"reason": "database_integrity_error", "error": str(e)},
+            success="failure",
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Database integrity error: {str(e)}",
+            detail="Unable to create user. Please check the data and try again.",
         )
 
     # Audit log

@@ -97,9 +97,19 @@ async def update_my_profile(
         existing_user = result.scalar_one_or_none()
 
         if existing_user is not None:
+            # Audit log the failure (details in audit trail, not user-facing error)
+            await audit_service.log_action(
+                db=db,
+                user=current_user,
+                action="UPDATE_OWN_PROFILE_FAILED",
+                resource_type="user",
+                resource_id=str(current_user.id),
+                details={"reason": "duplicate_email", "attempted_email": profile_data.email},
+                success="failure",
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Email '{profile_data.email}' is already in use",
+                detail="Email address already in use. Please use a different email.",
             )
 
         changes["email"] = {"old": current_user.email, "new": profile_data.email}
@@ -153,6 +163,11 @@ async def change_my_password(
     current_user.set_password(password_data.new_password)
 
     await db.commit()
+
+    # TODO: Invalidate all existing sessions for security (Task 2.8)
+    # After password change, all other sessions should be invalidated
+    # This prevents compromised sessions from remaining active
+    # Implementation: await session_service.invalidate_all_user_sessions(user_id=str(current_user.id))
 
     # Audit log (IMPORTANT: password changes must be logged)
     await audit_service.log_action(
