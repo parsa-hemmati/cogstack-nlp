@@ -228,3 +228,63 @@ class PatientSearchResponse(BaseModel):
     page: int = Field(..., description="Current page number")
     pageSize: int = Field(..., description="Results per page")
     queryTimeMs: int = Field(..., description="Query time (ms)")
+
+
+# ============================================================================
+# Concept Highlights Schemas (Task 4.3)
+# ============================================================================
+
+class MetaAnnotationDisplay(BaseModel):
+    """
+    Meta-annotations for display in highlights.
+
+    Attributes:
+        Negation: Negation status (Affirmed, Negated, Possible)
+        Temporality: Temporal context (Current, Historical, Future)
+        Experiencer: Who experiences the condition (Patient, Family, Other)
+        Certainty: Certainty level (Confirmed, Suspected, Possible)
+    """
+    Negation: str = Field(..., description="Negation status")
+    Temporality: str = Field(..., description="Temporal context")
+    Experiencer: str = Field(..., description="Experiencer")
+    Certainty: str = Field(..., description="Certainty level")
+
+
+class DocumentHighlight(BaseModel):
+    """
+    Single document highlight with concept context.
+
+    Attributes:
+        documentId: Unique document identifier
+        title: Document title
+        date: Document date
+        snippet: Text snippet (100 chars before + concept + 100 chars after)
+        metaAnnotations: Meta-annotations for this mention
+        startChar: Character offset where concept starts
+        endChar: Character offset where concept ends
+    """
+    documentId: str = Field(..., description="Document UUID")
+    title: str = Field(..., description="Document title")
+    date: str = Field(..., description="Document date (ISO 8601)")
+    snippet: str = Field(..., description="Text snippet with concept bolded")
+    metaAnnotations: MetaAnnotationDisplay = Field(..., description="Meta-annotations")
+    startChar: int = Field(..., description="Start character offset")
+    endChar: int = Field(..., description="End character offset")
+
+
+class ConceptHighlightResponse(BaseModel):
+    """
+    Response schema for concept highlights.
+
+    Attributes:
+        documents: List of document highlights
+        totalCount: Total number of documents containing this concept
+
+    Example:
+        >>> response = ConceptHighlightResponse(
+        ...     documents=[...],
+        ...     totalCount=5
+        ... )
+    """
+    documents: List[DocumentHighlight] = Field(..., description="Document highlights")
+    totalCount: int = Field(..., description="Total documents")

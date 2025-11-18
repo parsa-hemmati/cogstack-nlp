@@ -4,17 +4,22 @@ Patient Search API endpoints.
 Handles patient search by clinical concepts with meta-annotation filtering.
 """
 import logging
-from typing import Annotated
+from typing import Annotated, Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
+from app.models.patient import Patient
 from app.models.user import User
 from app.schemas.patient_search import (
+    ConceptHighlightResponse,
     PatientSearchRequest,
     PatientSearchResponse,
+    SearchFilters,
 )
 from app.services.audit_service import AuditService
 from app.services.patient_search_service import PatientSearchService
@@ -176,4 +181,135 @@ async def search_patients(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Patient search failed. Please try again.",
+        )
+
+
+@router.get("/{patient_id}/concept-highlights", response_model=ConceptHighlightResponse, status_code=status.HTTP_200_OK)
+async def get_concept_highlights(
+    patient_id: UUID,
+    cui: str = Query(..., description="SNOMED-CT CUI or concept name"),
+    temporal: Optional[str] = Query(None, description="Temporal filter (current, historical, future, any)"),
+    include_negated: Optional[bool] = Query(False, description="Include negated mentions"),
+    include_family: Optional[bool] = Query(False, description="Include family history"),
+    current_user: User = Depends(require_role("clinician", "researcher", "admin")),
+    db: AsyncSession = Depends(get_db),
+) -> ConceptHighlightResponse:
+    """
+    Get concept highlights for a specific patient.
+
+    Retrieves all documents containing the specified concept for a patient,
+    with document snippets showing context (100 chars before/after concept),
+    meta-annotations, and document metadata.
+
+    **Authentication**: Required (JWT token)
+    **Authorization**: Clinician, Researcher, or Admin role
+
+    **Performance**: <300ms target for typical cases
+
+    **Audit Logging**: Creates audit log for document views (PHI access)
+
+    Args:
+        patient_id: Patient UUID
+        cui: SNOMED-CT CUI (e.g., "C0004238") or concept name (e.g., "diabetes")
+        temporal: Filter by temporal context (current, historical, future, any)
+        include_negated: Include negated mentions (e.g., "no chest pain")
+        include_family: Include family history mentions
+        current_user: Authenticated user (dependency injection)
+        db: Database session (dependency injection)
+
+    Returns:
+        ConceptHighlightResponse with document highlights and total count
+
+    Raises:
+        400: Invalid request (e.g., invalid patient_id)
+        401: Unauthorized (no JWT token)
+        403: Forbidden (insufficient role)
+        404: Patient not found
+        500: Internal server error
+
+    Example:
+        ```bash
+        curl -X GET "http://localhost:8000/api/v1/patients/{patient_id}/concept-highlights?cui=C0004238" \\
+             -H "Authorization: Bearer <token>"
+        ```
+    """
+    try:
+        # Validate patient exists and user has access
+        patient_query = await db.execute(
+            select(Patient).where(Patient.id == patient_id)
+        )
+        patient = patient_query.scalar_one_or_none()
+
+        if not patient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Patient {patient_id} not found",
+            )
+
+        # Build filters from query parameters
+        filters = None
+        if temporal or include_negated or include_family:
+            filters = SearchFilters(
+                temporal=temporal or "current",
+                includeNegated=include_negated or False,
+                includeFamily=include_family or False,
+            )
+
+        # Get concept highlights
+        search_service = PatientSearchService(db)
+        response = await search_service.get_concept_highlights(
+            patient_id=patient_id,
+            cui=cui,
+            filters=filters,
+        )
+
+        # Audit logging (non-blocking)
+        try:
+            audit_service = AuditService(db)
+            await audit_service.log(
+                user_id=current_user.id,
+                action="VIEW_CONCEPT_HIGHLIGHTS",
+                resource_type="patient",
+                resource_id=str(patient_id),
+                details={
+                    "cui": cui,
+                    "document_count": response.totalCount,
+                    "filters": filters.dict() if filters else {},
+                },
+            )
+        except Exception as audit_error:
+            # Log failure but don't abort the request
+            logger.error(
+                f"Audit logging failed for concept highlights: {audit_error}",
+                exc_info=True,
+                extra={
+                    "user_id": current_user.id,
+                    "patient_id": str(patient_id),
+                    "cui": cui,
+                }
+            )
+
+        logger.info(
+            f"Concept highlights retrieved: user={current_user.username}, "
+            f"patient={patient_id}, cui='{cui}', documents={response.totalCount}"
+        )
+
+        return response
+
+    except HTTPException:
+        # Re-raise HTTP exceptions (404, etc.)
+        raise
+    except ValueError as e:
+        # Invalid input
+        logger.warning(f"Invalid concept highlights request: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid request: {str(e)}",
+        )
+    except Exception as e:
+        # Unexpected error
+        logger.error(f"Concept highlights failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve concept highlights. Please try again.",
         )

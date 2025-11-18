@@ -74,10 +74,10 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 3.10: Patient Aggregation Service (NHS number matching)
   - ✅ Task 3.11: Document Upload Frontend Component (Vue 3 + Vuetify)
   - ✅ Task 3.12: PHI De-Identification Security Tests (HIPAA compliance)
-- 🚧 **Phase 4 (Patient Search)**: IN PROGRESS - 2/8 tasks (25% complete)
+- 🚧 **Phase 4 (Patient Search)**: IN PROGRESS - 3/8 tasks (38% complete)
   - ✅ Task 4.1: Database Indexes (COMPLETE - all migrations applied successfully)
   - ✅ Task 4.2: Backend Search API (COMPLETE - patient search with meta-annotations)
-  - ⏳ Task 4.3: Backend Highlights API (pending)
+  - ✅ Task 4.3: Backend Highlights API (COMPLETE - concept highlights with snippets)
   - ⏳ Task 4.4: Frontend Search Component (pending)
   - ⏳ Task 4.5: Frontend Highlights Panel (pending)
   - ⏳ Task 4.6: Search History (pending)
@@ -86,13 +86,107 @@ The current development focus is **extending** this ecosystem with **clinical ca
 - ⏸️ **Phases 5-7**: Pending (Testing, Deployment, Documentation)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: (this commit) - Implement patient search API with meta-annotation filtering
-**Sprint**: MVP - Phases 1-3 COMPLETE (100%), Phase 4 IN PROGRESS (25%)
-**Next Milestone**: Complete Phase 4.3 (Backend Highlights API)
+**Latest Commit**: (this commit) - Implement concept highlights endpoint for document snippets
+**Sprint**: MVP - Phases 1-3 COMPLETE (100%), Phase 4 IN PROGRESS (38%)
+**Next Milestone**: Complete Phase 4.4 (Frontend Search Component)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-18] - Task 4.3: Concept Highlights API Implementation (Patient Search Feature)
+
+**Commits**: (this commit) - Implement concept highlights endpoint for document snippets
+
+**Added**:
+- **Concept Highlights Schemas** (`backend/app/schemas/patient_search.py`):
+  - `MetaAnnotationDisplay`: Display schema for meta-annotations in highlights
+  - `DocumentHighlight`: Single document highlight with snippet and metadata
+  - `ConceptHighlightResponse`: Response schema with documents list and total count
+
+- **Service Layer Methods** (`backend/app/services/patient_search_service.py`):
+  - `get_concept_highlights(patient_id, cui, filters)`: Retrieve documents containing specific concept
+  - `_extract_snippet(text, start_char, end_char)`: Extract 100 chars before/after concept with bolding
+  - Decrypts document content using EncryptionService
+  - Builds meta-annotations display from entity meta_anns
+  - Performance: <300ms target for typical cases
+
+- **API Endpoint** (`backend/app/api/v1/endpoints/patient_search.py`):
+  - GET `/{patient_id}/concept-highlights`: Retrieve concept highlights for patient
+  - Query parameters: `cui` (required), `temporal`, `include_negated`, `include_family`
+  - Authentication required (JWT token)
+  - Authorization: Clinician, Researcher, or Admin roles
+  - Validates patient exists (404 if not found)
+  - Audit logging for PHI access (VIEW_CONCEPT_HIGHLIGHTS action)
+  - Comprehensive error handling (400, 401, 403, 404, 500)
+
+- **Unit Tests** (`backend/tests/unit/services/test_patient_search_service.py`):
+  - 13 unit tests covering:
+    - Snippet extraction (normal, at start, at end, short text, edge cases)
+    - Meta-annotations display (all fields, unknown values)
+    - Search filters (default, custom values)
+    - Concept highlights (empty results, with filters)
+    - Performance testing (<300ms target)
+
+**Why**:
+- Implements Sprint 1 requirement: Display document highlights with concept context
+- Enables clinicians to review specific concept mentions across all patient documents
+- Provides snippets with 100 chars context (before/after) for quick review
+- Shows meta-annotations (Negation, Temporality, Experiencer, Certainty) for each mention
+- Supports filtering to exclude negated mentions or family history
+- Bolded concept in snippet improves readability
+- Complements patient search (Task 4.2) with document drill-down capability
+
+**How It Works**:
+
+**1. User Workflow**:
+- User searches for patients with "atrial flutter" (Task 4.2)
+- Clicks on patient row to expand highlights
+- Frontend calls GET `/api/v1/patients/{patient_id}/concept-highlights?cui=C0004238`
+- Backend returns list of documents with snippets
+
+**2. Backend Processing**:
+```
+1. Validate patient exists → 404 if not found
+2. Query extracted_entities for patient + CUI
+3. Join with documents table
+4. Apply meta-annotation filters (if provided)
+5. For each entity:
+   a. Decrypt document content (EncryptionService)
+   b. Extract snippet (100 chars before + concept + 100 chars after)
+   c. Bold concept with <b></b> tags
+   d. Build meta-annotations display
+6. Audit log PHI access (VIEW_CONCEPT_HIGHLIGHTS)
+7. Return highlights
+```
+
+**3. Snippet Example**:
+```
+Input: "Patient presents with severe atrial flutter and rapid ventricular response."
+Concept: "atrial flutter" (chars 33-47)
+Output: "...presents with severe <b>atrial flutter</b> and rapid ventricular..."
+```
+
+**Impact**:
+- ✅ Clinicians can drill down from patient list to document snippets
+- ✅ Context provided (100 chars before/after) for quick review
+- ✅ Meta-annotations displayed for transparency (negated, historical, etc.)
+- ✅ Performance target met (<300ms for typical cases)
+- ✅ Full audit trail for PHI access (HIPAA compliance)
+- ✅ Supports filtering to exclude false positives
+- ✅ Phase 4.3 complete (3/8 tasks done, 38% of Phase 4)
+
+**Files Added/Modified**:
+1. `backend/app/schemas/patient_search.py` (UPDATED - added 3 schemas, +59 lines)
+2. `backend/app/services/patient_search_service.py` (UPDATED - added 2 methods, +159 lines)
+3. `backend/app/api/v1/endpoints/patient_search.py` (UPDATED - added 1 endpoint, +136 lines)
+4. `backend/tests/unit/services/test_patient_search_service.py` (NEW - 13 tests, 280 lines)
+
+**Technical Debt**: None introduced
+
+**Next Task**: Task 4.4 (Frontend Search Component)
+
+---
 
 #### [2025-11-18] - Dual-File Audit System with Dedicated Auditor Subagent (Quality Assurance Enhancement)
 

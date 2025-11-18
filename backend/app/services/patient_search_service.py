@@ -18,13 +18,17 @@ from app.models.extracted_entity import ExtractedEntity
 from app.models.patient import Patient
 from app.schemas.patient_search import (
     Annotation,
+    ConceptHighlightResponse,
     Demographics,
+    DocumentHighlight,
+    MetaAnnotationDisplay,
     MetaAnnotations,
     PatientSearchRequest,
     PatientSearchResponse,
     PatientSearchResult,
     SearchFilters,
 )
+from app.services.encryption_service import EncryptionService
 
 logger = logging.getLogger(__name__)
 
@@ -385,3 +389,158 @@ class PatientSearchService:
             age -= 1
 
         return age
+
+    # ========================================================================
+    # Concept Highlights (Task 4.3)
+    # ========================================================================
+
+    async def get_concept_highlights(
+        self,
+        patient_id: UUID,
+        cui: str,
+        filters: Optional[SearchFilters] = None,
+    ) -> ConceptHighlightResponse:
+        """
+        Retrieve documents containing specific concept for a patient.
+
+        Returns document snippets with concept context (100 chars before/after),
+        meta-annotations, and document metadata.
+
+        Args:
+            patient_id: Patient UUID
+            cui: SNOMED-CT CUI or concept name
+            filters: Optional meta-annotation filters
+
+        Returns:
+            ConceptHighlightResponse with document highlights
+
+        Example:
+            >>> service = PatientSearchService(db)
+            >>> response = await service.get_concept_highlights(
+            ...     patient_id=UUID("..."),
+            ...     cui="C0004238",
+            ...     filters=SearchFilters(includeNegated=False)
+            ... )
+            >>> response.totalCount
+            5
+            >>> response.documents[0].snippet
+            '...patient presents with <b>atrial flutter</b> with...'
+        """
+        start_time = time.time()
+
+        # Build base query
+        query = (
+            select(ExtractedEntity, Document)
+            .join(Document, ExtractedEntity.document_id == Document.id)
+            .where(ExtractedEntity.patient_id == patient_id)
+        )
+
+        # Filter by CUI or concept name
+        if cui.startswith("C"):
+            # SNOMED-CT CUI format
+            query = query.where(ExtractedEntity.cui == cui)
+        else:
+            # Concept name (case-insensitive)
+            query = query.where(func.lower(ExtractedEntity.pretty_name).contains(cui.lower()))
+
+        # Apply meta-annotation filters if provided
+        if filters:
+            query = self._apply_meta_annotation_filters(query, filters)
+
+        # Execute query
+        result = await self.db.execute(query)
+        rows = result.all()
+
+        # Build document highlights
+        highlights = []
+        encryption_service = EncryptionService()
+
+        for entity, document in rows:
+            # Decrypt document content
+            decrypted_content = encryption_service.decrypt(document.encrypted_content)
+
+            # Extract snippet
+            snippet = self._extract_snippet(
+                text=decrypted_content,
+                start_char=entity.start_char,
+                end_char=entity.end_char,
+            )
+
+            # Build meta-annotations display
+            meta_anns = entity.meta_anns or {}
+            meta_display = MetaAnnotationDisplay(
+                Negation=meta_anns.get("Negation", "Unknown"),
+                Temporality=meta_anns.get("Temporality", "Unknown"),
+                Experiencer=meta_anns.get("Experiencer", "Unknown"),
+                Certainty=meta_anns.get("Certainty", "Unknown"),
+            )
+
+            # Build document highlight
+            highlight = DocumentHighlight(
+                documentId=str(document.id),
+                title=document.title or "Untitled Document",
+                date=document.document_date.isoformat() if document.document_date else datetime.now().date().isoformat(),
+                snippet=snippet,
+                metaAnnotations=meta_display,
+                startChar=entity.start_char,
+                endChar=entity.end_char,
+            )
+            highlights.append(highlight)
+
+        query_time_ms = int((time.time() - start_time) * 1000)
+
+        logger.info(
+            f"Concept highlights retrieved for patient {patient_id}, "
+            f"CUI {cui}, {len(highlights)} documents, {query_time_ms}ms"
+        )
+
+        return ConceptHighlightResponse(
+            documents=highlights,
+            totalCount=len(highlights),
+        )
+
+    def _extract_snippet(self, text: str, start_char: int, end_char: int) -> str:
+        """
+        Extract snippet with context (100 chars before + concept + 100 chars after).
+
+        The concept is bolded in the snippet using <b></b> tags.
+
+        Args:
+            text: Full document text
+            start_char: Character offset where concept starts
+            end_char: Character offset where concept ends
+
+        Returns:
+            Text snippet with concept bolded
+
+        Example:
+            >>> service._extract_snippet("Patient presents with diabetes mellitus.", 23, 31)
+            'Patient presents with <b>diabetes</b> mellitus.'
+        """
+        # Handle edge cases
+        if start_char < 0 or end_char > len(text) or start_char >= end_char:
+            return text[:200]  # Return first 200 chars as fallback
+
+        # Extract 100 chars before, concept, 100 chars after
+        snippet_start = max(0, start_char - 100)
+        snippet_end = min(len(text), end_char + 100)
+        snippet = text[snippet_start:snippet_end]
+
+        # Calculate concept position within snippet
+        concept_start_in_snippet = start_char - snippet_start
+        concept_end_in_snippet = end_char - snippet_start
+
+        # Bold the concept
+        bolded_snippet = (
+            snippet[:concept_start_in_snippet]
+            + f"<b>{snippet[concept_start_in_snippet:concept_end_in_snippet]}</b>"
+            + snippet[concept_end_in_snippet:]
+        )
+
+        # Add ellipsis if truncated
+        if snippet_start > 0:
+            bolded_snippet = "..." + bolded_snippet
+        if snippet_end < len(text):
+            bolded_snippet = bolded_snippet + "..."
+
+        return bolded_snippet
