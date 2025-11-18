@@ -189,12 +189,13 @@ class PatientSearchService:
             .join(total_docs_subq, Patient.id == total_docs_subq.c.patient_id)
         )
 
-        # Apply sorting
-        if sort_by == "relevance":
+        # Apply sorting (enum values are strings like "relevance", "name", "last_updated")
+        sort_value = sort_by.value if hasattr(sort_by, 'value') else sort_by
+        if sort_value == "relevance":
             query_stmt = query_stmt.order_by(concept_docs_subq.c.concept_document_count.desc())
-        elif sort_by == "name":
+        elif sort_value == "name":
             query_stmt = query_stmt.order_by(Patient.full_name)
-        elif sort_by == "last_updated":
+        elif sort_value == "last_updated":
             query_stmt = query_stmt.order_by(Patient.last_seen_at.desc())
 
         # Count query: Count distinct patients
@@ -235,27 +236,27 @@ class PatientSearchService:
         conditions = []
 
         # Negation filter
-        if filters.negation and filters.negation != "Any":
+        if filters.negation and filters.negation.value != "Any":
             conditions.append(
-                ExtractedEntity.meta_anns["Negation"].astext == filters.negation
+                ExtractedEntity.meta_anns["Negation"].astext == filters.negation.value
             )
 
         # Temporality filter
-        if filters.temporality and filters.temporality != "Any":
+        if filters.temporality and filters.temporality.value != "Any":
             conditions.append(
-                ExtractedEntity.meta_anns["Temporality"].astext == filters.temporality
+                ExtractedEntity.meta_anns["Temporality"].astext == filters.temporality.value
             )
 
         # Experiencer filter
-        if filters.experiencer and filters.experiencer != "Any":
+        if filters.experiencer and filters.experiencer.value != "Any":
             conditions.append(
-                ExtractedEntity.meta_anns["Experiencer"].astext == filters.experiencer
+                ExtractedEntity.meta_anns["Experiencer"].astext == filters.experiencer.value
             )
 
         # Certainty filter
-        if filters.certainty and filters.certainty != "Any":
+        if filters.certainty and filters.certainty.value != "Any":
             conditions.append(
-                ExtractedEntity.meta_anns["Certainty"].astext == filters.certainty
+                ExtractedEntity.meta_anns["Certainty"].astext == filters.certainty.value
             )
 
         # Combine all conditions with AND
@@ -270,7 +271,7 @@ class PatientSearchService:
         Mask NHS number for privacy.
 
         Args:
-            nhs_number: Full NHS number (e.g., "123-456-7890")
+            nhs_number: Full NHS number (various formats: "123-456-7890", "123 456 7890", "1234567890")
 
         Returns:
             Masked NHS number (e.g., "XXX-XXX-7890")
@@ -278,24 +279,29 @@ class PatientSearchService:
         Example:
             >>> service._mask_nhs_number("123-456-7890")
             'XXX-XXX-7890'
+            >>> service._mask_nhs_number("123 456 7890")
+            'XXX-XXX-7890'
             >>> service._mask_nhs_number("1234567890")
-            'XXXXXX7890'
+            'XXX-XXX-7890'
         """
         if not nhs_number:
             return "XXX-XXX-XXXX"
 
-        # Check if NHS number has dashes (formatted)
-        if "-" in nhs_number:
-            # Format: "123-456-7890" → "XXX-XXX-7890"
-            parts = nhs_number.split("-")
-            if len(parts) == 3:
-                return f"XXX-XXX-{parts[2]}"
-            else:
-                # Fallback: show last 4 digits
-                return "XXX-XXX-" + nhs_number[-4:]
+        # Normalize to digits only (handles spaces, dashes, any format)
+        digits = "".join(ch for ch in nhs_number if ch.isdigit())
+
+        # Validate length
+        if len(digits) < 4:
+            # Too short or malformed, mask entirely
+            return "XXX-XXX-XXXX"
+
+        # UK NHS numbers are 10 digits, but be flexible
+        if len(digits) >= 10:
+            # Standard UK format: XXX-XXX-7890
+            return f"XXX-XXX-{digits[-4:]}"
         else:
-            # Format: "1234567890" → "XXXXXX7890"
-            return "X" * (len(nhs_number) - 4) + nhs_number[-4:]
+            # Shorter format: mask all but last 4
+            return "X" * (len(digits) - 4) + digits[-4:]
 
     def _calculate_age(self, date_of_birth: date) -> int:
         """

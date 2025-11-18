@@ -3,9 +3,46 @@ Patient Search Schemas
 Pydantic models for patient search request/response validation
 """
 from datetime import date, datetime
+from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 from pydantic import BaseModel, Field
+
+
+class NegationFilter(str, Enum):
+    """Negation filter options"""
+    AFFIRMED = "Affirmed"
+    NEGATED = "Negated"
+    ANY = "Any"
+
+
+class TemporalityFilter(str, Enum):
+    """Temporality filter options"""
+    CURRENT = "Current"
+    HISTORICAL = "Historical"
+    ANY = "Any"
+
+
+class ExperiencerFilter(str, Enum):
+    """Experiencer filter options"""
+    PATIENT = "Patient"
+    FAMILY = "Family"
+    OTHER = "Other"
+    ANY = "Any"
+
+
+class CertaintyFilter(str, Enum):
+    """Certainty filter options"""
+    CONFIRMED = "Confirmed"
+    SUSPECTED = "Suspected"
+    ANY = "Any"
+
+
+class SortByOption(str, Enum):
+    """Sort order options"""
+    RELEVANCE = "relevance"
+    NAME = "name"
+    LAST_UPDATED = "last_updated"
 
 
 class MetaAnnotationFilters(BaseModel):
@@ -42,19 +79,19 @@ class MetaAnnotationFilters(BaseModel):
         ...     experiencer="Patient"
         ... )
     """
-    negation: str = Field(
-        default="Affirmed",
+    negation: NegationFilter = Field(
+        default=NegationFilter.AFFIRMED,
         description="Negation filter: Affirmed | Negated | Any"
     )
-    temporality: str = Field(
-        default="Current",
+    temporality: TemporalityFilter = Field(
+        default=TemporalityFilter.CURRENT,
         description="Temporality filter: Current | Historical | Any"
     )
-    experiencer: str = Field(
-        default="Patient",
+    experiencer: ExperiencerFilter = Field(
+        default=ExperiencerFilter.PATIENT,
         description="Experiencer filter: Patient | Family | Other | Any"
     )
-    certainty: Optional[str] = Field(
+    certainty: Optional[CertaintyFilter] = Field(
         default=None,
         description="Certainty filter: Confirmed | Suspected | Any"
     )
@@ -95,8 +132,8 @@ class PatientSearchRequest(BaseModel):
         default_factory=MetaAnnotationFilters,
         description="Meta-annotation filters"
     )
-    sort_by: str = Field(
-        default="relevance",
+    sort_by: SortByOption = Field(
+        default=SortByOption.RELEVANCE,
         description="Sort order: relevance | name | last_updated"
     )
     page: int = Field(

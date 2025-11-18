@@ -128,19 +128,32 @@ async def search_patients(
         )
 
         # Log audit trail (HIPAA compliance - PHI access)
-        await audit_service.log_action(
-            db=db,
-            user=current_user,
-            action="SEARCH_PATIENTS",
-            resource_type="patient",
-            resource_id=None,  # No specific patient (cohort search)
-            details={
-                "query": request.query,
-                "filters": request.filters.dict(),
-                "result_count": response.total_count,
-                "query_time_ms": response.query_time_ms,
-            },
-        )
+        # NOTE: Audit logging must not abort the search if it fails
+        try:
+            await audit_service.log_action(
+                db=db,
+                user=current_user,
+                action="SEARCH_PATIENTS",
+                resource_type="patient",
+                resource_id=None,  # No specific patient (cohort search)
+                details={
+                    "query": request.query,
+                    "filters": request.filters.dict(),
+                    "result_count": response.total_count,
+                    "query_time_ms": response.query_time_ms,
+                },
+            )
+        except Exception as audit_error:
+            # Log failure but don't break the search response
+            logger.error(
+                f"Failed to log audit trail for patient search: {audit_error}",
+                exc_info=True,
+                extra={
+                    "user_id": current_user.id,
+                    "query": request.query,
+                    "result_count": response.total_count,
+                }
+            )
 
         logger.info(
             f"Patient search completed: user={current_user.username}, "
