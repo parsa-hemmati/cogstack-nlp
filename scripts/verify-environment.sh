@@ -247,34 +247,34 @@ check_redis() {
 }
 
 # =============================================================================
-# Check 6: CogStack-ModelServe Service (Optional)
+# Check 6: MedCAT Service (Optional)
 # =============================================================================
 check_cogstack_modelserve() {
-    print_check "CogStack-ModelServe service (optional)"
+    print_check "MedCAT service (optional)"
 
     # Check if container is running
-    if ! docker-compose ps cogstack-modelserve | grep -q "Up" 2>/dev/null; then
-        print_warn "CogStack-ModelServe container is not running (blocked by Mission 0.2: MedCAT models download)"
+    if ! docker-compose ps medcat-service | grep -q "Up" 2>/dev/null; then
+        print_warn "MedCAT service container is not running (blocked by Mission 0.2: MedCAT models download)"
         echo "  This is expected if MedCAT models are not yet downloaded"
         echo "  See models/README.md for download instructions"
         return 0
     fi
 
     # Check health status
-    MODELSERVE_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' clinical_care_modelserve 2>/dev/null || echo "unknown")
-    if [ "$MODELSERVE_HEALTH" != "healthy" ]; then
-        print_warn "CogStack-ModelServe is not healthy (status: $MODELSERVE_HEALTH)"
+    MEDCAT_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' clinical_care_medcat 2>/dev/null || echo "unknown")
+    if [ "$MEDCAT_HEALTH" != "healthy" ]; then
+        print_warn "MedCAT service is not healthy (status: $MEDCAT_HEALTH)"
         echo "  This may be normal if models are still loading (takes 60-90 seconds)"
         return 0
     fi
 
-    # Check health endpoint
-    if ! curl -sf http://localhost:8001/api/health &> /dev/null; then
-        print_warn "CogStack-ModelServe health endpoint not responding"
+    # Check health endpoint (using Python since curl is not in the container)
+    if ! curl -sf http://localhost:8001/api/info &> /dev/null; then
+        print_warn "MedCAT service health endpoint not responding"
         return 0
     fi
 
-    print_pass "CogStack-ModelServe (healthy, API responding)"
+    print_pass "MedCAT service (healthy, API responding)"
     return 0
 }
 

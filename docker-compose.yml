@@ -82,35 +82,53 @@ services:
         max-file: "3"
 
   # ===========================================================================
-  # CogStack-ModelServe (MedCAT NLP Service)
+  # MedCAT Service (NLP Model Serving)
   # Purpose: Production-ready NLP model serving for clinical document processing
-  # Models: SNOMED-CT (concept extraction), De-identification (PHI detection)
-  # Documentation: https://github.com/CogStack/CogStack-ModelServe
+  # Models: SNOMED-CT (concept extraction via example model pack)
+  # Documentation: https://github.com/CogStack/MedCAT
   # ===========================================================================
-  cogstack-modelserve:
-    image: cogstacksystems/cogstack-modelserve:latest
-    container_name: clinical_care_modelserve
+  medcat-service:
+    image: cogstacksystems/medcat-service:latest
+    container_name: clinical_care_medcat
     restart: unless-stopped
     environment:
-      # Model Configuration
-      - MODEL_SNOMED_PATH=/models/medcat_snomed.zip
-      - MODEL_DEID_PATH=/models/medcat_deid.zip
-      - LOG_LEVEL=${MODELSERVE_LOG_LEVEL:-INFO}
-      # Authentication (optional for MVP, required for production)
-      - ENABLE_AUTH=${MODELSERVE_ENABLE_AUTH:-false}
-      - API_KEY=${MODELSERVE_API_KEY:-}
-      # Resource Configuration
-      - MAX_WORKERS=${MODELSERVE_WORKERS:-4}
-      - TIMEOUT=300
+      # Application Configuration
+      - APP_NAME=Clinical Care Tools MedCAT
+      - APP_LOG_LEVEL=INFO
+      - APP_MODEL_LANGUAGE=en
+      - APP_MODEL_NAME=Example SNOMED Model
+      # MedCAT Model Pack (overrides individual CDB/Vocab paths)
+      - APP_MEDCAT_MODEL_PACK=/cat/models/medcat_snomed.zip
+      # NLP Processing
+      - APP_BULK_NPROC=8
+      - APP_TRAINING_MODE=False
+      # Server Configuration
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=5000
+      - SERVER_WORKERS=1
+      - SERVER_WORKER_TIMEOUT=300
+      - SERVER_THREADS=1
+      - SERVER_GUNICORN_MAX_REQUESTS=1000
+      - SERVER_GUNICORN_MAX_REQUESTS_JITTER=50
+      # Torch Configuration (CPU)
+      - APP_TORCH_THREADS=8
+      - APP_CUDA_DEVICE_COUNT=-1
+      # MedCAT Configuration
+      - MEDCAT_LOG_LEVEL=40
+      - MEDCAT_SPACY_MODEL=
+      - MEDCAT_ANNOTATIONS_ENTITY_OUTPUT_MODE=dict
+      - MEDCAT_DEID_MODE=False
+      - MEDCAT_DEID_REDACT=False
     ports:
-      - "${MODELSERVE_PORT:-8001}:8000"
+      - "${MEDCAT_PORT:-8001}:5000"
     volumes:
-      # Read-only access to shared models directory
-      - medcat_models:/models:ro
+      # Read-write access to models directory (service needs to load models)
+      - medcat_models:/cat/models:rw
     networks:
       - clinical_network
+    shm_size: "1g"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/info').read()"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -164,10 +182,9 @@ services:
       - JWT_ALGORITHM=HS256
       - JWT_EXPIRE_HOURS=8
 
-      # CogStack-ModelServe
-      - MODELSERVE_URL=http://cogstack-modelserve:8000
-      - MODELSERVE_API_KEY=${MODELSERVE_API_KEY:-}
-      - MODELSERVE_TIMEOUT=300
+      # MedCAT Service
+      - MEDCAT_SERVICE_URL=http://medcat-service:5000
+      - MEDCAT_SERVICE_TIMEOUT=300
 
       # CORS (allow frontend access)
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8080,http://frontend:8080}
@@ -193,7 +210,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      cogstack-modelserve:
+      medcat-service:
         condition: service_healthy
     networks:
       - clinical_network
@@ -287,15 +304,15 @@ volumes:
     driver: local
     name: clinical_care_redis_data
 
-  # MedCAT models (SNOMED-CT ~2-5GB, De-identification ~1-2GB)
-  # Shared across all users, read-only mount for security
-  # Source: Bind mount to ./models/ directory (created in Phase 0, Task 0.2)
+  # MedCAT models (Example model packs from repository)
+  # Shared across all users for MedCAT service
+  # Source: Bind mount to ./models/ directory
   medcat_models:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./models  # Bind mount to local models directory
+      device: ${PWD}/models  # Bind mount to local models directory
     name: clinical_care_medcat_models
 
   # Backend application logs (application logs + audit logs)
