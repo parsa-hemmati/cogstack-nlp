@@ -1,8 +1,8 @@
 # Project Context - Living Architecture & Decisions
 
 **Status**: Living Document - Updated with EVERY commit
-**Last Updated**: 2025-11-08
-**Version**: 1.0.0
+**Last Updated**: 2025-11-18
+**Version**: 1.1.0
 
 > ⚠️ **CRITICAL**: This document MUST be updated before any code commit. No PR can be merged without context updates.
 
@@ -21,6 +21,49 @@
 
 ---
 
+## 📝 Recent Changes
+
+### 2025-11-18 - Clinical Care Tools MVP Implementation (v0.1.0)
+
+**Status**: MVP Foundation Complete (Phases 0-5)
+
+**Files Created**: 51 files (backend: 32, frontend: 17, config: 2)
+
+**Added**:
+- ✅ **Complete authentication system**: JWT + RBAC (5 roles), account lockout, break-the-glass
+- ✅ **HIPAA audit logging**: All PHI access tracked, 8-year retention
+- ✅ **Patient management**: CRUD API with async SQLAlchemy
+- ✅ **Frontend foundation**: Vue 3 + TypeScript + Vuetify, login/register/dashboard
+- ✅ **MedCAT integration**: Service client for NLP processing
+- ✅ **Infrastructure**: Docker Compose (5 services), Elasticsearch, Redis
+- ✅ **Documentation**: Comprehensive README with setup instructions
+- ✅ **Testing foundation**: pytest config + 2 unit test files
+
+**Why**: Implements MVP foundation per clinical-care-tools-base-plan.md. Establishes HIPAA-compliant infrastructure for building clinical features.
+
+**Impact**:
+- ✅ Can now build clinical workflows on stable foundation
+- ✅ All PHI access audited from day 1
+- ⚠️ Requires Docker, PostgreSQL, Redis, Elasticsearch, MedCAT models
+- ⚠️ Document processing and NLP search not yet implemented
+
+**Architecture Decisions**:
+- ADR-001: FastAPI + Vue 3 stack (async, type-safe, matches MedCAT Trainer)
+- ADR-002: PostgreSQL (metadata) + Elasticsearch (documents) hybrid storage
+- ADR-003: JWT authentication with bcrypt (stateless, scalable)
+- ADR-004: Separate AuditLog model for HIPAA compliance
+- ADR-005: 5-role RBAC (Admin, Clinician, Researcher, Auditor, Viewer)
+
+**Technical Debt**:
+1. Document processing endpoints not implemented (Sprint 2)
+2. Patient search with NLP not implemented (Sprint 2)
+3. Test coverage only ~5% (need 80%+)
+4. No pagination on patient list endpoint
+
+**Next Steps**: Document upload/processing, NLP-powered patient search, comprehensive testing
+
+---
+
 ## 🎯 Project Overview
 
 ### Mission Statement
@@ -35,7 +78,7 @@ Build a comprehensive, modular platform that leverages MedCAT's full NLP capabil
 The current development focus is **extending** this ecosystem with **clinical care interfaces** (patient search, timeline visualization, FHIR integration, clinical decision support) for use by clinicians in patient care delivery.
 
 ### Current Phase
-**Phase**: Production + Clinical Care Tools
+**Phase**: MVP Implementation (Clinical Care Tools v0.1.0)
 **Current State**:
 - ✅ **Research/Annotation Platform**: Production-ready (MedCAT v2, Trainer, Service)
 - ✅ **Infrastructure**: Docker deployments, authentication, databases operational
@@ -43,10 +86,17 @@ The current development focus is **extending** this ecosystem with **clinical ca
 - ✅ **Base App Technical Plan**: Complete (v1.1.0) with 8 phases, 310 hours estimated
 - ✅ **Base App Task Breakdown**: Complete (~90 tasks) following TDD approach
 - ✅ **Implementation Skills**: 8 skills covering full Spec-Kit workflow (Planning → Implementation)
-- 🚧 **Clinical Care Interfaces**: Ready for Phase 0 implementation (Environment Setup)
+- ✅ **Clinical Care Tools MVP**: Foundation complete (Phases 0-5)
+  - Authentication & Authorization (JWT + RBAC)
+  - HIPAA audit logging
+  - Patient management CRUD
+  - MedCAT NLP integration
+  - Frontend (Vue 3 + Vuetify)
+- 🚧 **Document Processing**: Not yet implemented
+- 🚧 **NLP-Powered Patient Search**: Not yet implemented
 
-**Sprint**: Pre-Sprint 1 (for clinical workflow tools)
-**Next Milestone**: Begin Phase 0: Environment Setup (Docker, MedCAT models, PostgreSQL, Redis)
+**Sprint**: MVP Complete, ready for Sprint 2 (Timeline View)
+**Next Milestone**: Implement document upload/processing and NLP patient search
 
 ### Team
 - **Size**: 1-3 developers (small team, sequential development acceptable)
