@@ -35,7 +35,7 @@ Build a comprehensive, modular platform that leverages MedCAT's full NLP capabil
 The current development focus is **extending** this ecosystem with **clinical care interfaces** (patient search, timeline visualization, FHIR integration, clinical decision support) for use by clinicians in patient care delivery.
 
 ### Current Phase
-**Phase**: MVP Development - Ready for Phase 2 (User Management)
+**Phase**: MVP Development - Phase 2 (User Management) IN PROGRESS
 **Current State**:
 - ✅ **Phase 0 (Environment Setup)**: COMPLETE - 6/7 missions (3.0h, 85% time savings)
   - PostgreSQL 15.15, Redis 7.2, MedCAT 2.2.0.dev0 all healthy
@@ -48,14 +48,78 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - API Endpoints: /api/v1/auth/login, /api/v1/auth/logout, /api/v1/auth/me, /api/v1/health
   - Frontend: Vue 3 + Vite + Vuetify project structure ready
   - Setup: Automated first-time setup script
-- ⏸️ **Phase 2 (User Management)**: Ready to begin (12 tasks, 40h estimated)
-  - User CRUD API, role management, break-glass workflow
+- 🚧 **Phase 2 (User Management)**: IN PROGRESS - 1/12 tasks (0.5h so far)
+  - ✅ Task 2.1: User CRUD API (GET list, GET by ID, POST create, PUT update, DELETE soft-delete)
+  - ⏸️ Tasks 2.2-2.12: Role management, break-glass, profile, search, deactivation, password reset, sessions, tests, frontend, permissions, activity logs
 - ⏸️ **Phases 3-7**: Pending (Document Mgmt, Patient Search, Testing, Deployment, Documentation)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: `94002330` - Frontend + Setup script (Phase 1 complete)
-**Sprint**: MVP - Transitioning Phase 1 → Phase 2
-**Next Milestone**: Phase 2 User Management (12 tasks)
+**Latest Commit**: TBD - User CRUD API (Phase 2.1)
+**Sprint**: MVP - Phase 2 User Management
+**Next Task**: Phase 2.2 - Role Management API
+
+---
+
+### Recent Changes
+
+#### [2025-11-18] - Task 2.1: User CRUD API
+
+**Commits**: TBD - User CRUD API implementation
+
+**Added**:
+- User Pydantic schemas (`backend/app/schemas/user.py`):
+  - `UserBase`, `UserCreate`, `UserUpdate`, `UserChangePassword`, `UserResponse`, `UserListResponse`
+  - Password strength validation (12+ chars, uppercase, lowercase, digit, special char)
+  - Role validation (clinician, researcher, admin)
+- User CRUD API endpoints (`backend/app/api/v1/endpoints/users.py`):
+  - `GET /api/v1/users` - List users with pagination (admin only)
+  - `GET /api/v1/users/{id}` - Get user by ID (admin only)
+  - `POST /api/v1/users` - Create user (admin only)
+  - `PUT /api/v1/users/{id}` - Update user (admin only)
+  - `DELETE /api/v1/users/{id}` - Soft delete user (admin only)
+- Comprehensive tests (`backend/tests/api/v1/endpoints/test_users.py`):
+  - 18 tests covering list, get, create, update, delete operations
+  - Authorization tests (admin vs non-admin)
+  - Edge cases (not found, duplicate username, weak password, self-delete prevention)
+- Router registration in `backend/app/main.py`
+
+**Changed**:
+- None (new feature)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Phase 2, Task 2.1 (User Management CRUD)
+- Provides admin interface for user account management
+- Foundation for role management, break-glass workflow
+- Follows TDD approach (tests written first)
+- Aligns with "Privacy by Design" principle (admin-only access, audit logging)
+
+**Impact**:
+- ✅ User management foundation in place
+- ✅ RBAC protection on all endpoints (`require_role("admin")`)
+- ✅ Audit logging for all user operations (HIPAA compliance)
+- ✅ Soft delete (is_active=False) preserves audit trail
+- ✅ Password strength enforcement (12+ chars, complexity requirements)
+- ⚠️ Requires admin account to exist (created via setup script)
+- ⚠️ Tests require pytest fixtures for async database
+
+**Migration Notes**:
+- No database migrations required (users table already exists from Phase 1)
+- API endpoints immediately available at `/api/v1/users/*`
+- Admin authentication required for all operations
+
+**Technical Debt**:
+- None (clean implementation)
+
+**Design Pattern**:
+- CRUD API pattern with pagination (`page`, `page_size` query params)
+- Pydantic validation for request/response schemas
+- SQLAlchemy async queries with dependency injection
+- Audit service integration for compliance
+
+---
 
 ### Team
 - **Size**: 1-3 developers (small team, sequential development acceptable)
