@@ -79,7 +79,10 @@ class Document(Base):
         PG_UUID(as_uuid=True), nullable=True, index=True
     )  # Future: projects table
     processing_status = Column(
-        Enum(ProcessingStatus), nullable=False, default=ProcessingStatus.PENDING, index=True
+        Enum(ProcessingStatus, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=ProcessingStatus.PENDING,
+        index=True
     )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 

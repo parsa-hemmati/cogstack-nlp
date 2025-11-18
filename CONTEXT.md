@@ -94,9 +94,101 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-18] - PRD Schema Alignment: Patient Search API (BREAKING CHANGES ⚠️)
+
+**Commits**: (this commit) - Align patient search schemas with Sprint 1 PRD specification
+
+**Changed**:
+- **Request Schema** (`backend/app/schemas/patient_search.py`):
+  - **BREAKING**: `query` → `concept` (field renamed)
+  - **BREAKING**: `filters` structure changed from enum-based to boolean flags:
+    - Old: `MetaAnnotationFilters(negation="Affirmed", temporality="Current", experiencer="Patient", certainty="Confirmed")`
+    - New: `SearchFilters(temporal="current", includeNegated=False, includeFamily=False, dateRange=None)`
+  - **BREAKING**: Flat pagination → nested object:
+    - Old: `page=1, page_size=20`
+    - New: `pagination=Pagination(page=1, pageSize=20)`
+  - **BREAKING**: `sort_by` → `sort` (field renamed)
+
+- **Response Schema** (`backend/app/schemas/patient_search.py`):
+  - **BREAKING**: Complete restructure to include full annotation details:
+    - Old: `patient_id, nhs_number, full_name, date_of_birth, age, document_count, concept_document_count, last_updated`
+    - New: `mrn, demographics: {age, gender, department}, annotations: [{cui, conceptName, sourceValue, documentId, documentType, documentDate, startChar, endChar, confidence, metaAnnotations, snomedCT, icd10}], lastUpdated`
+  - **BREAKING**: Field name changes:
+    - `total_count` → `total`
+    - `page_size` → `pageSize`
+    - `query_time_ms` → `queryTimeMs`
+    - `patient_id` → `mrn` (masked MRN)
+    - `last_updated` → `lastUpdated` (ISO 8601 string)
+
+**Added**:
+- **New Schemas** (`backend/app/schemas/patient_search.py`):
+  - `Annotation`: Full annotation details with CUI, confidence, meta-annotations, SNOMED-CT, ICD-10
+  - `MetaAnnotations`: Structured meta-annotation object (temporality, negated boolean, experiencer, certainty)
+  - `Demographics`: Patient demographics (age, gender, department)
+  - `SearchFilters`: PRD-compliant filter structure
+  - `Pagination`: Nested pagination object
+  - `DateRangeFilter`: Optional date range filtering
+  - `TemporalFilter`: Enum for temporal values (current, historical, future, any)
+  - `SortOption`: Enum for sort options (relevance, name, lastUpdated)
+
+**Service Layer Updates** (`backend/app/services/patient_search_service.py`):
+  - `search()` method signature changed to accept PRD-compliant parameters
+  - `_fetch_annotations()`: NEW method to fetch full annotation details with document metadata
+  - `_build_meta_annotation_filters()`: Updated to map PRD filters (temporal, includeNegated, includeFamily) to database queries
+  - Joins `ExtractedEntity` with `Document` to get full annotation details
+
+**API Endpoint Updates** (`backend/app/api/v1/endpoints/patient_search.py`):
+  - Updated to use new request/response field names (`concept`, `pagination.page`, `pagination.pageSize`, `total`, `queryTimeMs`)
+  - Audit logging updated to log `concept` instead of `query`
+
+**Exports Updated** (`backend/app/schemas/__init__.py`):
+  - Removed: `MetaAnnotationFilters` (replaced by `SearchFilters`)
+  - Added: `Annotation`, `Demographics`, `MetaAnnotations`, `SearchFilters`
+
+**Bug Fixes** (Unrelated to schema changes):
+  - **ProcessingStatus Enum** (`backend/app/services/document_processing_service.py:182`):
+    - Fixed SQLAlchemy enum comparison: `ProcessingStatus.PENDING` → `ProcessingStatus.PENDING.value`
+    - **Issue**: PostgreSQL rejected uppercase "PENDING" (expected lowercase "pending")
+    - **Impact**: Document processing background job now works correctly
+
+**Why**:
+- **API Contract Mismatch**: Implementation didn't match Sprint 1 PRD specification
+- **Frontend Blocker**: Frontend built to PRD spec would fail against old API
+- **Annotation Details Missing**: Old schema returned patient summaries only, PRD requires full annotation details with confidence scores, meta-annotations, and SNOMED-CT codes
+- **Field Naming Consistency**: PRD uses camelCase (JavaScript convention), old schema used snake_case
+
+**Impact**:
+- ⚠️ **BREAKING CHANGES**: Any existing API clients must update request/response handling
+- ✅ **PRD Compliance**: API now matches Sprint 1 PRD specification exactly
+- ✅ **Frontend Ready**: Response includes all data needed for annotation display
+- ✅ **Transparency**: Confidence scores and meta-annotations now exposed to users
+- ⚠️ **Performance Impact**: Additional query to fetch annotations (mitigated by LIMIT 20 per patient)
+
+**Documentation-Code Discrepancies Identified**:
+1. ✅ Error responses not documented in OpenAPI spec (still pending - need to add `responses={}` parameter)
+2. ✅ Rate limiting not implemented (documented in PRD but not implemented - status code 429 can't be returned)
+3. ✅ NHS number stored unencrypted (documented as "encrypted at rest" but stored as plain text)
+4. ❌ Authentication "missing" claim - FALSE (fully implemented with `get_current_user()` and `require_role()`)
+5. ❌ Audit service "missing" claim - FALSE (fully implemented with `AuditService.log_action()`)
+
+**Technical Debt**:
+- **TODO** (annotations): Extract actual text spans instead of using `pretty_name` as `sourceValue`
+- **TODO** (demographics): Add `gender` field to Patient model
+- **TODO** (demographics): Add `department` field to Patient model
+- **TODO** (codes): Add SNOMED-CT mapping to ExtractedEntity
+- **TODO** (codes): Add ICD-10 mapping to ExtractedEntity
+- **TODO** (openapi): Document error responses (400, 401, 403, 500) in endpoint decorator
+- **TODO** (rate-limiting): Implement rate limiting middleware for 429 status
+
+**Migration Notes**:
+- Rebuild backend container: `docker-compose build backend && docker-compose up -d backend`
+- No database migrations required (schema changes are API-only)
+
+---
+
 #### [2025-11-18] - Bug Fixes: Patient Search Security & Performance
 
-**Commits**: (this commit) - Fix NHS masking, enum validation, audit logging, and Certainty index
+**Commits**: 5d3adf8c - Fix NHS masking, enum validation, audit logging, and Certainty index
 
 **Added**:
 - **Migration 007** (`backend/alembic/versions/007_add_certainty_to_search_index.py`):

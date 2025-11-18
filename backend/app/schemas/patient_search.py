@@ -1,221 +1,230 @@
 """
 Patient Search Schemas
-Pydantic models for patient search request/response validation
+Pydantic models for patient search request/response validation (PRD-compliant)
 """
 from datetime import date, datetime
 from enum import Enum
 from typing import List, Optional
-from uuid import UUID
 from pydantic import BaseModel, Field
 
 
-class NegationFilter(str, Enum):
-    """Negation filter options"""
-    AFFIRMED = "Affirmed"
-    NEGATED = "Negated"
-    ANY = "Any"
+# ============================================================================
+# Enums for filtering and sorting
+# ============================================================================
+
+class TemporalFilter(str, Enum):
+    """Temporal filter options"""
+    CURRENT = "current"
+    HISTORICAL = "historical"
+    FUTURE = "future"
+    ANY = "any"
 
 
-class TemporalityFilter(str, Enum):
-    """Temporality filter options"""
-    CURRENT = "Current"
-    HISTORICAL = "Historical"
-    ANY = "Any"
-
-
-class ExperiencerFilter(str, Enum):
-    """Experiencer filter options"""
-    PATIENT = "Patient"
-    FAMILY = "Family"
-    OTHER = "Other"
-    ANY = "Any"
-
-
-class CertaintyFilter(str, Enum):
-    """Certainty filter options"""
-    CONFIRMED = "Confirmed"
-    SUSPECTED = "Suspected"
-    ANY = "Any"
-
-
-class SortByOption(str, Enum):
+class SortOption(str, Enum):
     """Sort order options"""
     RELEVANCE = "relevance"
     NAME = "name"
-    LAST_UPDATED = "last_updated"
+    LAST_UPDATED = "lastUpdated"
 
 
-class MetaAnnotationFilters(BaseModel):
+# ============================================================================
+# Nested schemas for complex objects
+# ============================================================================
+
+class DateRangeFilter(BaseModel):
+    """Date range filter for search results"""
+    start: Optional[str] = Field(None, description="Start date (ISO 8601)")
+    end: Optional[str] = Field(None, description="End date (ISO 8601)")
+
+
+class SearchFilters(BaseModel):
     """
-    Filters for MedCAT meta-annotations.
-
-    Used to refine patient search by filtering extracted clinical concepts
-    based on meta-annotations (negation, temporality, experiencer, certainty).
+    Search filters for patient search.
 
     Attributes:
-        negation: Filter by negation status
-            - "Affirmed": Concept is present (default)
-            - "Negated": Concept is negated (e.g., "no chest pain")
-            - "Any": Don't filter by negation
-        temporality: Filter by temporal context
-            - "Current": Recent or current condition (default)
-            - "Historical": Past condition
-            - "Any": Don't filter by temporality
-        experiencer: Filter by who experiences the condition
-            - "Patient": Patient has the condition (default)
-            - "Family": Family member has it (family history)
-            - "Other": Other person mentioned
-            - "Any": Don't filter by experiencer
-        certainty: Filter by diagnostic certainty
-            - "Confirmed": Confirmed diagnosis
-            - "Suspected": Suspected/possible diagnosis
-            - "Any" or None: Don't filter by certainty (default)
-
-    Example:
-        >>> # Find patients with current, affirmed diabetes (not family history)
-        >>> filters = MetaAnnotationFilters(
-        ...     negation="Affirmed",
-        ...     temporality="Current",
-        ...     experiencer="Patient"
-        ... )
+        temporal: Filter by temporal context (current, historical, future, any)
+        includeNegated: Include negated mentions (e.g., "no chest pain")
+        includeFamily: Include family history mentions
+        dateRange: Optional date range filter
     """
-    negation: NegationFilter = Field(
-        default=NegationFilter.AFFIRMED,
-        description="Negation filter: Affirmed | Negated | Any"
+    temporal: TemporalFilter = Field(
+        default=TemporalFilter.CURRENT,
+        description="Temporal filter: current | historical | future | any"
     )
-    temporality: TemporalityFilter = Field(
-        default=TemporalityFilter.CURRENT,
-        description="Temporality filter: Current | Historical | Any"
+    includeNegated: bool = Field(
+        default=False,
+        description="Include negated mentions"
     )
-    experiencer: ExperiencerFilter = Field(
-        default=ExperiencerFilter.PATIENT,
-        description="Experiencer filter: Patient | Family | Other | Any"
+    includeFamily: bool = Field(
+        default=False,
+        description="Include family history mentions"
     )
-    certainty: Optional[CertaintyFilter] = Field(
+    dateRange: Optional[DateRangeFilter] = Field(
         default=None,
-        description="Certainty filter: Confirmed | Suspected | Any"
+        description="Optional date range filter"
     )
 
+
+class Pagination(BaseModel):
+    """Pagination parameters"""
+    page: int = Field(default=1, ge=1, description="Page number (1-indexed)")
+    pageSize: int = Field(default=20, ge=1, le=100, description="Results per page (max 100)")
+
+
+class MetaAnnotations(BaseModel):
+    """
+    MedCAT meta-annotations for a concept.
+
+    Attributes:
+        temporality: Current, historical, or future
+        negated: Whether the concept is negated
+        experiencer: Patient, family, or other
+        certainty: Definite, probable, or possible
+    """
+    temporality: Optional[str] = Field(None, description="Temporal context")
+    negated: Optional[bool] = Field(None, description="Is negated")
+    experiencer: Optional[str] = Field(None, description="Who experiences this")
+    certainty: Optional[str] = Field(None, description="Diagnostic certainty")
+
+
+class Annotation(BaseModel):
+    """
+    Single concept annotation from MedCAT.
+
+    Represents a medical concept extracted from clinical text with metadata.
+
+    Attributes:
+        cui: Concept Unique Identifier (UMLS CUI)
+        conceptName: Human-readable concept name
+        sourceValue: Actual text span from document
+        documentId: Document containing this annotation
+        documentType: Type of clinical document
+        documentDate: Date of the document (ISO 8601)
+        startChar: Character offset where concept starts
+        endChar: Character offset where concept ends
+        confidence: Confidence score (0.0 to 1.0)
+        metaAnnotations: Meta-annotations (negation, temporality, etc.)
+        snomedCT: SNOMED-CT codes (if available)
+        icd10: ICD-10 codes (if available)
+    """
+    cui: str = Field(..., description="UMLS Concept Unique Identifier")
+    conceptName: str = Field(..., description="Human-readable concept name")
+    sourceValue: str = Field(..., description="Actual text from document")
+    documentId: str = Field(..., description="Document ID")
+    documentType: str = Field(..., description="Document type")
+    documentDate: str = Field(..., description="Document date (ISO 8601)")
+    startChar: int = Field(..., description="Start character offset")
+    endChar: int = Field(..., description="End character offset")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
+    metaAnnotations: MetaAnnotations = Field(..., description="Meta-annotations")
+    snomedCT: Optional[List[str]] = Field(None, description="SNOMED-CT codes")
+    icd10: Optional[List[str]] = Field(None, description="ICD-10 codes")
+
+
+class Demographics(BaseModel):
+    """
+    Patient demographics.
+
+    Attributes:
+        age: Patient age in years
+        gender: Patient gender
+        department: Primary department (optional)
+    """
+    age: int = Field(..., description="Patient age")
+    gender: Optional[str] = Field(None, description="Patient gender")
+    department: Optional[str] = Field(None, description="Primary department")
+
+
+# ============================================================================
+# Request/Response schemas
+# ============================================================================
 
 class PatientSearchRequest(BaseModel):
     """
-    Request schema for patient search.
+    Request schema for patient search (PRD-compliant).
 
     Attributes:
-        query: Search query (concept name or CUI)
+        concept: Medical concept to search for (name or CUI)
             - Concept name: "diabetes", "atrial flutter", "myocardial infarction"
             - SNOMED-CT CUI: "C0011849", "C0004238", "C0027051"
-        filters: Meta-annotation filters (default: current, affirmed, patient)
-        sort_by: Sort order for results
-            - "relevance": By concept document count (most mentions first)
-            - "name": Alphabetical by patient name
-            - "last_updated": By most recent document
-        page: Page number (1-indexed)
-        page_size: Number of results per page (max 100)
+        filters: Search filters (temporal, negation, family history, date range)
+        pagination: Pagination parameters (page, pageSize)
+        sort: Sort order (relevance, name, lastUpdated)
 
     Example:
         >>> request = PatientSearchRequest(
-        ...     query="diabetes",
-        ...     filters=MetaAnnotationFilters(),
-        ...     sort_by="relevance",
-        ...     page=1,
-        ...     page_size=20
+        ...     concept="atrial flutter",
+        ...     filters=SearchFilters(temporal="current", includeNegated=False),
+        ...     pagination=Pagination(page=1, pageSize=20),
+        ...     sort="relevance"
         ... )
     """
-    query: str = Field(
+    concept: str = Field(
         ...,
         min_length=1,
         max_length=200,
-        description="Search query (concept name or CUI)"
+        description="Medical concept (name or CUI)"
     )
-    filters: MetaAnnotationFilters = Field(
-        default_factory=MetaAnnotationFilters,
-        description="Meta-annotation filters"
+    filters: SearchFilters = Field(
+        default_factory=SearchFilters,
+        description="Search filters"
     )
-    sort_by: SortByOption = Field(
-        default=SortByOption.RELEVANCE,
-        description="Sort order: relevance | name | last_updated"
+    pagination: Pagination = Field(
+        default_factory=Pagination,
+        description="Pagination parameters"
     )
-    page: int = Field(
-        default=1,
-        ge=1,
-        description="Page number (1-indexed)"
-    )
-    page_size: int = Field(
-        default=20,
-        ge=1,
-        le=100,
-        description="Results per page (max 100)"
+    sort: SortOption = Field(
+        default=SortOption.RELEVANCE,
+        description="Sort order"
     )
 
 
 class PatientSearchResult(BaseModel):
     """
-    Single patient search result.
+    Single patient search result (PRD-compliant).
 
     Attributes:
-        patient_id: Unique patient identifier
-        nhs_number: Masked NHS number (e.g., "XXX-XXX-1234")
-        full_name: Patient's full name
-        date_of_birth: Patient's date of birth
-        age: Calculated age in years
-        document_count: Total number of documents for this patient
-        concept_document_count: Number of documents containing the searched concept
-        last_updated: Timestamp of most recent document
+        mrn: Medical Record Number (masked for privacy)
+        demographics: Patient demographics
+        annotations: List of concept annotations found in patient's documents
+        lastUpdated: Timestamp of most recent document (ISO 8601)
 
     Example:
         >>> result = PatientSearchResult(
-        ...     patient_id=UUID("..."),
-        ...     nhs_number="XXX-XXX-1234",
-        ...     full_name="John Doe",
-        ...     date_of_birth=date(1980, 5, 15),
-        ...     age=44,
-        ...     document_count=25,
-        ...     concept_document_count=8,
-        ...     last_updated=datetime.now()
+        ...     mrn="XXX-XXX-1234",
+        ...     demographics=Demographics(age=72, gender="Male"),
+        ...     annotations=[...],
+        ...     lastUpdated="2024-01-15T10:30:00Z"
         ... )
     """
-    patient_id: UUID = Field(..., description="Unique patient identifier")
-    nhs_number: str = Field(..., description="Masked NHS number (XXX-XXX-1234)")
-    full_name: str = Field(..., description="Patient's full name")
-    date_of_birth: date = Field(..., description="Patient's date of birth")
-    age: int = Field(..., description="Calculated age in years")
-    document_count: int = Field(..., description="Total documents for patient")
-    concept_document_count: int = Field(
-        ...,
-        description="Documents containing searched concept"
-    )
-    last_updated: datetime = Field(..., description="Most recent document timestamp")
+    mrn: str = Field(..., description="Masked Medical Record Number")
+    demographics: Demographics = Field(..., description="Patient demographics")
+    annotations: List[Annotation] = Field(..., description="Concept annotations")
+    lastUpdated: str = Field(..., description="Last document timestamp (ISO 8601)")
 
 
 class PatientSearchResponse(BaseModel):
     """
-    Response schema for patient search.
+    Response schema for patient search (PRD-compliant).
 
     Attributes:
         results: List of patient search results
-        total_count: Total number of matching patients (across all pages)
+        total: Total number of matching patients (across all pages)
         page: Current page number
-        page_size: Number of results per page
-        query_time_ms: Query execution time in milliseconds
+        pageSize: Results per page
+        queryTimeMs: Query execution time in milliseconds
 
     Example:
         >>> response = PatientSearchResponse(
-        ...     results=[...],  # List of PatientSearchResult
-        ...     total_count=150,
+        ...     results=[...],
+        ...     total=145,
         ...     page=1,
-        ...     page_size=20,
-        ...     query_time_ms=245
+        ...     pageSize=20,
+        ...     queryTimeMs=234
         ... )
     """
-    results: List[PatientSearchResult] = Field(
-        ...,
-        description="List of patient search results"
-    )
-    total_count: int = Field(
-        ...,
-        description="Total matching patients (all pages)"
-    )
+    results: List[PatientSearchResult] = Field(..., description="Search results")
+    total: int = Field(..., description="Total matching patients")
     page: int = Field(..., description="Current page number")
-    page_size: int = Field(..., description="Results per page")
-    query_time_ms: int = Field(..., description="Query execution time (ms)")
+    pageSize: int = Field(..., description="Results per page")
+    queryTimeMs: int = Field(..., description="Query time (ms)")

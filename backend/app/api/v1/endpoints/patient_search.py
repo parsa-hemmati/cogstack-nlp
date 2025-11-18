@@ -120,11 +120,11 @@ async def search_patients(
 
         # Execute search
         response = await search_service.search(
-            query=request.query,
+            concept=request.concept,
             filters=request.filters,
-            page=request.page,
-            page_size=request.page_size,
-            sort_by=request.sort_by,
+            page=request.pagination.page,
+            page_size=request.pagination.pageSize,
+            sort=request.sort,
         )
 
         # Log audit trail (HIPAA compliance - PHI access)
@@ -137,10 +137,10 @@ async def search_patients(
                 resource_type="patient",
                 resource_id=None,  # No specific patient (cohort search)
                 details={
-                    "query": request.query,
+                    "concept": request.concept,
                     "filters": request.filters.dict(),
-                    "result_count": response.total_count,
-                    "query_time_ms": response.query_time_ms,
+                    "result_count": response.total,
+                    "query_time_ms": response.queryTimeMs,
                 },
             )
         except Exception as audit_error:
@@ -150,15 +150,15 @@ async def search_patients(
                 exc_info=True,
                 extra={
                     "user_id": current_user.id,
-                    "query": request.query,
-                    "result_count": response.total_count,
+                    "concept": request.concept,
+                    "result_count": response.total,
                 }
             )
 
         logger.info(
             f"Patient search completed: user={current_user.username}, "
-            f"query='{request.query}', results={response.total_count}, "
-            f"time={response.query_time_ms}ms"
+            f"concept='{request.concept}', results={response.total}, "
+            f"time={response.queryTimeMs}ms"
         )
 
         return response

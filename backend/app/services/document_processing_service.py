@@ -176,9 +176,10 @@ class DocumentProcessingService:
             >>> print(f"Processed {count} documents")
         """
         # Fetch pending documents
+        # Use string literal for PostgreSQL enum comparison
         result = await db.execute(
             select(Document)
-            .where(Document.processing_status == ProcessingStatus.PENDING)
+            .where(Document.processing_status == "pending")
             .limit(batch_size)
         )
         documents = result.scalars().all()

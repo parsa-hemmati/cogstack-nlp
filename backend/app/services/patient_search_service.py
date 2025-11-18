@@ -11,15 +11,19 @@ from uuid import UUID
 
 from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, joinedload
 
+from app.models.document import Document
 from app.models.extracted_entity import ExtractedEntity
 from app.models.patient import Patient
 from app.schemas.patient_search import (
-    MetaAnnotationFilters,
+    Annotation,
+    Demographics,
+    MetaAnnotations,
     PatientSearchRequest,
     PatientSearchResponse,
     PatientSearchResult,
+    SearchFilters,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,39 +63,39 @@ class PatientSearchService:
 
     async def search(
         self,
-        query: str,
-        filters: MetaAnnotationFilters,
+        concept: str,
+        filters: SearchFilters,
         page: int = 1,
         page_size: int = 20,
-        sort_by: str = "relevance",
+        sort: str = "relevance",
     ) -> PatientSearchResponse:
         """
-        Search for patients by clinical concept.
+        Search for patients by clinical concept (PRD-compliant).
 
         Args:
-            query: Search query (concept name or CUI)
-            filters: Meta-annotation filters
+            concept: Medical concept to search (name or CUI)
+            filters: Search filters (temporal, negation, family history)
             page: Page number (1-indexed)
             page_size: Results per page
-            sort_by: Sort order (relevance | name | last_updated)
+            sort: Sort order (relevance | name | lastUpdated)
 
         Returns:
-            PatientSearchResponse with results, pagination, and query time
+            PatientSearchResponse with results, annotations, and query time
 
         Example:
             >>> response = await service.search(
-            ...     query="diabetes",
-            ...     filters=MetaAnnotationFilters(negation="Affirmed"),
+            ...     concept="diabetes",
+            ...     filters=SearchFilters(temporal="current", includeNegated=False),
             ...     page=1,
             ...     page_size=20,
-            ...     sort_by="relevance"
+            ...     sort="relevance"
             ... )
-            >>> print(f"Found {response.total_count} patients in {response.query_time_ms}ms")
+            >>> print(f"Found {response.total} patients in {response.queryTimeMs}ms")
         """
         start_time = time.time()
 
         # Build query with filters
-        query_stmt, count_stmt = self._build_query(query, filters, sort_by)
+        query_stmt, count_stmt = self._build_query(concept, filters, sort)
 
         # Get total count (for pagination)
         count_result = await self.db.execute(count_stmt)
@@ -105,26 +109,27 @@ class PatientSearchService:
         result = await self.db.execute(query_stmt)
         rows = result.all()
 
-        # Convert rows to PatientSearchResult objects
+        # Convert rows to PatientSearchResult objects with annotations
         results = []
         for row in rows:
             patient = row.Patient
-            concept_doc_count = row.concept_document_count
-            total_doc_count = row.total_document_count
+
+            # Fetch annotations for this patient + concept
+            annotations = await self._fetch_annotations(patient.id, concept, filters)
 
             # Calculate age from date of birth
             age = self._calculate_age(patient.date_of_birth) if patient.date_of_birth else 0
 
             results.append(
                 PatientSearchResult(
-                    patient_id=patient.id,
-                    nhs_number=self._mask_nhs_number(patient.nhs_number),
-                    full_name=patient.full_name or "Unknown",
-                    date_of_birth=patient.date_of_birth or date(1900, 1, 1),
-                    age=age,
-                    document_count=total_doc_count,
-                    concept_document_count=concept_doc_count,
-                    last_updated=patient.last_seen_at or datetime.utcnow(),
+                    mrn=self._mask_nhs_number(patient.nhs_number),
+                    demographics=Demographics(
+                        age=age,
+                        gender=None,
+                        department=None,
+                    ),
+                    annotations=annotations,
+                    lastUpdated=patient.last_seen_at.isoformat() if patient.last_seen_at else datetime.utcnow().isoformat(),
                 )
             )
 
@@ -133,25 +138,86 @@ class PatientSearchService:
 
         return PatientSearchResponse(
             results=results,
-            total_count=total_count,
+            total=total_count,
             page=page,
-            page_size=page_size,
-            query_time_ms=query_time_ms,
+            pageSize=page_size,
+            queryTimeMs=query_time_ms,
         )
+
+    async def _fetch_annotations(
+        self,
+        patient_id: UUID,
+        concept: str,
+        filters: SearchFilters,
+    ) -> List[Annotation]:
+        """
+        Fetch annotations for a patient matching the concept and filters.
+
+        Args:
+            patient_id: Patient ID
+            concept: Medical concept to search
+            filters: Search filters
+
+        Returns:
+            List of Annotation objects with full details
+        """
+        # Build query to fetch annotations with document details
+        stmt = (
+            select(ExtractedEntity, Document)
+            .join(Document, ExtractedEntity.document_id == Document.id)
+            .where(ExtractedEntity.patient_id == patient_id)
+            .where(self._build_concept_filter(concept))
+            .where(self._build_meta_annotation_filters(filters))
+            .order_by(Document.created_at.desc())
+            .limit(20)  # Limit annotations per patient to avoid huge payloads
+        )
+
+        result = await self.db.execute(stmt)
+        rows = result.all()
+
+        annotations = []
+        for entity, document in rows:
+            # Build meta-annotations object
+            meta_anns_dict = entity.meta_anns or {}
+            meta_annotations = MetaAnnotations(
+                temporality=meta_anns_dict.get("Temporality"),
+                negated=meta_anns_dict.get("Negation") == "Negated",
+                experiencer=meta_anns_dict.get("Experiencer"),
+                certainty=meta_anns_dict.get("Certainty"),
+            )
+
+            annotations.append(
+                Annotation(
+                    cui=entity.cui or "",
+                    conceptName=entity.pretty_name,
+                    sourceValue=entity.pretty_name,
+                    documentId=str(document.id),
+                    documentType=document.content_type,
+                    documentDate=document.created_at.isoformat(),
+                    startChar=entity.start_char,
+                    endChar=entity.end_char,
+                    confidence=entity.accuracy or 0.0,
+                    metaAnnotations=meta_annotations,
+                    snomedCT=None,
+                    icd10=None,
+                )
+            )
+
+        return annotations
 
     def _build_query(
         self,
-        query: str,
-        filters: MetaAnnotationFilters,
-        sort_by: str,
+        concept: str,
+        filters: SearchFilters,
+        sort: str,
     ) -> Tuple:
         """
         Build SQL query with JOINs and filters.
 
         Args:
-            query: Search query (concept name or CUI)
-            filters: Meta-annotation filters
-            sort_by: Sort order
+            concept: Medical concept (name or CUI)
+            filters: Search filters
+            sort: Sort order
 
         Returns:
             Tuple of (query_statement, count_statement)
@@ -162,40 +228,24 @@ class PatientSearchService:
                 ExtractedEntity.patient_id,
                 func.count(func.distinct(ExtractedEntity.document_id)).label("concept_document_count"),
             )
-            .where(self._build_concept_filter(query))
+            .where(self._build_concept_filter(concept))
             .where(self._build_meta_annotation_filters(filters))
             .group_by(ExtractedEntity.patient_id)
             .subquery()
         )
 
-        # Subquery: Total documents per patient
-        total_docs_subq = (
-            select(
-                ExtractedEntity.patient_id,
-                func.count(func.distinct(ExtractedEntity.document_id)).label("total_document_count"),
-            )
-            .group_by(ExtractedEntity.patient_id)
-            .subquery()
-        )
-
         # Main query: JOIN patients with document counts
-        query_stmt = (
-            select(
-                Patient,
-                concept_docs_subq.c.concept_document_count,
-                total_docs_subq.c.total_document_count,
-            )
-            .join(concept_docs_subq, Patient.id == concept_docs_subq.c.patient_id)
-            .join(total_docs_subq, Patient.id == total_docs_subq.c.patient_id)
+        query_stmt = select(Patient).join(
+            concept_docs_subq, Patient.id == concept_docs_subq.c.patient_id
         )
 
-        # Apply sorting (enum values are strings like "relevance", "name", "last_updated")
-        sort_value = sort_by.value if hasattr(sort_by, 'value') else sort_by
+        # Apply sorting (enum values are strings like "relevance", "name", "lastUpdated")
+        sort_value = sort.value if hasattr(sort, "value") else sort
         if sort_value == "relevance":
             query_stmt = query_stmt.order_by(concept_docs_subq.c.concept_document_count.desc())
         elif sort_value == "name":
             query_stmt = query_stmt.order_by(Patient.full_name)
-        elif sort_value == "last_updated":
+        elif sort_value == "lastUpdated":
             query_stmt = query_stmt.order_by(Patient.last_seen_at.desc())
 
         # Count query: Count distinct patients
@@ -223,40 +273,50 @@ class PatientSearchService:
             # Case-insensitive partial name match
             return ExtractedEntity.pretty_name.ilike(f"%{query}%")
 
-    def _build_meta_annotation_filters(self, filters: MetaAnnotationFilters):
+    def _build_meta_annotation_filters(self, filters: SearchFilters):
         """
         Build WHERE clause for meta-annotation filters.
 
         Args:
-            filters: Meta-annotation filter values
+            filters: Search filters with temporal, negation, family flags
 
         Returns:
-            SQLAlchemy filter condition (AND of all non-"Any" filters)
+            SQLAlchemy filter condition (AND of all filters)
         """
         conditions = []
 
-        # Negation filter
-        if filters.negation and filters.negation.value != "Any":
+        # Temporal filter (current, historical, future, any)
+        if filters.temporal and filters.temporal.value != "any":
+            # Map PRD temporal values to meta-annotation values
+            temporal_map = {
+                "current": ["Current", "Recent"],
+                "historical": ["Historical"],
+                "future": ["Future"],
+            }
+            allowed_values = temporal_map.get(filters.temporal.value, [])
+            if allowed_values:
+                conditions.append(
+                    ExtractedEntity.meta_anns["Temporality"].astext.in_(allowed_values)
+                )
+
+        # Negation filter (includeNegated boolean)
+        if not filters.includeNegated:
+            # Exclude negated mentions
             conditions.append(
-                ExtractedEntity.meta_anns["Negation"].astext == filters.negation.value
+                or_(
+                    ExtractedEntity.meta_anns["Negation"].astext == "Affirmed",
+                    ExtractedEntity.meta_anns["Negation"].is_(None),
+                )
             )
 
-        # Temporality filter
-        if filters.temporality and filters.temporality.value != "Any":
+        # Family history filter (includeFamily boolean)
+        if not filters.includeFamily:
+            # Exclude family history
             conditions.append(
-                ExtractedEntity.meta_anns["Temporality"].astext == filters.temporality.value
-            )
-
-        # Experiencer filter
-        if filters.experiencer and filters.experiencer.value != "Any":
-            conditions.append(
-                ExtractedEntity.meta_anns["Experiencer"].astext == filters.experiencer.value
-            )
-
-        # Certainty filter
-        if filters.certainty and filters.certainty.value != "Any":
-            conditions.append(
-                ExtractedEntity.meta_anns["Certainty"].astext == filters.certainty.value
+                or_(
+                    ExtractedEntity.meta_anns["Experiencer"].astext == "Patient",
+                    ExtractedEntity.meta_anns["Experiencer"].is_(None),
+                )
             )
 
         # Combine all conditions with AND

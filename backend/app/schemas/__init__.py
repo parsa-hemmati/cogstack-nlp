@@ -3,17 +3,23 @@ Schemas package for API requests/responses.
 """
 from app.schemas.document import DocumentInfo, DocumentUploadResponse
 from app.schemas.patient_search import (
-    MetaAnnotationFilters,
+    Annotation,
+    Demographics,
+    MetaAnnotations,
     PatientSearchRequest,
     PatientSearchResponse,
     PatientSearchResult,
+    SearchFilters,
 )
 
 __all__ = [
-    "DocumentUploadResponse",
+    "Annotation",
+    "Demographics",
     "DocumentInfo",
-    "MetaAnnotationFilters",
+    "DocumentUploadResponse",
+    "MetaAnnotations",
     "PatientSearchRequest",
     "PatientSearchResponse",
     "PatientSearchResult",
+    "SearchFilters",
 ]
