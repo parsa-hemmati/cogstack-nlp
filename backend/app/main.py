@@ -4,7 +4,7 @@ FastAPI application entry point
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import auth, health, roles, users
+from app.api.v1.endpoints import auth, break_glass, health, roles, users
 
 # Application metadata
 APP_NAME = "Clinical Care Tools Backend"
@@ -35,6 +35,7 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(roles.router, prefix="/api/v1/roles", tags=["roles"])
+app.include_router(break_glass.router, prefix="/api/v1/break-glass", tags=["break-glass"])
 
 
 @app.get("/")
