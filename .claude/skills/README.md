@@ -4,6 +4,53 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ## Available Skills
 
+### 🤖 Meta-Skill: Autonomous Developer
+
+#### `autonomous-developer` ✨ NEW
+**When**: User wants continuous development without manual checkpoints ("autonomous mode", "build everything", "don't stop until done")
+
+**What it does**:
+- **Fully autonomous build → audit → test → debug → commit loop**
+- Implements tasks from specifications without stopping for confirmation
+- Auto-spawns auditor subagent to check PRD compliance
+- Auto-generates and runs tests (integration, security, frontend)
+- Auto-fixes issues with max 3 retries per issue (prevents infinite loops)
+- Auto-commits with comprehensive messages (updates CONTEXT.md + AUDIT.md)
+- Continues to next task or exits on: SUCCESS (all done), BLOCKED (can't fix), PAUSE (breaking changes), or ERROR (dependency missing)
+
+**Why game-changing**: Transforms AI assistant from "interactive helper" to "autonomous developer"
+- **Before**: Build → Ask user → Audit → Ask user → Test → Ask user → Commit → Ask user...
+- **After**: Build → Audit → Auto-fix → Test → Auto-debug → Commit → Next task (no stops!)
+
+**Configuration**: `.claude/autonomous-config.yaml` (100+ settings)
+**Quick Start**: [.claude/START_AUTONOMOUS_MODE.md](.claude/START_AUTONOMOUS_MODE.md)
+
+**Safety Features**:
+- Max iterations limit (100 default)
+- Max retries per issue (3 attempts)
+- Rollback on regression (automatic)
+- Breaking change detection (stops for user decision)
+- File/line limits (prevents runaway changes)
+
+**Example**:
+```
+User: "Enter autonomous mode and complete Phase 4"
+
+Claude:
+✅ Autonomous mode activated
+🔄 Loop: 8 tasks remaining
+
+[2 hours later...]
+
+✅ SUCCESS: Phase 4 complete
+📊 8 tasks, 8 commits, 46 tests, 100% PRD compliant
+⏱️  2h 15m total time
+```
+
+**Orchestrates**: All other skills (auditor, test-generator, compliance-checker, etc.)
+
+---
+
 ### 🔴 Priority 1 (Critical for Safety & Accuracy)
 
 #### 1. `healthcare-compliance-checker`
