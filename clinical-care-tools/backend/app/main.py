@@ -120,7 +120,10 @@ from app.api.v1 import (
     search,
     timeline,
 )
-from app.api.v1.endpoints import deidentify, phi, clinical_coding
+from app.api.v1.endpoints import (
+    deidentify, phi, clinical_coding,
+    cds, fhir, alerting, population_health, analytics
+)
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(patients.router, prefix="/api/v1/patients", tags=["Patients"])
@@ -128,6 +131,11 @@ app.include_router(timeline.router, prefix="/api/v1/timeline", tags=["Timeline"]
 app.include_router(search.router, prefix="/api/v1", tags=["Search"])
 app.include_router(deidentify.router, prefix="/api/v1", tags=["De-identification"])
 app.include_router(clinical_coding.router, prefix="/api/v1", tags=["Clinical Coding"])
+app.include_router(cds.router, prefix="/api/v1", tags=["Clinical Decision Support"])
+app.include_router(fhir.router, prefix="/api/v1", tags=["FHIR R4"])
+app.include_router(alerting.router, prefix="/api/v1", tags=["Automated Alerting"])
+app.include_router(population_health.router, prefix="/api/v1", tags=["Population Health"])
+app.include_router(analytics.router, prefix="/api/v1", tags=["Advanced Analytics"])
 app.include_router(phi.router, prefix="/api/v1", tags=["PHI Detection (Internal)"])
 app.include_router(admin.router, prefix="/api/v1", tags=["Admin"])
 app.include_router(
