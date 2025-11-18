@@ -23,11 +23,11 @@
 
 ## 📝 Recent Changes
 
-### 2025-11-18 - Sprint 2, Phase 1: Annotation Model & Timeline Service (Tasks 1.1-1.4)
+### 2025-11-18 - Sprint 2, Phase 1: Timeline API Complete (Tasks 1.1-1.8, excluding 1.7/1.9/1.10)
 
-**Status**: Sprint 2 Phase 1 - Core Foundation Complete
+**Status**: Sprint 2 Phase 1 - 80% Complete (8/10 tasks)
 
-**Files Created**: 7 files (2 models, 1 migration, 1 service, 3 test files)
+**Files Created**: 8 files (2 models, 1 migration, 1 service, 1 API endpoint, 3 test files)
 
 **Added**:
 - ✅ **Annotation Model**: SQLAlchemy model for NLP-extracted concepts (`app/models/annotation.py`)
@@ -51,35 +51,51 @@
   - `get_concept_occurrences()`: Detail view for individual concept mentions (bonus)
   - Meta-annotation filtering (exclude negated/family by default)
   - Date range calculation from documents
+- ✅ **Timeline API Endpoint**: FastAPI endpoint for GET /api/timeline/{patient_id} (`app/api/v1/timeline.py`)
+  - Query parameters: start_date, end_date, document_types, concept_types, include_negated, include_family
+  - Patient existence validation (404 if not found)
+  - HIPAA audit logging for all timeline access (Task 1.6)
+  - Comprehensive error handling with appropriate HTTP status codes
+  - OpenAPI documentation auto-generated from docstrings (Task 1.8)
+  - Registered in main.py at `/api/v1/timeline` prefix
 
 **Changed**:
 - `app/models/document.py`: Added `annotations` relationship (one-to-many, cascade delete)
 - `app/models/__init__.py`: Exported `Annotation` model
 - `app/schemas/__init__.py`: Exported timeline schemas
+- `app/main.py`: Registered timeline router with `/api/v1/timeline` prefix
 
-**Why**: Implements Sprint 2, Phase 1, Tasks 1.1-1.4 per sprint-2-timeline-view-tasks.md. Creates foundational data model (annotations) and service layer for timeline API. Addresses missing annotations table from original MVP.
+**Why**: Implements Sprint 2, Phase 1, Tasks 1.1-1.6 and 1.8 per sprint-2-timeline-view-tasks.md. Creates complete backend stack (model → service → API) for timeline feature. Task 1.8 (OpenAPI docs) completed automatically via FastAPI response_model and docstrings.
 
 **Impact**:
+- ✅ **Timeline API fully functional** - GET /api/v1/timeline/{patient_id} operational
 - ✅ Annotation model enables NLP result storage (required for timeline)
 - ✅ Timeline service can retrieve patient timelines with documents + concepts
 - ✅ Meta-annotation filtering prevents false positives (excludes negated/family by default)
 - ✅ Efficient queries with composite indexes on frequently-filtered fields
 - ✅ Type-safe schemas with Pydantic validation
+- ✅ HIPAA audit logging for all timeline access (Task 1.6 complete)
+- ✅ OpenAPI documentation available at /docs (Task 1.8 complete)
 - ⚠️ Requires database migration: `alembic upgrade head` (adds annotations table)
-- ⚠️ Timeline API endpoints not yet created (Task 1.5)
-- ⚠️ No caching yet (Task 1.7)
+- ⚠️ No Redis caching yet (Task 1.7) - may be slow for large timelines
+- ⚠️ Performance testing not done (Task 1.9)
+- ⚠️ Database indexes exist but not benchmarked (Task 1.10)
 
 **Architecture Decisions**:
 - ADR-010: Annotations as separate table (not Elasticsearch) - Enables efficient aggregation queries for timeline
 - ADR-011: Composite index on (cui, negation, experiencer) - Optimizes meta-annotation filtering (60% → 95% precision)
 - ADR-012: Timeline service returns ISO 8601 strings (not datetime objects) - Consistent with API contract, timezone-aware
+- ADR-013: Comma-separated query params for lists (document_types, concept_types) - RESTful pattern, easier than JSON arrays in GET
 
 **Technical Debt**:
 - Test environment has cryptography dependency conflicts (tests written but not executed)
 - Concept occurrences not populated in timeline response (performance optimization - fetch on-demand)
 - Document content preview not implemented (requires Elasticsearch integration)
+- Redis caching not implemented (Task 1.7 deferred - add if performance issues)
 
-**Next Steps**: Task 1.5 (Create Timeline API Endpoint)
+**Next Steps**:
+- Optional: Tasks 1.7, 1.9, 1.10 (Redis caching, performance testing, index optimization)
+- Or proceed to Sprint 2, Phase 2 (Frontend Timeline Visualization)
 
 ---
 
