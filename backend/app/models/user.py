@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, Column, String, DateTime, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from passlib.context import CryptContext
-from app.db.base import Base
+from app.db.base_class import Base
 
 
 # Password hashing context (bcrypt)

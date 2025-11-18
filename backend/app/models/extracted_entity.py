@@ -22,7 +22,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
-from app.core.database import Base
+from app.db.base_class import Base
 
 
 class EntityType(str, enum.Enum):

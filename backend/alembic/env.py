@@ -11,13 +11,15 @@ from alembic import context
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-# Import your models' base and all models
-from app.db.base import Base
+# Import Base from settings-free module to avoid config parsing during migrations
+from app.db.base_class import Base
+
+# Import all models to ensure they're registered with Base.metadata
 from app.models.user import User
 from app.models.audit_log import AuditLog
 from app.models.document import Document
 from app.models.extracted_entity import ExtractedEntity
-from app.models.patient import Patient  # Import all models here!
+from app.models.patient import Patient
 
 # Alembic Config object
 config = context.config
@@ -31,8 +33,19 @@ target_metadata = Base.metadata
 
 
 def get_url():
-    """Get database URL from environment variable."""
-    return os.getenv("DATABASE_URL", "postgresql://clinicaltools:password@localhost:5432/clinical_care_tools")
+    """Get database URL from environment variable.
+
+    Converts asyncpg URLs to psycopg2 for Alembic compatibility.
+    Alembic requires synchronous drivers, but FastAPI uses asyncpg.
+    """
+    url = os.getenv("DATABASE_URL", "postgresql://clinicaltools:password@localhost:5432/clinical_care_tools")
+
+    # Convert asyncpg (async driver) to psycopg2 (sync driver) for Alembic
+    # FastAPI uses postgresql+asyncpg:// but Alembic needs postgresql+psycopg2://
+    if "postgresql+asyncpg://" in url:
+        url = url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+
+    return url
 
 
 def run_migrations_offline() -> None:

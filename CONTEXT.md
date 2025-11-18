@@ -140,10 +140,25 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - patients table (aggregated records)
   - Optimized indexes for patient search
 
+**Alembic Debugging (Extensive Investigation)**:
+- ❌ **Root Cause #1**: Asyncpg driver incompatibility - ✅ FIXED: Added `psycopg2-binary==2.9.10` to requirements.txt
+- ❌ **Root Cause #2**: `env.py` using asyncpg URL - ✅ FIXED: Added URL conversion (asyncpg → psycopg2)
+- ❌ **Root Cause #3**: Settings imported during migrations - ✅ FIXED: Created `app/db/base_class.py` (settings-free Base)
+- ❌ **Root Cause #4**: Circular imports - ✅ FIXED: Modified `app/db/base.py` to lazy-load settings
+- ❌ **Root Cause #5**: Incorrect Base imports - ✅ FIXED: Updated 5 model files to import from `base_class.py`
+- ⏳ **Remaining Issue**: Migrations still not executing despite all fixes (needs further investigation)
+
+**Files Modified for Alembic Fix**:
+- `backend/requirements.txt`: Added psycopg2-binary dependency
+- `backend/alembic/env.py`: URL conversion + import from base_class
+- `backend/app/db/base_class.py`: NEW - Settings-free Base class
+- `backend/app/db/base.py`: Lazy-load settings inside function
+- `backend/app/models/*.py`: Fixed Base imports (5 files)
+
 **Technical Debt**:
-- Need to debug alembic silent execution (migrations not applying)
-- May need to verify asyncpg URL compatibility with alembic
-- Database initialization needs to be tested end-to-end
+- Alembic migrations still not applying (requires deeper investigation into transaction handling or missing configuration)
+- May need to manually initialize database schema temporarily
+- Consider alternative migration strategy if issue persists
 
 ---
 
