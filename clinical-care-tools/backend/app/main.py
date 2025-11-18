@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.v1 import auth
 from app.core.config import settings
+from app.core.scheduler import scheduler
 from app.db.session import close_db, init_db
 
 # Configure logging
@@ -37,10 +38,15 @@ async def lifespan(app: FastAPI):
         await init_db()
         logger.info("Database initialized")
 
+    # Start background task scheduler
+    scheduler.start()
+    logger.info("Background scheduler started")
+
     yield
 
     # Shutdown
     logger.info("Shutting down application")
+    scheduler.stop()
     await close_db()
 
 
@@ -105,10 +111,26 @@ async def info() -> dict[str, Any]:
 
 
 # Include API routers
-from app.api.v1 import patients
+from app.api.v1 import (
+    admin,
+    clinical_incidents,
+    clinical_overrides,
+    critical_findings,
+    patients,
+)
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(patients.router, prefix="/api/v1/patients", tags=["Patients"])
+app.include_router(admin.router, prefix="/api/v1", tags=["Admin"])
+app.include_router(
+    clinical_overrides.router, prefix="/api/v1", tags=["Clinical Overrides"]
+)
+app.include_router(
+    clinical_incidents.router, prefix="/api/v1", tags=["Clinical Incidents"]
+)
+app.include_router(
+    critical_findings.router, prefix="/api/v1", tags=["Critical Findings"]
+)
 
 
 # Global exception handler

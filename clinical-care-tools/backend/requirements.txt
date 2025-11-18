@@ -31,6 +31,7 @@ aiohttp==3.10.5
 # Utilities
 python-dotenv==1.0.1
 tenacity==9.0.0
+apscheduler==3.10.4
 
 # Logging & Monitoring
 structlog==24.4.0
