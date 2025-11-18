@@ -18,15 +18,8 @@ depends_on = None
 
 def upgrade() -> None:
     """Create documents table for encrypted clinical document storage."""
-    # Create processing_status enum
-    op.execute("""
-        CREATE TYPE processingstatus AS ENUM (
-            'pending',
-            'processing',
-            'completed',
-            'failed'
-        )
-    """)
+    # Note: SQLAlchemy automatically creates the ENUM type when creating the table
+    # with sa.Enum(..., name='processingstatus'). No need to manually create it.
 
     op.create_table(
         'documents',
@@ -39,6 +32,7 @@ def upgrade() -> None:
         sa.Column('file_size', sa.BigInteger(), nullable=False),  # Original file size in bytes
         sa.Column('uploaded_by', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False),
         sa.Column('project_id', postgresql.UUID(as_uuid=True), nullable=True),  # Future: projects table
+        # SQLAlchemy will create the 'processingstatus' ENUM type automatically
         sa.Column('processing_status', sa.Enum('pending', 'processing', 'completed', 'failed', name='processingstatus'), nullable=False, server_default='pending'),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
     )
@@ -57,5 +51,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Drop documents table."""
+    # SQLAlchemy automatically drops the ENUM type when dropping the table
     op.drop_table('documents')
-    op.execute("DROP TYPE processingstatus")

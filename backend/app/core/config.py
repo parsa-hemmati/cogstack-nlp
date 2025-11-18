@@ -2,8 +2,8 @@
 Application Configuration
 Loads configuration from environment variables using Pydantic Settings
 """
-from typing import List, Optional
-from pydantic import AnyHttpUrl, PostgresDsn, RedisDsn, field_validator
+from typing import List, Optional, Union
+from pydantic import Field, PostgresDsn, RedisDsn, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -41,21 +41,21 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_HOURS: int = 8
 
-    # CORS
-    CORS_ORIGINS: List[AnyHttpUrl] = ["http://localhost:8080", "http://localhost:3000"]
+    # CORS (allow frontend access)
+    # Note: Stored as string in env, parsed to list via property
+    # Format: comma-separated URLs: "http://localhost:8080,http://frontend:8080"
+    _cors_origins_str: str = Field(
+        default="http://localhost:8080,http://localhost:3000",
+        validation_alias="CORS_ORIGINS"
+    )
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def assemble_cors_origins(cls, v: str | List[str]) -> List[str] | str:
-        """Parse CORS origins from comma-separated string or list."""
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
+    @property
+    def CORS_ORIGINS(self) -> List[str]:
+        """Parse CORS origins from comma-separated string."""
+        return [origin.strip() for origin in self._cors_origins_str.split(',')]
 
     # MedCAT Service
-    MEDCAT_SERVICE_URL: AnyHttpUrl = "http://medcat-service:5000"
+    MEDCAT_SERVICE_URL: str = "http://medcat-service:5000"
     MEDCAT_SERVICE_TIMEOUT: int = 300  # 5 minutes
 
     # Security

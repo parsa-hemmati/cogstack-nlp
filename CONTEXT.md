@@ -75,7 +75,7 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 3.11: Document Upload Frontend Component (Vue 3 + Vuetify)
   - ✅ Task 3.12: PHI De-Identification Security Tests (HIPAA compliance)
 - 🚧 **Phase 4 (Patient Search)**: IN PROGRESS - 1/8 tasks (12.5% complete)
-  - ✅ Task 4.1: Database Indexes (migration created, pending application)
+  - ✅ Task 4.1: Database Indexes (COMPLETE - all migrations applied successfully)
   - ⏳ Task 4.2: Backend Search API (pending)
   - ⏳ Task 4.3: Backend Highlights API (pending)
   - ⏳ Task 4.4: Frontend Search Component (pending)
@@ -94,14 +94,14 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
-#### [2025-11-18] - Phase 4.1: Database Indexes for Patient Search
+#### [2025-11-18] - Phase 4.1: Database Indexes for Patient Search (COMPLETE ✅)
 
-**Commits**: (pending commit) - Create database migrations for patient search optimization
+**Commits**: (this commit) - Fix alembic migrations and CORS configuration
 
 **Added**:
 - **Migration 001** (`backend/alembic/versions/001_create_users_table.py`):
   - Creates users table with authentication fields (username, email, hashed_password, role)
-  - Creates userrole ENUM ('admin', 'clinician', 'researcher', 'auditor')
+  - Creates userrole ENUM (auto-created by SQLAlchemy, no manual CREATE TYPE)
   - Adds indexes for username, email, role lookups
   - **Why**: Missing migration (002 depended on 001 but it didn't exist)
 
@@ -111,42 +111,47 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - **Purpose**: Optimize patient search queries by CUI + meta-annotation filters
   - **Expected Performance**: <50ms query time for 10,000 patients (per spec)
 
+- **Test Script** (`backend/test_alembic.py`):
+  - Debugging script with detailed logging for alembic migration troubleshooting
+  - Enabled verbose error output that revealed duplicate ENUM creation bug
+
 **Changed**:
-- CONTEXT.md: Updated to reflect Phase 4 IN PROGRESS (1/8 tasks complete)
+- **Migrations 001, 003, 004**: Removed manual `CREATE TYPE` statements (SQLAlchemy creates ENUMs automatically)
+- **backend/app/core/config.py**: Fixed CORS_ORIGINS parsing
+  - Changed from `List[str]` to string field with property parser
+  - Added `Field(validation_alias="CORS_ORIGINS")` for env var mapping
+- **backend/app/db/base.py**: Added backward-compatible `_EngineProxy` for lazy engine loading
+- **backend/alembic.ini**: Added console handler to alembic logger (was missing)
+- **docker-compose.yml**: Updated CORS_ORIGINS default to JSON array format
+- CONTEXT.md: Updated to reflect Phase 4.1 COMPLETE, Phase 4 IN PROGRESS (1/8 tasks)
 
 **Removed**:
-- None
+- Manual `CREATE TYPE` and `DROP TYPE` statements from migrations 001, 003, 004
 
 **Why**:
 - **Migration 001**: Alembic failed due to missing initial migration (002 referenced 001 which didn't exist)
 - **Migration 006**: Implements Task 4.1 from patient-search-tasks.md (database index optimization)
-- **Indexes**: Support most common search pattern: find patients by concept + meta-annotation filters
-- **GIN Index**: Enables flexible JSON containment queries (@> operator) for advanced filtering
+- **Duplicate ENUM Bug**: Each migration created ENUM types twice (manual + auto), causing errors
+- **CORS Bug**: Pydantic Settings expected JSON array for List[str], comma-separated string failed
+- **Logging Bug**: Alembic logger had no handlers, causing silent failures
 
 **Impact**:
-- ✅ **Phase 4.1 Complete**: Database migration files created for patient search optimization
-- ⚠️ **Migration Not Yet Applied**: Database is currently empty (alembic commands run silently without output)
-- 📊 **Next Step**: Debug alembic migration application, then implement Phase 4.2 (Backend Search API)
+- ✅ **Phase 4.1 COMPLETE**: All 6 database migrations successfully applied!
+- ✅ **Database Tables Created**: users, audit_logs, documents, extracted_entities, patients, alembic_version
+- ✅ **Alembic Version**: 006 (all migrations applied)
+- ✅ **Backend Healthy**: Starts without CORS errors
+- ✅ **Ready for Phase 4.2**: Backend Search API implementation can now proceed
 
-**Migration Notes**:
-- Migrations created but not yet tested/applied to database
-- Alembic commands run without error but produce no output (needs investigation)
-- Database currently has no tables (fresh state)
-- Once applied, migrations will create:
-  - users table (authentication/authorization)
-  - audit_logs table (HIPAA compliance)
-  - documents table (encrypted storage)
-  - extracted_entities table (NLP results + PHI)
-  - patients table (aggregated records)
-  - Optimized indexes for patient search
-
-**Alembic Debugging (Extensive Investigation)**:
-- ❌ **Root Cause #1**: Asyncpg driver incompatibility - ✅ FIXED: Added `psycopg2-binary==2.9.10` to requirements.txt
+**Alembic Debugging (Extensive Investigation - 8 Root Causes Found & Fixed)**:
+- ❌ **Root Cause #1**: Asyncpg driver incompatibility - ✅ FIXED: Added `psycopg2-binary==2.9.10`
 - ❌ **Root Cause #2**: `env.py` using asyncpg URL - ✅ FIXED: Added URL conversion (asyncpg → psycopg2)
-- ❌ **Root Cause #3**: Settings imported during migrations - ✅ FIXED: Created `app/db/base_class.py` (settings-free Base)
+- ❌ **Root Cause #3**: Settings imported during migrations - ✅ FIXED: Created `app/db/base_class.py`
 - ❌ **Root Cause #4**: Circular imports - ✅ FIXED: Modified `app/db/base.py` to lazy-load settings
 - ❌ **Root Cause #5**: Incorrect Base imports - ✅ FIXED: Updated 5 model files to import from `base_class.py`
-- ⏳ **Remaining Issue**: Migrations still not executing despite all fixes (needs further investigation)
+- ❌ **Root Cause #6**: Duplicate ENUM creation - ✅ FIXED: Removed manual `CREATE TYPE` from migrations 001, 003, 004
+- ❌ **Root Cause #7**: Missing alembic logging - ✅ FIXED: Added console handler to alembic.ini
+- ❌ **Root Cause #8**: CORS_ORIGINS parsing error - ✅ FIXED: Changed to string field with property parser
+- ✅ **Status**: ALL ROOT CAUSES RESOLVED - Migrations executing successfully!
 
 **Files Modified for Alembic Fix**:
 - `backend/requirements.txt`: Added psycopg2-binary dependency

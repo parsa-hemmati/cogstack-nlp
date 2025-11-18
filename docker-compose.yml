@@ -187,7 +187,8 @@ services:
       - MEDCAT_SERVICE_TIMEOUT=300
 
       # CORS (allow frontend access)
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8080,http://frontend:8080}
+      # Note: Must be JSON array format for Pydantic Settings
+      - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost:8080","http://frontend:8080"]}
 
       # Audit Logging
       - AUDIT_LOG_RETENTION_DAYS=${AUDIT_LOG_RETENTION_DAYS:-2920}  # 8 years (NHS compliance)

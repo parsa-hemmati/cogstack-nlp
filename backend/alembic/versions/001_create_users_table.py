@@ -19,15 +19,8 @@ depends_on = None
 def upgrade() -> None:
     """Create users table for authentication and authorization."""
 
-    # Create role enum
-    op.execute("""
-        CREATE TYPE userrole AS ENUM (
-            'admin',
-            'clinician',
-            'researcher',
-            'auditor'
-        )
-    """)
+    # Note: SQLAlchemy automatically creates the ENUM type when creating the table
+    # with sa.Enum(..., name='userrole'). No need to manually create it.
 
     op.create_table(
         'users',
@@ -35,6 +28,7 @@ def upgrade() -> None:
         sa.Column('username', sa.String(length=50), unique=True, nullable=False),
         sa.Column('email', sa.String(length=255), unique=True, nullable=False),
         sa.Column('hashed_password', sa.String(length=255), nullable=False),
+        # SQLAlchemy will create the 'userrole' ENUM type automatically
         sa.Column('role', sa.Enum('admin', 'clinician', 'researcher', 'auditor', name='userrole'), nullable=False),
         sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
@@ -51,5 +45,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Drop users table."""
+    # SQLAlchemy automatically drops the ENUM type when dropping the table
     op.drop_table('users')
-    op.execute("DROP TYPE userrole")

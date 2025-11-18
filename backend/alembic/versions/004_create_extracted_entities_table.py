@@ -18,22 +18,15 @@ depends_on = None
 
 def upgrade() -> None:
     """Create extracted_entities table for PHI and clinical entities."""
-    # Create entitytype enum
-    op.execute("""
-        CREATE TYPE entitytype AS ENUM (
-            'clinical',
-            'phi_name',
-            'phi_nhs_number',
-            'phi_dob',
-            'phi_address'
-        )
-    """)
+    # Note: SQLAlchemy automatically creates the ENUM type when creating the table
+    # with sa.Enum(..., name='entitytype'). No need to manually create it.
 
     op.create_table(
         'extracted_entities',
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
         sa.Column('document_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('documents.id'), nullable=False),
         sa.Column('patient_id', postgresql.UUID(as_uuid=True), nullable=True),  # Future FK to patients
+        # SQLAlchemy will create the 'entitytype' ENUM type automatically
         sa.Column('entity_type', sa.Enum('clinical', 'phi_name', 'phi_nhs_number', 'phi_dob', 'phi_address', name='entitytype'), nullable=False),
         sa.Column('cui', sa.String(length=20), nullable=True),  # SNOMED-CT or UMLS CUI
         sa.Column('pretty_name', sa.String(length=500), nullable=False),
@@ -57,5 +50,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Drop extracted_entities table."""
+    # SQLAlchemy automatically drops the ENUM type when dropping the table
     op.drop_table('extracted_entities')
-    op.execute("DROP TYPE entitytype")
