@@ -2,7 +2,7 @@
   "roadmap_version": "2.0.0",
   "framework_version": "1.0.0",
   "start_date": "2025-11-17T00:00:00Z",
-  "current_phase": "mvp-phase-0",
+  "current_phase": "mvp-phase-1",
   "total_missions": 90,
   "completed_missions": 6,
   "blocked_missions": 0,
@@ -23,8 +23,10 @@
       "title": "Core Infrastructure",
       "estimated_hours": 60,
       "actual_hours": 0,
-      "status": "pending",
-      "tasks": 18
+      "status": "in_progress",
+      "tasks": 18,
+      "completion_percentage": 0,
+      "notes": "Phase 0 complete. Ready to begin backend and frontend implementation."
     },
     "mvp-phase-2": {
       "title": "User Management",
@@ -87,7 +89,7 @@
       "completed_at": "2025-11-18T00:35:00Z",
       "actual_hours": 0.1,
       "estimated_hours": 3.0,
-      "commit_sha": "pending",
+      "commit_sha": "3f5e2868",
       "sub_agents_used": [],
       "blockers": [],
       "decisions_made": [
@@ -152,7 +154,7 @@
       "completed_at": "2025-11-18T01:10:00Z",
       "actual_hours": 0.6,
       "estimated_hours": 4.0,
-      "commit_sha": "pending",
+      "commit_sha": "3f5e2868",
       "sub_agents_used": ["infrastructure-expert"],
       "blockers": [],
       "decisions_made": [
