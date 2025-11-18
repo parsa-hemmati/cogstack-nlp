@@ -578,26 +578,29 @@ This skill automatically activates for PHI-related code, but invoke it explicitl
 
 ---
 
-#### Layer 4: PRD Compliance Check (Manual - Use for API Changes)
+#### Layer 4: PRD Compliance Check (BLOCKING for AI Agents)
 
-**⚠️ MANDATORY: Run when modifying API endpoints, schemas, or service layer**
+**⚠️ MANDATORY & BLOCKING: Required when modifying API endpoints or schemas**
 
-**When to run**:
-- ✅ **BEFORE committing new API endpoints**
-- ✅ **BEFORE committing schema changes (request/response)**
-- ✅ BEFORE committing changes to API service layer
-- ✅ BEFORE creating PR for Sprint implementation
-- ✅ When implementing PRD specifications
+**When it triggers** (automatic blocking):
+- 🚫 **BLOCKS commits** with API endpoint changes
+- 🚫 **BLOCKS commits** with schema changes (request/response)
+- 🚫 **BLOCKS pushes** with API service layer changes
 
-**How to run**:
+**AI Agent Workflow** (when hook triggers):
 ```bash
-# Option 1: Quick checklist (manual validation)
-# Read .claude/skills/prd-compliance-checker/SKILL.md
-# Compare implementation against PRD specification
-
-# Option 2: Deep validation (automated agent)
+# 1. Hook detects API changes and BLOCKS the commit/push
+# 2. Hook displays validation instructions
+# 3. Run validation agent prompt generator:
 ./scripts/validate-code.sh --prd-check
-# Copy the generated prompt and paste into your AI session
+
+# 4. Copy the generated Task(...) prompt
+# 5. Paste into current AI session to spawn validation agent
+# 6. Wait for validation results
+# 7. If breaking changes found → Fix them
+# 8. Re-run validation to confirm fixes
+# 9. Answer 'y' when hook asks: "Has PRD validation PASSED?"
+# 10. Commit/push proceeds
 ```
 
 **What it checks**:
@@ -633,8 +636,11 @@ git add .
 git commit -m "feat(patient-search): implement search endpoint (PRD-compliant)"
 ```
 
-**Pre-Push Hook**:
-A git pre-push hook will automatically detect API file changes and suggest running PRD validation. The hook is **non-blocking** - it warns but doesn't abort the push.
+**Git Hooks (BLOCKING)**:
+- **Pre-commit hook**: BLOCKS commits with API endpoint or schema changes
+- **Pre-push hook**: BLOCKS pushes with API service layer changes
+- Both hooks require answering 'y' to "Has PRD validation PASSED with 0 breaking changes?"
+- **Cannot bypass** without `--no-verify` (strongly discouraged in AI agent workflow)
 
 **Skill Activation**:
 The `prd-compliance-checker` skill automatically activates when you modify:
@@ -642,7 +648,7 @@ The `prd-compliance-checker` skill automatically activates when you modify:
 - `backend/app/schemas/*.py` (Request/response schemas)
 - `backend/app/services/*_service.py` (Service layer for API features)
 
-The skill provides quick checklist and guidance without forcing agent spawn.
+The skill provides quick checklist and guidance. Hooks enforce mandatory validation.
 
 **Documentation**: See `.claude/skills/prd-compliance-checker/SKILL.md` for comprehensive guide
 

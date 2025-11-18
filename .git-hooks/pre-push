@@ -63,47 +63,46 @@ while read local_ref local_sha remote_ref remote_sha; do
         fi
     done <<< "$changed_files"
 
-    # If API files changed, suggest PRD validation
+    # If API files changed, REQUIRE PRD validation (BLOCKING)
     if [ "$api_files_changed" = true ]; then
         echo ""
-        echo -e "${YELLOW}⚠️  API-RELATED FILES CHANGED${NC}"
+        echo -e "${RED}🚫 API FILES CHANGED - PRD VALIDATION REQUIRED${NC}"
         echo ""
-        echo "The following API files were modified in this push:"
+        echo -e "${YELLOW}The following API files were modified in this push:${NC}"
         echo -e "$api_files"
         echo ""
-        echo -e "${BLUE}📋 PRD Compliance Validation Recommended${NC}"
+        echo -e "${RED}⚠️  MANDATORY: PRD compliance validation required before push${NC}"
         echo ""
-        echo "To ensure implementation matches PRD specification:"
+        echo "AI Agent Workflow:"
+        echo "  1. Run: ./scripts/validate-code.sh --prd-check"
+        echo "  2. Copy the generated Task(...) prompt"
+        echo "  3. Paste into current AI session to spawn validation agent"
+        echo "  4. Wait for validation results"
+        echo "  5. Fix any breaking changes found"
+        echo "  6. Re-run validation to confirm fixes"
+        echo "  7. Answer 'y' below when validation passes"
         echo ""
-        echo "  1. Run quick checklist (manual):"
-        echo "     - Read .specify/sprints/sprint-*-prd.md"
-        echo "     - Compare endpoint paths, schemas, field names"
-        echo "     - Check for breaking changes"
+        echo -e "${YELLOW}Has PRD validation PASSED with 0 breaking changes? (y/N) ${NC}"
+        read -p "" -n 1 -r
         echo ""
-        echo "  2. OR run deep validation (automated):"
-        echo "     ./scripts/validate-code.sh --prd-check"
-        echo ""
-        echo "  3. OR spawn validation agent manually:"
-        echo "     - Use 'prd-compliance-checker' skill guidance"
-        echo "     - See .claude/skills/prd-compliance-checker/SKILL.md"
-        echo ""
-        echo -e "${YELLOW}This is a suggestion, not a requirement.${NC}"
-        echo "Push will continue in 5 seconds..."
-        echo ""
-        echo "Press Ctrl+C to abort and run validation first."
-        echo "Or wait to continue pushing..."
-        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "${RED}❌ Push BLOCKED: PRD validation failed or not run${NC}"
+            echo ""
+            echo "PRD validation is MANDATORY for API changes in AI agent workflow."
+            echo "This prevents API contract drift and breaking changes."
+            echo ""
+            echo "Run validation, fix issues, then retry push."
+            echo ""
+            exit 1
+        fi
 
-        # Wait 5 seconds (user can Ctrl+C to abort)
-        for i in 5 4 3 2 1; do
-            echo -n "$i... "
-            sleep 1
-        done
         echo ""
+        echo -e "${GREEN}✅ PRD validation confirmed - proceeding with push${NC}"
         echo ""
     fi
 done
 
-# Always exit 0 (non-blocking hook)
-echo -e "${GREEN}✅ Pre-push checks complete (continuing push)${NC}"
+# Exit 0 if validation passed
+echo -e "${GREEN}✅ Pre-push checks complete${NC}"
 exit 0

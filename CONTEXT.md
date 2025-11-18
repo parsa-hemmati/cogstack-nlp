@@ -160,36 +160,44 @@ The current development focus is **extending** this ecosystem with **clinical ca
 - Agent compares ALL endpoints, schemas, errors against PRD
 - Reports breaking changes with file paths and line numbers
 
-**Layer 4: Pre-Push Hook** (Automatic warning, non-blocking)
-- Detects API file changes before push
-- Suggests running PRD validation
-- Waits 5 seconds (user can Ctrl+C to abort and validate first)
-- Continues push after countdown (non-blocking)
+**Layer 4: Git Hooks** (BLOCKING for API changes)
+- **Pre-commit hook**: BLOCKS commits with API endpoint or schema changes
+- **Pre-push hook**: BLOCKS pushes with API service layer changes
+- Both hooks require confirmation: "Has PRD validation PASSED with 0 breaking changes? (y/N)"
+- **AI Agent workflow**: Hook blocks → run ./scripts/validate-code.sh --prd-check → spawn agent → fix issues → answer 'y' → proceed
+- **Cannot bypass** without --no-verify (strongly discouraged)
 
 **Layer 5: CI/CD** (Future - not yet implemented)
 - Contract tests validate against OpenAPI spec
 - Automatic PRD drift detection on pull requests
 
 **Impact**:
-- ✅ PRD discrepancies caught during development (not after commit)
-- ✅ API contract stability improved
+- ✅ PRD discrepancies caught BEFORE commit/push (not after)
+- ✅ API contract stability improved (breaking changes prevented)
 - ✅ Frontend team gets stable, documented API contracts
 - ✅ Reduces back-and-forth on "unexpected API changes"
-- ✅ Developer confidence increased (validation agent provides immediate feedback)
+- ✅ AI agent workflow enforced (mandatory validation for API changes)
+- ✅ Zero tolerance for PRD drift in production code
 
-**Migration Notes**:
-- Pre-push hook is **non-blocking** - it warns but doesn't force validation
-- Developers can skip validation with manual override (not recommended)
-- PRD validation is **MANDATORY** for new API endpoints and schema changes
-- Quick checklist suitable for minor changes, agent validation for major changes
+**AI Agent Workflow** (enforced by hooks):
+- **Hook blocks** (red warning, cannot proceed)
+- AI agent runs: `./scripts/validate-code.sh --prd-check`
+- Copies generated Task(...) prompt
+- Spawns validation agent in current session
+- Agent reports breaking changes (if any)
+- AI agent fixes issues
+- Re-runs validation to confirm fixes
+- Answers 'y' to hook's validation question
+- Commit/push proceeds
 
-**Files Added/Modified** (6 files):
+**Files Added/Modified**:
 1. `.claude/skills/prd-compliance-checker/SKILL.md` (NEW - 500+ lines)
-2. `.git-hooks/pre-push` (NEW - 100 lines)
-3. `.git/hooks/pre-push` (NEW - installed hook)
-4. `scripts/validate-code.sh` (ENHANCED - added 290 lines for --prd-check)
-5. `CLAUDE.md` (UPDATED - 5-layer framework, PRD validation docs)
-6. `.claude/skills/README.md` (UPDATED - added skill #5, renumbered)
+2. `.git-hooks/pre-commit` (UPDATED - added BLOCKING PRD validation check)
+3. `.git-hooks/pre-push` (NEW - BLOCKING PRD validation for pushes)
+4. `.git/hooks/pre-commit` + `.git/hooks/pre-push` (installed hooks)
+5. `scripts/validate-code.sh` (ENHANCED - added 290 lines for --prd-check)
+6. `CLAUDE.md` (UPDATED - 5-layer framework, BLOCKING hooks documented)
+7. `.claude/skills/README.md` (UPDATED - added skill #5, renumbered)
 
 **Technical Debt**: None introduced
 
