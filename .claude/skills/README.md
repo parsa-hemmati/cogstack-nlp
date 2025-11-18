@@ -83,7 +83,49 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 6. `spec-kit-enforcer`
+#### 6. `prd-test-generator` ✨ NEW
+**When**: Starting new features (TDD), PRD updates, low test coverage, sprint completion
+
+**What it does**:
+- Reads PRD specifications and extracts testable requirements
+- Generates comprehensive tests (pytest for backend, vitest for frontend)
+- Maps tests to specific PRD requirements (FR1.1, NFR2.3, etc.)
+- Executes tests and collects coverage metrics
+- Creates/updates TEST_REPORT.md with coverage tracking
+- Identifies missing tests and provides recommendations
+
+**Why useful**: Ensures all PRD requirements are tested before deployment, enforces TDD approach, tracks test coverage trends over time, complements auditor (auditor checks compliance, this ensures testability)
+
+**Key Features**:
+- Test generation from PRD acceptance criteria
+- Backend: Unit, integration, contract, security tests (pytest)
+- Frontend: Component, composable, E2E, accessibility tests (vitest, Playwright)
+- Performance test generation (NFR validation)
+- TEST_REPORT.md with requirement-to-test mapping
+- Coverage trend tracking
+- Auto-detects missing tests
+
+**Example Output**:
+```markdown
+# TEST_REPORT.md
+
+## Requirement Coverage
+- ✅ FR1.1: Search by concept → test_search_by_concept_name
+- ✅ FR1.2: Search by CUI → test_search_by_cui
+- ❌ FR5.3: Navigate to page → NO TEST FOUND (HIGH PRIORITY)
+
+## Overall Coverage: 90% FR, 80% NFR
+## Recommendations: Add 5 missing tests (details below)
+```
+
+**Integration**:
+- Complements `auditor` (compliance) and `prd-compliance-checker` (API drift)
+- Can be enforced in pre-commit hook (optional)
+- CI/CD integration for automated coverage tracking
+
+---
+
+#### 7. `spec-kit-enforcer`
 **When**: Starting new features, before writing code
 
 **What it does**:
@@ -98,7 +140,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ### 🔵 Implementation Workflow Skills
 
-#### 7. `spec-to-tech-plan`
+#### 8. `spec-to-tech-plan`
 **When**: Converting approved specifications to technical plans
 
 **What it does**:
@@ -114,7 +156,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 8. `tech-plan-to-tasks`
+#### 9. `tech-plan-to-tasks`
 **When**: Breaking down technical plans into implementable tasks
 
 **What it does**:
@@ -128,7 +170,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 9. `infrastructure-expert`
+#### 10. `infrastructure-expert`
 **When**: Implementing Docker, PostgreSQL, authentication, audit logging
 
 **What it does**:
@@ -143,7 +185,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 10. `document-management-patterns` ✨ NEW (Phase 3)
+#### 11. `document-management-patterns` (Phase 3)
 **When**: Implementing document upload, file deduplication, async processing, patient aggregation
 
 **What it does**:

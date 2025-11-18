@@ -277,7 +277,7 @@ Token usage: 160000/200000; 40000 remaining
 
 ## 🛠️ Custom Healthcare NLP Skills
 
-**10 specialized skills** are available to assist with healthcare-specific development. They **activate automatically** based on context—you don't need to invoke them explicitly.
+**11 specialized skills** are available to assist with healthcare-specific development. They **activate automatically** based on context—you don't need to invoke them explicitly.
 
 ### Available Skills
 
@@ -311,6 +311,11 @@ Token usage: 160000/200000; 40000 remaining
 - **Activates when**: Modifying API endpoints, changing schemas, implementing Sprint PRDs
 - **What it does**: Validates API implementation against PRD specifications, detects breaking changes (field names, types, structure)
 - **Why useful**: Prevents API contract drift, catches PRD discrepancies early (during development, not after)
+
+**`prd-test-generator`** - Test generation & coverage tracking ✨ NEW
+- **Activates when**: Starting new features (TDD), PRD updates, low test coverage, sprint completion
+- **What it does**: Reads PRD specs, generates comprehensive tests (pytest/vitest), executes tests, creates TEST_REPORT.md with coverage tracking
+- **Why useful**: Ensures all PRD requirements are tested, enforces TDD, tracks coverage trends, complements auditor (compliance vs testability)
 
 **`spec-kit-enforcer`** - Workflow enforcement
 - **Activates when**: Starting new features, before writing code
@@ -349,6 +354,7 @@ Planning Phase:
 Implementation Phase:
 ✓ infrastructure-expert - Guides Docker, PostgreSQL, auth, audit logging
 ✓ medcat-meta-annotations - Ensures proper NLP filtering (95% precision)
+✓ prd-test-generator - Generates tests from PRD requirements (TDD approach)
 ✓ healthcare-compliance-checker - Validates PHI handling, audit logging
 ✓ prd-compliance-checker - Validates API schema matches PRD (no drift)
 
@@ -361,6 +367,7 @@ Result: Complete, compliant, production-ready implementation
 
 **Complete Workflow Coverage**:
 - **Spec → Plan → Tasks → Code** (full Spec-Kit lifecycle)
+- **Test Generation** (TDD from PRD requirements)
 - **Safety & Compliance** (HIPAA, GDPR, patient safety)
 - **NLP Accuracy** (meta-annotation filtering)
 - **Infrastructure** (Docker, auth, audit, backups)
