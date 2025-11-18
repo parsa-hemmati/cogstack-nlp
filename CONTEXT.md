@@ -48,23 +48,79 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - API Endpoints: /api/v1/auth/login, /api/v1/auth/logout, /api/v1/auth/me, /api/v1/health
   - Frontend: Vue 3 + Vite + Vuetify project structure ready
   - Setup: Automated first-time setup script
-- 🚧 **Phase 2 (User Management)**: IN PROGRESS - 5/12 tasks (1.5h so far)
+- 🚧 **Phase 2 (User Management)**: IN PROGRESS - 7/12 tasks (2.0h so far, 58% complete)
   - ✅ Task 2.1: User CRUD API (GET list, GET by ID, POST create, PUT update, DELETE soft-delete)
   - ✅ Task 2.2: Role Management API (List roles, get role details, get user permissions, assign role)
   - ✅ Task 2.3: Break-Glass Workflow (Emergency access with justification, audit logs)
+  - ✅ Task 2.4: User Profile Management (Get profile, update own email)
   - ✅ Task 2.6: User Deactivation (already implemented in Task 2.1 soft delete)
+  - ✅ Task 2.7: Password Reset (Change own password with current password verification)
   - ✅ Task 2.11: User Permissions System (already implemented in Task 2.2)
-  - ⏸️ Tasks 2.4-2.5, 2.7-2.10, 2.12: Profile, search, password reset, sessions, tests, frontend, activity logs
+  - ⏸️ Tasks 2.5, 2.8-2.10, 2.12: Search, sessions, tests, frontend, activity logs
 - ⏸️ **Phases 3-7**: Pending (Document Mgmt, Patient Search, Testing, Deployment, Documentation)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: `1e6c3a76` - Break-Glass Workflow (Phase 2.3)
+**Latest Commit**: TBD - Profile Management + Password Reset (Tasks 2.4+2.7)
 **Sprint**: MVP - Phase 2 User Management
-**Next Task**: Phase 2.4 - User Profile Management (batch with 2.7 Password Reset)
+**Next Task**: Batch 2.5+2.8+2.12 (Search, Sessions, Activity Logs)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-18] - Tasks 2.4+2.7: Profile Management + Password Reset
+
+**Commits**: TBD - Profile and password management implementation
+
+**Added**:
+- Profile Management API endpoints (`backend/app/api/v1/endpoints/profile.py`):
+  - `GET /api/v1/users/me` - Get current user profile
+  - `PUT /api/v1/users/me` - Update own profile (email only, restrictions on role/status)
+  - `POST /api/v1/users/me/change-password` - Change own password (requires current password)
+- Comprehensive tests (`backend/tests/api/v1/endpoints/test_profile.py`):
+  - 11 tests covering profile get, update, password change
+  - Authorization tests, validation tests
+  - Edge cases (duplicate email, weak password, incorrect current password)
+  - Self-service restriction tests (cannot change own role/status/break-glass)
+- Router registration in `backend/app/main.py`
+
+**Changed**:
+- None (new feature)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Phase 2, Tasks 2.4+2.7 (Profile Management + Password Reset)
+- Enables users to manage their own profile without admin intervention
+- Self-service password changes improve security (users can update compromised passwords)
+- Restricts privilege escalation (users cannot grant themselves admin/break-glass)
+- Aligns with "Privacy by Design" principle (users control their own email)
+
+**Impact**:
+- ✅ Self-service profile management for all users
+- ✅ Password change requires current password (prevents unauthorized changes)
+- ✅ Email uniqueness validation
+- ✅ All profile changes audit logged
+- ✅ Restrictions on self-privilege-escalation (cannot change own role/status/break-glass)
+- ⚠️ Password reset via email not implemented (add later if needed)
+- ⚠️ No password complexity history (accept current password policy for MVP)
+
+**Migration Notes**:
+- No database migrations required (uses existing users table)
+- API endpoints immediately available at `/api/v1/users/me*`
+
+**Technical Debt**:
+- No password reset via email flow (acceptable for MVP, users can request admin reset)
+- No password history tracking (acceptable for MVP)
+
+**Design Pattern**:
+- Self-service user management (reduces admin burden)
+- Current password verification for security
+- Audit logging for accountability
+- Privilege restrictions (prevent self-escalation)
+
+---
 
 #### [2025-11-18] - Task 2.3: Break-Glass Workflow
 
