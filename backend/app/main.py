@@ -2,9 +2,12 @@
 Clinical Care Tools - Backend Application
 FastAPI application entry point
 """
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.endpoints import auth, break_glass, health, profile, roles, sessions, users
+
+logger = logging.getLogger(__name__)
 
 # Application metadata
 APP_NAME = "Clinical Care Tools Backend"
@@ -62,19 +65,19 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     """Execute on application startup."""
-    print(f"🚀 {APP_NAME} v{APP_VERSION} starting...")
+    logger.info(f"🚀 {APP_NAME} v{APP_VERSION} starting...")
     # TODO: Initialize database connection pool
     # TODO: Load MedCAT models
-    print("✅ Application ready")
+    logger.info("✅ Application ready")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Execute on application shutdown."""
-    print(f"⏹️  {APP_NAME} shutting down...")
+    logger.info(f"⏹️  {APP_NAME} shutting down...")
     # TODO: Close database connections
     # TODO: Cleanup resources
-    print("✅ Shutdown complete")
+    logger.info("✅ Shutdown complete")
 
 
 if __name__ == "__main__":
