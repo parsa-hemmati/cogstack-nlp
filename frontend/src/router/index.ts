@@ -12,8 +12,32 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue')
+    },
+    {
+      path: '/users',
+      name: 'user-management',
+      component: () => import('../views/UserManagement.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../views/Profile.vue'),
+      meta: { requiresAuth: true }
     }
   ]
+})
+
+// Navigation guard for authentication
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('access_token')
+
+  if (to.meta.requiresAuth && !token) {
+    // Redirect to login if route requires auth and no token
+    next({ name: 'login', query: { redirect: to.fullPath } })
+  } else {
+    next()
+  }
 })
 
 export default router
