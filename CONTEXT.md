@@ -74,16 +74,78 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 3.10: Patient Aggregation Service (NHS number matching)
   - ✅ Task 3.11: Document Upload Frontend Component (Vue 3 + Vuetify)
   - ✅ Task 3.12: PHI De-Identification Security Tests (HIPAA compliance)
-- ⏸️ **Phases 4-7**: Pending (Patient Search, Testing, Deployment, Documentation)
+- 🚧 **Phase 4 (Patient Search)**: IN PROGRESS - 1/8 tasks (12.5% complete)
+  - ✅ Task 4.1: Database Indexes (migration created, pending application)
+  - ⏳ Task 4.2: Backend Search API (pending)
+  - ⏳ Task 4.3: Backend Highlights API (pending)
+  - ⏳ Task 4.4: Frontend Search Component (pending)
+  - ⏳ Task 4.5: Frontend Highlights Panel (pending)
+  - ⏳ Task 4.6: Search History (pending)
+  - ⏳ Task 4.7: Integration Tests (pending)
+  - ⏳ Task 4.8: Documentation & Deployment (pending)
+- ⏸️ **Phases 5-7**: Pending (Testing, Deployment, Documentation)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: `34191f1b` - Code quality fixes (test fixtures + pre-commit)
-**Sprint**: MVP - Phase 2 COMPLETE (100%) + Safeguards
-**Next Phase**: Phase 3 (Document Management)
+**Latest Commit**: `be20369e` - Fix MedCAT v2 mutable defaults bug + documentation improvements
+**Sprint**: MVP - Phases 1-3 COMPLETE (100%), Phase 4 IN PROGRESS (12.5%)
+**Next Milestone**: Complete Phase 4.2 (Backend Search API)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-18] - Phase 4.1: Database Indexes for Patient Search
+
+**Commits**: (pending commit) - Create database migrations for patient search optimization
+
+**Added**:
+- **Migration 001** (`backend/alembic/versions/001_create_users_table.py`):
+  - Creates users table with authentication fields (username, email, hashed_password, role)
+  - Creates userrole ENUM ('admin', 'clinician', 'researcher', 'auditor')
+  - Adds indexes for username, email, role lookups
+  - **Why**: Missing migration (002 depended on 001 but it didn't exist)
+
+- **Migration 006** (`backend/alembic/versions/006_add_patient_search_indexes.py`):
+  - Composite index on `(cui, meta_anns->>'Negation', meta_anns->>'Temporality', meta_anns->>'Experiencer')`
+  - GIN index on `meta_anns` JSONB column for flexible filtering
+  - **Purpose**: Optimize patient search queries by CUI + meta-annotation filters
+  - **Expected Performance**: <50ms query time for 10,000 patients (per spec)
+
+**Changed**:
+- CONTEXT.md: Updated to reflect Phase 4 IN PROGRESS (1/8 tasks complete)
+
+**Removed**:
+- None
+
+**Why**:
+- **Migration 001**: Alembic failed due to missing initial migration (002 referenced 001 which didn't exist)
+- **Migration 006**: Implements Task 4.1 from patient-search-tasks.md (database index optimization)
+- **Indexes**: Support most common search pattern: find patients by concept + meta-annotation filters
+- **GIN Index**: Enables flexible JSON containment queries (@> operator) for advanced filtering
+
+**Impact**:
+- ✅ **Phase 4.1 Complete**: Database migration files created for patient search optimization
+- ⚠️ **Migration Not Yet Applied**: Database is currently empty (alembic commands run silently without output)
+- 📊 **Next Step**: Debug alembic migration application, then implement Phase 4.2 (Backend Search API)
+
+**Migration Notes**:
+- Migrations created but not yet tested/applied to database
+- Alembic commands run without error but produce no output (needs investigation)
+- Database currently has no tables (fresh state)
+- Once applied, migrations will create:
+  - users table (authentication/authorization)
+  - audit_logs table (HIPAA compliance)
+  - documents table (encrypted storage)
+  - extracted_entities table (NLP results + PHI)
+  - patients table (aggregated records)
+  - Optimized indexes for patient search
+
+**Technical Debt**:
+- Need to debug alembic silent execution (migrations not applying)
+- May need to verify asyncpg URL compatibility with alembic
+- Database initialization needs to be tested end-to-end
+
+---
 
 #### [2025-11-18] - Bug Fixes & Documentation Improvements
 
