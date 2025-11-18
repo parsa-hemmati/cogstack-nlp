@@ -61,7 +61,7 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 2.10: Frontend User Management UI (Vue 3 + Vuetify admin/profile views)
   - ✅ Task 2.11: User Permissions System (already implemented in Task 2.2)
   - ✅ Task 2.12: User Activity Logs (View own activity, admins view any user activity)
-- 🚧 **Phase 3 (Document Management)**: IN PROGRESS - 10/12 tasks (83% complete)
+- 🚧 **Phase 3 (Document Management)**: IN PROGRESS - 11/12 tasks (92% complete)
   - ✅ Task 3.1: Document Model (encrypted storage, processing status)
   - ✅ Task 3.2: Encryption Service (AES-256-GCM)
   - ✅ Task 3.3: Deduplication Service (SHA-256 hash, Redis cache)
@@ -72,8 +72,8 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 3.8: Database Migrations (documents, entities, patients tables)
   - ✅ Task 3.9: PHI Extraction Background Job (document processing service)
   - ✅ Task 3.10: Patient Aggregation Service (NHS number matching)
-  - ⏳ Task 3.11: Document Upload Frontend Component (NEXT)
-  - ⏳ Task 3.12: PHI De-Identification Tests
+  - ✅ Task 3.11: Document Upload Frontend Component (Vue 3 + Vuetify)
+  - ⏳ Task 3.12: PHI De-Identification Tests (FINAL TASK)
 - ⏸️ **Phases 4-7**: Pending (Patient Search, Testing, Deployment, Documentation)
 
 **Branch**: `autonomous/mvp-execution`
@@ -85,9 +85,105 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-18] - Phase 3 Task 3.11: Document Upload Frontend Component
+
+**Commits**: (pending commit) - Vue 3 + Vuetify document upload UI
+
+**Added**:
+- **DocumentUpload Component** (`frontend/src/components/documents/DocumentUpload.vue`):
+  - File picker with RTF validation
+  - Upload progress indicator
+  - Success/error alert displays
+  - Duplicate detection notification
+  - Upload result details (document ID, hash, size, status)
+  - Security and processing information panel
+  - Vuetify 3 Material Design components
+  - Composition API with TypeScript
+
+- **DocumentsView Page** (`frontend/src/views/DocumentsView.vue`):
+  - Main documents page with upload component
+  - Placeholder for future document list view
+  - Responsive layout with Vuetify grid system
+
+- **Documents API Client** (`frontend/src/api/documents.ts`):
+  - uploadDocument(): Multipart form upload
+  - getDocument(): Get document by ID
+  - listDocuments(): List uploaded documents (future use)
+  - TypeScript-typed responses
+
+- **Document Types** (`frontend/src/types/document.ts`):
+  - DocumentUploadResponse interface
+  - DocumentInfo interface
+  - TypeScript type safety for API responses
+
+- **Router Configuration** (`frontend/src/router/index.ts`):
+  - Added /documents route with authentication requirement
+  - Lazy-loaded DocumentsView component
+
+- **App Navigation** (`frontend/src/App.vue`):
+  - Added app bar with navigation links
+  - Documents navigation button
+  - Conditional admin menu (Users)
+  - Profile and logout buttons
+  - Primary color theme
+
+**Changed**:
+- None
+
+**Removed**:
+- None
+
+**Why**:
+- **User Interface**: Provides UI for clinicians to upload documents
+- **File Validation**: RTF format enforcement prevents invalid uploads
+- **Feedback**: Clear success/error messages with upload details
+- **Duplicate Detection**: Shows is_duplicate flag from API
+- **Navigation**: Easy access to document upload from main menu
+- **Type Safety**: TypeScript prevents API contract mismatches
+- **Material Design**: Consistent UI with Vuetify components
+- Aligns with "Developer Experience" and "Clinical Workflow Integration" principles
+
+**Impact**:
+- ✅ Clinicians can upload RTF documents via web interface
+- ✅ File validation prevents non-RTF uploads
+- ✅ Upload progress shown with indeterminate progress bar
+- ✅ Success message shows document ID, size, hash, duplicate flag
+- ✅ Error messages display backend validation errors
+- ✅ Documents accessible via /documents route (requires authentication)
+- ✅ Navigation bar provides easy access to all features
+- ✅ TypeScript ensures type safety for API calls
+- ⚠️ Requires backend API running at configured URL
+- ⚠️ JWT token required for authentication
+- 📊 UX: Single-click upload with visual feedback
+
+**Migration Notes**:
+- Ensure backend API is running and accessible
+- Configure CORS to allow frontend origin
+- Verify JWT authentication working
+- Test file upload with sample RTF files
+- Check browser console for any API errors
+
+**Technical Debt**:
+- TODO: Add document list view (show uploaded documents)
+- TODO: Add upload progress percentage (instead of indeterminate)
+- TODO: Add file size limit UI validation (before upload)
+- TODO: Add retry mechanism for failed uploads
+- TODO: Add pagination for document list
+
+**Design Patterns**:
+- **Composition API**: Vue 3 script setup with TypeScript
+- **Component-Based UI**: Reusable DocumentUpload component
+- **API Client Layer**: Separate API logic from components
+- **Type Safety**: TypeScript interfaces for all API responses
+- **Form Validation**: Real-time validation with Vuetify rules
+- **Route Guards**: Authentication check before navigation
+- **Reactive State**: Vue ref() for component state management
+
+---
+
 #### [2025-11-18] - Phase 3 Task 3.9: PHI Extraction Background Job
 
-**Commits**: (pending commit) - Document processing service with MedCAT integration
+**Commits**: 210f6a66 - Document processing service with MedCAT integration
 
 **Added**:
 - **Document Processing Service** (`backend/app/services/document_processing_service.py`):
