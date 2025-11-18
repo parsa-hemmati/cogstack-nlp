@@ -23,6 +23,36 @@
 
 ## 📝 Recent Changes
 
+### 2025-11-18 - Sprint 2, Phase 1: Timeline API Foundation - Task 1.1
+
+**Status**: Sprint 2 Started - Phase 1 in progress
+
+**Files Created**: 3 files (1 schema, 2 test files)
+
+**Added**:
+- ✅ **Timeline Pydantic Schemas**: Complete request/response schemas for timeline API
+  - `TimelineQueryParams`: Patient ID + optional filters (date range, document/concept types, meta-annotations)
+  - `TimelineDocument`: Document representation in timeline (id, title, type, date, annotation count)
+  - `TimelineConcept`: Clinical concept with first/last mentioned dates, occurrences, meta-annotations
+  - `ConceptOccurrence`: Individual concept mention in document with context
+  - `TimelineResponse`: Complete timeline with documents, concepts, date range, metadata
+- ✅ **Schema unit tests**: 12 test cases covering validation, defaults, edge cases (test file created, tests will run once env fixed)
+
+**Changed**:
+- `app/schemas/__init__.py`: Exported timeline schemas
+
+**Why**: Implements Sprint 2, Phase 1, Task 1.1 per sprint-2-timeline-view-tasks.md. Defines data structures for timeline API following TDD approach.
+
+**Impact**:
+- ✅ Timeline API contracts defined (request/response schemas)
+- ✅ Type-safe validation with Pydantic (auto-validates ISO 8601 dates, UUIDs)
+- ✅ Ready for service layer implementation (Task 1.2)
+- ⚠️ Test environment has dependency conflicts (tests written but not executed yet)
+
+**Next Steps**: Task 1.2 (Timeline Service - Document Retrieval)
+
+---
+
 ### 2025-11-18 - MVP Phase 7: Testing & Deployment (v0.3.0)
 
 **Status**: Phase 7 Complete (MVP Foundation Finished!)
