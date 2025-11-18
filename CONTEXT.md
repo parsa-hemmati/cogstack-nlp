@@ -23,6 +23,34 @@
 
 ## 📝 Recent Changes
 
+### 2025-11-18 - Sprint 5 CORE COMPLETE: Clinical Coding (ICD-10 Extraction + Coder UI)
+
+**Status**: Sprint 5 Core Implementation ✅ (70% implementation)
+
+**Files Created**: 6 files total
+- **Schemas**: 1 file (clinical_coding.py)
+- **Services**: 1 file (icd10_extraction_service.py)
+- **API**: 1 file (clinical_coding.py - 4 endpoints)
+- **Models**: 1 file (clinical_coding.py - 3 tables)
+- **Migration**: 1 file (005_add_clinical_coding_tables.py)
+- **Modified**: 1 file (main.py)
+
+**Added**:
+- ✅ ICD-10 Extraction Service with 18 condition patterns
+- ✅ Clinical Coding API (queue, suggestions, assign codes, search)
+- ✅ 3 database tables (icd10_library, coding_assignments, coding_metrics)
+- ✅ HIPAA audit logging for all coding operations
+
+**Technical Debt**:
+- Mock ICD-10 extraction (replace with medcat_icd10 model)
+- ICD-10 library empty (load CMS data)
+- Code validation not implemented
+- Coding queue mocked
+
+**Next Steps**: Sprint 5.5 (Event Bus) or Sprint 6 (CDS + Meditech FHIR)
+
+---
+
 ### 2025-11-18 - Sprint 4 CORE COMPLETE: De-Identification (PHI Detection + Redaction)
 
 **Status**: Sprint 4 Core Implementation ✅ (Phases 4.1, 4.2, 4.3 - 80% implementation)
