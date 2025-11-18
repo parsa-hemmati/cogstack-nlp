@@ -266,12 +266,47 @@ class SearchService:
             total_results: Number of results found
             execution_time_ms: Query execution time in milliseconds
         """
-        # This will be implemented in Phase 3.4 (Search Analytics)
-        # For now, just log
-        logger.info(
-            f"Search: user={user_id}, query='{query.q}', "
-            f"results={total_results}, time={execution_time_ms}ms"
-        )
+        if not self.db:
+            logger.warning("Database session not available for search tracking")
+            return
+
+        try:
+            from app.services.search_analytics_service import SearchAnalyticsService
+            from uuid import UUID
+
+            analytics_service = SearchAnalyticsService(self.db)
+
+            # Build filters dict
+            filters = {}
+            if query.document_type:
+                filters['document_type'] = query.document_type
+            if query.date_from:
+                filters['date_from'] = query.date_from
+            if query.date_to:
+                filters['date_to'] = query.date_to
+            if query.department:
+                filters['department'] = query.department
+            if query.author:
+                filters['author'] = query.author
+
+            # Track search
+            await analytics_service.track_search(
+                user_id=UUID(user_id),
+                query=query.q,
+                filters=filters if filters else None,
+                total_results=total_results,
+                page=query.page,
+                execution_time_ms=execution_time_ms
+            )
+
+            logger.info(
+                f"Search tracked: user={user_id}, query='{query.q}', "
+                f"results={total_results}, time={execution_time_ms}ms"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to track search: {e}")
+            # Don't raise - tracking failure shouldn't break search
 
     async def get_suggestions(
         self,
@@ -355,15 +390,36 @@ class SearchService:
 
         Returns:
             Analytics dictionary
-
-        Note:
-            Full implementation in Phase 3.4 (Search Analytics)
         """
-        # This will be fully implemented in Phase 3.4
-        return {
-            "date_range": {"from": date_from, "to": date_to},
-            "total_searches": 0,
-            "unique_users": 0,
-            "top_queries": [],
-            "zero_result_queries": []
-        }
+        if not self.db:
+            logger.warning("Database session not available for analytics")
+            return {
+                "date_range": {"from": date_from, "to": date_to},
+                "total_searches": 0,
+                "unique_users": 0,
+                "top_queries": [],
+                "zero_result_queries": []
+            }
+
+        try:
+            from app.services.search_analytics_service import SearchAnalyticsService
+            from datetime import datetime
+
+            analytics_service = SearchAnalyticsService(self.db)
+
+            # Parse dates
+            date_from_dt = datetime.fromisoformat(date_from)
+            date_to_dt = datetime.fromisoformat(date_to)
+
+            # Get analytics
+            analytics = await analytics_service.get_full_analytics(
+                date_from=date_from_dt,
+                date_to=date_to_dt,
+                limit=limit
+            )
+
+            return analytics
+
+        except Exception as e:
+            logger.error(f"Failed to get analytics: {e}")
+            raise
