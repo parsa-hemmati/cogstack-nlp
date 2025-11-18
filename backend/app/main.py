@@ -67,8 +67,12 @@ async def health_check():
 async def startup_event():
     """Execute on application startup."""
     logger.info(f"🚀 {APP_NAME} v{APP_VERSION} starting...")
-    # TODO: Initialize database connection pool
-    # TODO: Load MedCAT models
+
+    # Start background job for document processing
+    from app.jobs import start_background_job
+    await start_background_job(interval_seconds=60, batch_size=10)
+    logger.info("📄 Document processing job started")
+
     logger.info("✅ Application ready")
 
 
@@ -76,8 +80,12 @@ async def startup_event():
 async def shutdown_event():
     """Execute on application shutdown."""
     logger.info(f"⏹️  {APP_NAME} shutting down...")
-    # TODO: Close database connections
-    # TODO: Cleanup resources
+
+    # Stop background job
+    from app.jobs import stop_background_job
+    await stop_background_job()
+    logger.info("📄 Document processing job stopped")
+
     logger.info("✅ Shutdown complete")
 
 
