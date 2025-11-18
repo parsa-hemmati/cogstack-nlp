@@ -21,33 +21,44 @@ else
     against=$(git hash-object -t tree /dev/null)
 fi
 
-# Get list of staged files (excluding CONTEXT.md itself and documentation-only changes)
-staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -v '^CONTEXT.md$' | grep -v '^docs/' | grep -v '^\.specify/' | grep -v '\.md$')
+# Get list of staged files (excluding CONTEXT.md, AUDIT.md and documentation-only changes)
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -v '^CONTEXT.md$' | grep -v '^AUDIT.md$' | grep -v '^docs/' | grep -v '^\.specify/' | grep -v '\.md$')
 
 # If there are code changes (non-documentation files)
 if [ -n "$staged_files" ]; then
     # Check if CONTEXT.md is also being committed
     context_modified=$(git diff --cached --name-only | grep '^CONTEXT.md$')
 
-    if [ -z "$context_modified" ]; then
-        echo -e "${RED}❌ ERROR: CONTEXT.md must be updated with code changes!${NC}"
+    # Check if AUDIT.md is also being committed
+    audit_modified=$(git diff --cached --name-only | grep '^AUDIT.md$')
+
+    if [ -z "$context_modified" ] || [ -z "$audit_modified" ]; then
+        echo -e "${RED}❌ ERROR: Both CONTEXT.md and AUDIT.md must be updated with code changes!${NC}"
         echo ""
-        echo -e "${YELLOW}You're committing code changes but CONTEXT.md wasn't modified.${NC}"
+        echo -e "${YELLOW}You're committing code changes but required files weren't modified:${NC}"
+        [ -z "$context_modified" ] && echo "  ❌ CONTEXT.md (missing)"
+        [ -n "$context_modified" ] && echo "  ✅ CONTEXT.md (included)"
+        [ -z "$audit_modified" ] && echo "  ❌ AUDIT.md (missing)"
+        [ -n "$audit_modified" ] && echo "  ✅ AUDIT.md (included)"
         echo ""
         echo "Files being committed:"
         echo "$staged_files" | sed 's/^/  - /'
         echo ""
         echo "Required actions:"
-        echo "  1. Update CONTEXT.md with your changes"
-        echo "  2. Add relevant information:"
+        echo "  1. Spawn audit agent to review changes against PRD"
+        echo "     See: .claude/skills/audit-agent/SKILL.md"
+        echo "  2. Update AUDIT.md based on audit findings"
+        echo "     - Update compliance scores"
+        echo "     - Document any drift detected"
+        echo "     - Add feature-specific audit section"
+        echo "  3. Update CONTEXT.md with technical details"
         echo "     - Update 'Recent Changes' section"
         echo "     - Add ADR if architecture changed"
-        echo "     - Update 'Implemented Features' or 'In Progress'"
-        echo "     - Note any technical debt"
-        echo "  3. Stage CONTEXT.md: git add CONTEXT.md"
-        echo "  4. Commit again"
+        echo "     - Update 'Implemented Features'"
+        echo "  4. Stage both files: git add CONTEXT.md AUDIT.md"
+        echo "  5. Commit again"
         echo ""
-        echo "See CONTEXT.md for what to update."
+        echo "See AUDIT.md and CONTEXT.md for what to update."
         echo ""
         echo -e "${YELLOW}To bypass this check (NOT recommended):${NC}"
         echo "  git commit --no-verify"
@@ -75,10 +86,32 @@ if [ -n "$staged_files" ]; then
         fi
     fi
 
+    # Check if AUDIT.md actually has meaningful changes (not just date)
+    audit_diff=$(git diff --cached AUDIT.md | grep '^+' | grep -v '^+++' | grep -v '^+\*\*Last Updated\*\*' | grep -v '^+\*\*Last.*Audit\*\*' | wc -l)
+
+    if [ "$audit_diff" -lt 3 ]; then
+        echo -e "${YELLOW}⚠️  WARNING: AUDIT.md has minimal changes${NC}"
+        echo ""
+        echo "AUDIT.md was modified but changes seem minimal."
+        echo "Did you:"
+        echo "  - Run audit agent to review changes?"
+        echo "  - Update compliance scores?"
+        echo "  - Update feature-specific audit section?"
+        echo "  - Document any drift detected?"
+        echo ""
+        read -p "Continue anyway? (y/N) " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Commit aborted. Please update AUDIT.md with meaningful audit findings."
+            exit 1
+        fi
+    fi
+
     echo -e "${GREEN}✅ CONTEXT.md is being updated${NC}"
+    echo -e "${GREEN}✅ AUDIT.md is being updated${NC}"
 else
-    # Only documentation changes, CONTEXT.md update not required
-    echo -e "${GREEN}✅ Documentation-only changes, CONTEXT.md update not required${NC}"
+    # Only documentation changes, dual-file update not required
+    echo -e "${GREEN}✅ Documentation-only changes, CONTEXT.md and AUDIT.md update not required${NC}"
 fi
 
 # Additional checks

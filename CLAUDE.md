@@ -1,6 +1,6 @@
 # AI Assistant Guide for CogStack NLP
 
-**Version**: 1.5.0
+**Version**: 1.6.0
 **Last Updated**: 2025-11-18
 **Purpose**: Guide AI assistants (Claude Code, GitHub Copilot, etc.) on project conventions and best practices
 
@@ -31,7 +31,9 @@
 
 **Why this matters**: Prevents context loss between sessions, ensures you have complete picture before coding.
 
-**Update requirement**: CONTEXT.md MUST be updated with EVERY commit (no exceptions).
+**Update requirement**: BOTH CONTEXT.md AND AUDIT.md MUST be updated with EVERY code commit (no exceptions).
+- **CONTEXT.md** = Technical memory (what changed, why, how)
+- **AUDIT.md** = Compliance audit (PRD alignment, drift detection)
 
 **Read it now**: [CONTEXT.md](CONTEXT.md) (15-20 minutes)
 
@@ -896,7 +898,7 @@ cat CONTEXT.md
 **Time investment**: 15-20 minutes
 **Return**: Complete context, no repeated questions, consistent decisions
 
-**Update requirement**: You MUST update CONTEXT.md before committing code (git hook enforces this)
+**Update requirement**: You MUST update BOTH CONTEXT.md AND AUDIT.md before committing code (git hook enforces dual-file requirement)
 
 ---
 
@@ -1470,6 +1472,12 @@ CONTEXT.md Updates:
 - [If applicable] Moved feature to "Implemented"
 - [If applicable] Noted technical debt: [description]
 
+AUDIT.md Updates:
+- Ran auditor subagent (quick/full/comprehensive audit)
+- Updated compliance scores for affected features
+- [If applicable] Documented drift items detected
+- [If applicable] Updated compliance trends
+
 [Optional for agent-generated code]
 AI Context:
 - Specification: .specify/specifications/{name}.md
@@ -1477,7 +1485,7 @@ AI Context:
 - Session: {date/time}
 ```
 
-**⚠️ IMPORTANT**: The "CONTEXT.md Updates" section is MANDATORY for code commits. Git hook will verify CONTEXT.md is modified.
+**⚠️ IMPORTANT**: BOTH "CONTEXT.md Updates" and "AUDIT.md Updates" sections are MANDATORY for code commits. Git hook enforces dual-file requirement.
 
 ### Type Values
 
@@ -1594,18 +1602,24 @@ fix stuff
 - [ ] No debug code (console.log, breakpoints)
 - [ ] .gitignore updated for new files
 
-#### 🔴 CONTEXT.md Update (MANDATORY)
-- [ ] **CONTEXT.md updated** (required for ALL commits)
-- [ ] Architecture changes documented (if applicable)
-- [ ] ADR added for major decisions
-- [ ] "Recent Changes" section updated
-- [ ] "Implemented Features" or "In Progress" updated
-- [ ] Integration points documented (if new services added)
-- [ ] Technical debt noted (if shortcuts taken)
+#### 🔴 Dual-File Update (MANDATORY)
+- [ ] **CONTEXT.md updated** (required for ALL code commits)
+  - [ ] Architecture changes documented (if applicable)
+  - [ ] ADR added for major decisions
+  - [ ] "Recent Changes" section updated
+  - [ ] "Implemented Features" or "In Progress" updated
+  - [ ] Integration points documented (if new services added)
+  - [ ] Technical debt noted (if shortcuts taken)
 
-**⚠️ NO COMMIT WITHOUT CONTEXT.MD UPDATE**
+- [ ] **AUDIT.md updated** (required for ALL code commits)
+  - [ ] Ran auditor subagent (quick/full/comprehensive)
+  - [ ] Updated compliance scores for affected features
+  - [ ] Documented drift items (if detected)
+  - [ ] Updated compliance trends (if changed)
 
-See [CONTEXT.md](CONTEXT.md) for what to update.
+**⚠️ NO COMMIT WITHOUT BOTH CONTEXT.MD AND AUDIT.MD UPDATES**
+
+See [CONTEXT.md](CONTEXT.md) for technical memory and [AUDIT.md](AUDIT.md) for PRD compliance audit.
 
 ---
 
@@ -1877,6 +1891,8 @@ FHIR R4 spec allows both. Which fits our use case better?"
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.6.0 | 2025-11-18 | Dual-file requirement (CONTEXT.md + AUDIT.md), dedicated auditor subagent |
+| 1.5.0 | 2025-11-18 | 5-layer validation framework with BLOCKING hooks for API changes |
 | 1.0.0 | 2025-01-07 | Initial version |
 
 ---

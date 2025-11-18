@@ -94,6 +94,147 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-18] - Dual-File Audit System with Dedicated Auditor Subagent (Quality Assurance Enhancement)
+
+**Commits**: (this commit) - Implement dual-file audit system for continuous PRD compliance review
+
+**Added**:
+- **AUDIT.md** (root directory):
+  - Central audit trail for PRD compliance (separate from CONTEXT.md)
+  - Feature-by-feature compliance scores (Patient Search: 95%, Document Upload: 80%, User Management: 70%, Auth: 100%)
+  - Drift detection log (historical and active drift items)
+  - Compliance trends (by sprint, by category)
+  - Comprehensive audit checklist (endpoints, schemas, errors, security, performance)
+  - Difference from CONTEXT.md clearly documented:
+    - **CONTEXT.md** = Technical memory (what changed, why, how)
+    - **AUDIT.md** = Compliance audit (PRD alignment, drift detection, violations)
+
+- **Auditor Subagent** (`.claude/agents/auditor.md`):
+  - Dedicated Claude Code subagent for continuous PRD compliance review
+  - Has own context window (doesn't pollute main conversation)
+  - Invoked automatically or manually before commits
+  - Three audit scopes: Quick (5-10 min), Full Sprint (30-60 min), Comprehensive Phase (1-2 hours)
+  - Character-by-character PRD comparison methodology
+  - Categorizes findings: ✅ Compliant, ⚠️ Minor Discrepancy, ❌ Breaking Change, 🚨 Drift
+  - Updates AUDIT.md automatically with findings
+  - Comprehensive 500+ line specification of audit process
+
+- **Audit Agent Skill** (`.claude/skills/audit-agent/SKILL.md`):
+  - Guidance for when to spawn auditor subagent
+  - Audit scope level selection (quick, full, comprehensive)
+  - What the auditor checks (endpoints, schemas, errors, security, performance)
+  - Drift detection methodology
+  - AUDIT.md structure documentation
+  - Integration with other validation layers
+
+**Changed**:
+- **Pre-commit Hook** (`.git-hooks/pre-commit`):
+  - Now requires BOTH CONTEXT.md and AUDIT.md to be modified for code commits
+  - BLOCKING: Rejects commits without dual-file updates
+  - Checks for meaningful AUDIT.md changes (>3 lines modified)
+  - Prompts to run auditor subagent if AUDIT.md has minimal changes
+  - Enforces separation: code changes → dual-file requirement
+  - **AI Agent workflow**: Code change → Spawn auditor → Update AUDIT.md → Update CONTEXT.md → Commit
+
+- **CLAUDE.md** (v1.5.0 → v1.6.0):
+  - Updated "Code Quality & Validation" section to reference dual-file requirement
+  - Added AUDIT.md to commit checklist and message format
+  - Documented auditor subagent usage
+  - Updated validation workflow to include AUDIT.md update step
+  - Updated Code Review Checklist: "CONTEXT.md Update" → "Dual-File Update"
+  - Updated 4 sections with dual-file requirement (lines 34-37, 901, 1475-1488, 1605-1622)
+  - Version history updated
+
+**Why**:
+- **Separation of Concerns**:
+  - CONTEXT.md focuses on technical implementation (what changed, why, how)
+  - AUDIT.md focuses on PRD compliance (does it match spec, any drift)
+  - Both perspectives needed for complete project memory
+
+- **Continuous Auditing vs Point-in-Time Validation**:
+  - Validation agent: Reviews NEW code before commit
+  - Auditor subagent: Reviews ALL code (new + existing) continuously
+  - Detects drift over time (gradual divergence from PRD)
+  - Historical trend tracking (compliance improving/declining?)
+
+- **AI Agent Workflow Optimization**:
+  - Dedicated subagent has own context window (no context pollution)
+  - Can run comprehensive audits without affecting main conversation
+  - Automatic invocation when appropriate (model-invoked)
+  - Integrated into Claude Code workflow
+
+- **Drift Prevention**:
+  - Forces reading AUDIT.md before commit (awareness of compliance status)
+  - Documents drift items immediately when detected
+  - Tracks compliance trends (by sprint, by category)
+  - Zero tolerance for untracked drift
+
+**How It Works**:
+
+**Before Every Code Commit**:
+1. Implement feature/fix
+2. **Spawn auditor subagent** (manually or automatically):
+   - Quick audit: `> Use the auditor subagent to review recent changes against PRD`
+   - Full audit: `> Use the auditor subagent to conduct a full Sprint 1 audit`
+3. Auditor reviews implementation vs PRD
+4. Auditor updates AUDIT.md with findings
+5. Developer reads AUDIT.md (awareness of compliance status)
+6. If breaking changes found → Fix immediately
+7. Update CONTEXT.md with technical details
+8. **Commit with both files staged**
+
+**Pre-commit Hook Enforcement**:
+```bash
+# Code files modified
+git add backend/app/api/v1/endpoints/patients.py
+
+# Hook detects code change
+# Hook checks if CONTEXT.md modified → ❌ NO
+# Hook checks if AUDIT.md modified → ❌ NO
+
+# ❌ ERROR: Both CONTEXT.md and AUDIT.md must be updated!
+# Required actions:
+#   1. Spawn audit agent to review changes
+#   2. Update AUDIT.md based on findings
+#   3. Update CONTEXT.md with technical details
+#   4. git add CONTEXT.md AUDIT.md
+#   5. Commit again
+```
+
+**Dual-File Requirement Benefits**:
+- ✅ Complete project memory (technical + compliance perspectives)
+- ✅ Drift detected and documented immediately
+- ✅ Compliance trends tracked over time
+- ✅ Separation of concerns (implementation vs audit)
+- ✅ AI agent workflow enforced (mandatory audit for code changes)
+- ✅ Forces awareness of PRD compliance status before every commit
+
+**Impact**:
+- ✅ Zero PRD drift tolerance (all drift tracked and documented)
+- ✅ Historical compliance trends visible (improving/declining?)
+- ✅ Separation of implementation and audit concerns
+- ✅ Complete project memory across sessions (CONTEXT + AUDIT)
+- ✅ AI agent workflow optimized (dedicated subagent, own context)
+- ✅ Mandatory audit for all code changes (hook-enforced)
+
+**Files Added/Modified**:
+1. `AUDIT.md` (NEW - 355 lines, comprehensive audit trail)
+2. `.claude/agents/auditor.md` (NEW - 378 lines, dedicated subagent)
+3. `.claude/skills/audit-agent/SKILL.md` (NEW - guidance for using auditor)
+4. `.git-hooks/pre-commit` (UPDATED - dual-file requirement enforced)
+5. `CLAUDE.md` (UPDATED - v1.4.0, dual-file commit requirement documented)
+
+**Technical Debt**: None introduced
+
+**Audit System Status**:
+- ✅ AUDIT.md created with initial compliance scores
+- ✅ Auditor subagent created and documented
+- ✅ Pre-commit hook updated to enforce dual-file requirement
+- ✅ CLAUDE.md updated with audit workflow
+- 🎯 **Next**: Run first comprehensive audit (Sprint 1 + Phase 3) to validate system
+
+---
+
 #### [2025-11-18] - Multi-Layered PRD Validation System (Quality Assurance Enhancement)
 
 **Commits**: (this commit) - Implement 5-layer PRD compliance validation system
