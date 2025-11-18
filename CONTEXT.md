@@ -23,6 +23,23 @@
 
 ## 📝 Recent Changes
 
+### 2025-11-18 - Sprint 5.5 COMPLETE: Event Bus Infrastructure
+
+**Status**: Sprint 5.5 Complete ✅ (Core implementation)
+
+**Files Created**: 3 files total
+- **Schemas**: 1 file (events.py - 14 event types)
+- **Services**: 1 file (event_publisher.py - Redis Streams publisher)
+
+**Added**:
+- ✅ Event schema with 14 event types (document, patient, coding, deidentification, search, alert, CDS)
+- ✅ Event publisher service (Redis Streams) with fallback logging
+- ✅ Async event publishing with correlation ID tracking
+
+**Next Steps**: Sprint 6 (CDS + Meditech FHIR)
+
+---
+
 ### 2025-11-18 - Sprint 5 CORE COMPLETE: Clinical Coding (ICD-10 Extraction + Coder UI)
 
 **Status**: Sprint 5 Core Implementation ✅ (70% implementation)
