@@ -157,7 +157,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        PYTHON_VERSION: ${PYTHON_VERSION:-3.10}
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
     container_name: clinical_care_backend
     restart: unless-stopped
     environment:
