@@ -48,19 +48,82 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - API Endpoints: /api/v1/auth/login, /api/v1/auth/logout, /api/v1/auth/me, /api/v1/health
   - Frontend: Vue 3 + Vite + Vuetify project structure ready
   - Setup: Automated first-time setup script
-- 🚧 **Phase 2 (User Management)**: IN PROGRESS - 1/12 tasks (0.5h so far)
+- 🚧 **Phase 2 (User Management)**: IN PROGRESS - 2/12 tasks (1.0h so far)
   - ✅ Task 2.1: User CRUD API (GET list, GET by ID, POST create, PUT update, DELETE soft-delete)
-  - ⏸️ Tasks 2.2-2.12: Role management, break-glass, profile, search, deactivation, password reset, sessions, tests, frontend, permissions, activity logs
+  - ✅ Task 2.2: Role Management API (List roles, get role details, get user permissions, assign role)
+  - ⏸️ Tasks 2.3-2.12: Break-glass, profile, search, deactivation, password reset, sessions, tests, frontend, permissions, activity logs
 - ⏸️ **Phases 3-7**: Pending (Document Mgmt, Patient Search, Testing, Deployment, Documentation)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: `681bc6e6` - User CRUD API (Phase 2.1)
+**Latest Commit**: TBD - Role Management API (Phase 2.2)
 **Sprint**: MVP - Phase 2 User Management
-**Next Task**: Phase 2.2 - Role Management API
+**Next Task**: Phase 2.3 - Break-Glass Workflow
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-18] - Task 2.2: Role Management API
+
+**Commits**: TBD - Role Management API implementation
+
+**Added**:
+- Role and Permission definitions (`backend/app/models/role.py`):
+  - `RoleEnum` (clinician, researcher, admin)
+  - `Permission` enum with 20+ granular permissions
+  - `ROLE_PERMISSIONS_MAP` defining permissions for each role
+  - Helper functions: `get_role_permissions()`, `user_has_permission()`, `get_all_roles()`
+- Role management schemas (`backend/app/schemas/role.py`):
+  - `RoleListResponse`, `RoleInfo`, `UserPermissionsResponse`, `RoleAssignRequest`
+- Role Management API endpoints (`backend/app/api/v1/endpoints/roles.py`):
+  - `GET /api/v1/roles` - List all roles with permissions (all authenticated users)
+  - `GET /api/v1/roles/{role}` - Get role details (all authenticated users)
+  - `GET /api/v1/roles/users/{id}/permissions` - Get user's effective permissions (self or admin)
+  - `PUT /api/v1/roles/users/{id}/role` - Assign role to user with reason (admin only)
+- Comprehensive tests (`backend/tests/api/v1/endpoints/test_roles.py`):
+  - 15 tests covering list, get, permissions query, role assignment
+  - Authorization tests (self vs admin access)
+  - Edge cases (cannot change own role, role not found, non-admin forbidden)
+- Router registration in `backend/app/main.py`
+
+**Changed**:
+- None (new feature)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Phase 2, Task 2.2 (Role Management)
+- Provides semantic API for role assignment and permission queries
+- Enables permission-based access control throughout application
+- Documents available permissions for each role
+- Aligns with "Privacy by Design" principle (role-based access control)
+
+**Impact**:
+- ✅ Role management foundation in place
+- ✅ Granular permissions defined (20+ permissions across 6 categories)
+- ✅ Self-service permission discovery (users can view available roles)
+- ✅ Audit logging for role changes with reason
+- ✅ Protection against self-role-change (security)
+- ✅ Foundation for break-glass workflow (Permission.BREAK_GLASS defined)
+- ⚠️ Requires admin account to assign roles
+- ⚠️ Single role per user model (not multi-role)
+
+**Migration Notes**:
+- No database migrations required (role stored as enum in users.role)
+- API endpoints immediately available at `/api/v1/roles/*`
+- Permission model is code-based (not database-stored)
+
+**Technical Debt**:
+- None (clean implementation)
+
+**Design Pattern**:
+- Static role-permission mapping (ROLE_PERMISSIONS_MAP)
+- Enum-based permissions for type safety
+- Semantic API wrappers (role assignment vs generic user update)
+- Audit logging with reason field for role changes
+
+---
 
 #### [2025-11-18] - Task 2.1: User CRUD API
 
