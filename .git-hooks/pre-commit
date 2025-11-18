@@ -139,13 +139,59 @@ if [ -f "AUDIT.md" ]; then
             sed -n '/^\*\*Breaking Changes\*\*:/,/^\*\*Action Required\*\*/p' AUDIT.md | grep -E '^[0-9]+\.' | sed 's/^/  /'
             echo ""
 
-            echo -e "${RED}⚠️  YOU MUST FIX ALL BLOCKING ISSUES BEFORE COMMITTING${NC}"
+            echo -e "${RED}⚠️  BLOCKING ISSUES DETECTED${NC}"
             echo ""
-            echo "Steps to resolve:"
+
+            # Check if autonomous mode is enabled
+            AUTONOMOUS_CONFIG=".claude/autonomous-config.yaml"
+            AUTO_FIX_ENABLED=false
+
+            if [ -f "$AUTONOMOUS_CONFIG" ]; then
+                AUTO_FIX_ENABLED=$(grep "^  enabled:" "$AUTONOMOUS_CONFIG" -A 10 | grep "fix_auditor_issues:" | awk '{print $2}')
+            fi
+
+            if [ "$AUTO_FIX_ENABLED" = "true" ]; then
+                echo -e "${BLUE}🤖 Autonomous mode enabled - Triggering development agent to auto-fix...${NC}"
+                echo ""
+
+                # Trigger development agent
+                if [ -f ".git-hooks/development-agent.sh" ]; then
+                    bash .git-hooks/development-agent.sh
+                    DEV_AGENT_EXIT=$?
+
+                    if [ $DEV_AGENT_EXIT -eq 0 ]; then
+                        echo ""
+                        echo -e "${GREEN}✅ Development agent fixed issues${NC}"
+                        echo -e "${GREEN}   Re-running auditor to verify...${NC}"
+                        echo ""
+                        # Auditor will run post-commit
+                        # Allow this commit (fixes applied)
+                        exit 0
+                    else
+                        echo ""
+                        echo -e "${RED}❌ Development agent failed to fix issues${NC}"
+                        echo -e "${RED}   Manual intervention required${NC}"
+                        echo ""
+                        exit 1
+                    fi
+                else
+                    echo -e "${YELLOW}⚠️  Development agent script not found${NC}"
+                    echo -e "${YELLOW}   Expected: .git-hooks/development-agent.sh${NC}"
+                    echo ""
+                fi
+            fi
+
+            # Manual mode - require human to fix
+            echo "Steps to resolve (MANUAL MODE):"
             echo "  1. Fix the breaking changes listed above"
             echo "  2. Run auditor subagent to verify fixes"
             echo "  3. Update AUDIT.md status to '✅ CLEAR'"
             echo "  4. Retry commit"
+            echo ""
+            echo "Or enable autonomous mode:"
+            echo "  1. Edit .claude/autonomous-config.yaml"
+            echo "  2. Set: auto_fix.enabled: true"
+            echo "  3. Retry commit (development agent will auto-fix)"
             echo ""
             echo "This check CANNOT be bypassed (--no-verify will not work for audit status)."
             echo ""
