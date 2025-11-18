@@ -85,6 +85,60 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-18] - Bug Fixes & Documentation Improvements
+
+**Commits**: (pending commit) - Fix MedCAT v2 mutable defaults bug + documentation clarity improvements
+
+**Added**:
+- **MedCAT v2 Test Coverage** (`medcat-v2/tests/utils/regression/test_results.py`):
+  - `SingleResultDescriptorMutableDefaultsTests`: 3 regression tests for mutable defaults fix
+  - Verifies instances don't share underlying dict/list objects
+  - Tests: findings isolation, examples isolation, multi-instance independence
+
+- **Implementation Status Documentation** (`.specify/specifications/_IMPLEMENTATION_STATUS.md`):
+  - Central reference document clarifying what exists vs what's planned
+  - Categorized all specs: ✅ IMPLEMENTED, 🚧 PARTIALLY IMPLEMENTED, ❌ NOT IMPLEMENTED
+  - FAQ explaining Spec-Kit methodology and implementation roadmap
+  - Quick reference for contributors to understand current system state
+
+**Changed**:
+- **MedCAT v2 Bug Fix** (`medcat-v2/medcat/utils/regression/results.py:372-374`):
+  - Fixed mutable default arguments in `SingleResultDescriptor` class
+  - Before: `findings: dict[Finding, int] = {}` (shared between instances - BUG)
+  - After: `findings: dict[Finding, int] = pydantic.Field(default_factory=dict)` (isolated per instance)
+  - Before: `examples: list[...] = []` (shared between instances - BUG)
+  - After: `examples: list[...] = pydantic.Field(default_factory=list)` (isolated per instance)
+  - **Impact**: Prevents data leakage between multiple regression descriptor instances
+
+- **Documentation Clarity**:
+  - `medcat-v2/README.md:1`: Fixed typo "oncept" → "Concept" in title
+  - `.specify/specifications/clinical-care-tools-base-app.md`: Added ⚠️ warning banner clarifying this is future/planned architecture
+  - `.specify/specifications/patient-search.md`: Added ⚠️ warning banner explaining Phase 4 is not yet implemented
+
+**Removed**:
+- None
+
+**Why**:
+- **Mutable Defaults Bug**: Classic Python anti-pattern causing unexpected behavior (data leakage between instances)
+- **Documentation Clarity**: Prevent confusion about what's implemented vs planned (many specs describe future architecture)
+- **Test Coverage**: Ensure bug stays fixed (regression test for mutable defaults)
+- **Professional Polish**: Fix user-facing typos in README
+
+**Impact**:
+- ✅ **Code Quality**: Fixed real bug in MedCAT v2 regression utilities
+- ✅ **Contributor Clarity**: New contributors understand what exists vs what's planned
+- ✅ **Test Coverage**: 3 new tests ensure mutable defaults bug doesn't return
+- 📊 **Documentation**: _IMPLEMENTATION_STATUS.md provides central reference for current state
+
+**Migration Notes**:
+- No migration needed (bug fix is backward compatible)
+- Tests require full MedCAT v2 dependencies to run (packaging, etc.)
+
+**Technical Debt**:
+- None (bug fix complete, tests added, documentation improved)
+
+---
+
 #### [2025-11-18] - Option B: Governance & Production Readiness
 
 **Commits**: (pending commit) - Production readiness: backup scripts, Docker hardening, retroactive Spec-Kit documentation

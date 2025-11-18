@@ -339,3 +339,64 @@ class SingleResultDescriptorSerialisationTests(unittest.TestCase):
         d_lenient = self.rd.model_dump(strictness='NORMAL')
         e_normal = d_lenient['examples']
         self.assertGreater(len(e_strictest), len(e_normal))
+
+
+class SingleResultDescriptorMutableDefaultsTests(unittest.TestCase):
+    """Test that SingleResultDescriptor doesn't have mutable default bugs.
+
+    This regression test ensures that multiple instances of SingleResultDescriptor
+    don't share the same underlying dict/list objects, which was a bug fixed by
+    using pydantic.Field(default_factory=...) instead of mutable defaults.
+    """
+
+    def test_findings_not_shared_between_instances(self):
+        """Test that findings dict is not shared between instances."""
+        # Create first instance without explicit findings
+        rd1 = SingleResultDescriptor(name="test1")
+        # Create second instance without explicit findings
+        rd2 = SingleResultDescriptor(name="test2")
+
+        # Modify rd1's findings
+        rd1.findings[Finding.IDENTICAL] = 5
+
+        # rd2's findings should NOT be affected
+        self.assertNotIn(Finding.IDENTICAL, rd2.findings)
+        self.assertEqual(len(rd2.findings), 0)
+
+    def test_examples_not_shared_between_instances(self):
+        """Test that examples list is not shared between instances."""
+        # Create first instance without explicit examples
+        rd1 = SingleResultDescriptor(name="test1")
+        # Create second instance without explicit examples
+        rd2 = SingleResultDescriptor(name="test2")
+
+        # Create example tuple
+        example = (FinalTarget(placeholder='$', cui='CUI1',
+                              name='NAME1', final_phrase='FINAL PHRASE'),
+                  (Finding.IDENTICAL, None))
+
+        # Add example to rd1
+        rd1.examples.append(example)
+
+        # rd2's examples should NOT be affected
+        self.assertEqual(len(rd2.examples), 0)
+
+    def test_multiple_instances_independent(self):
+        """Test that multiple instances maintain independent state."""
+        # Create three instances
+        rd1 = SingleResultDescriptor(name="test1")
+        rd2 = SingleResultDescriptor(name="test2")
+        rd3 = SingleResultDescriptor(name="test3")
+
+        # Modify each independently
+        rd1.findings[Finding.IDENTICAL] = 1
+        rd2.findings[Finding.FAIL] = 2
+        rd3.findings[Finding.FOUND_OTHER] = 3
+
+        # Each should have only its own finding
+        self.assertEqual(len(rd1.findings), 1)
+        self.assertEqual(len(rd2.findings), 1)
+        self.assertEqual(len(rd3.findings), 1)
+        self.assertIn(Finding.IDENTICAL, rd1.findings)
+        self.assertIn(Finding.FAIL, rd2.findings)
+        self.assertIn(Finding.FOUND_OTHER, rd3.findings)

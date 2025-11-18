@@ -1,7 +1,17 @@
 # Specification: Patient Search & Discovery
 
+> ⚠️ **IMPORTANT: This document describes planned functionality for Phase 4 that is NOT YET IMPLEMENTED.**
+>
+> **Current State**: Specification complete, implementation pending.
+>
+> **Prerequisites Met**: Phase 3 (Document Management) provides the foundation (patients, documents, extracted_entities tables).
+>
+> **Next Step**: Implementation will begin with Task 4.1 (Database Indexes) - see [patient-search-tasks.md](../tasks/patient-search-tasks.md)
+
+---
+
 **Version**: 1.0.0
-**Status**: Draft
+**Status**: Draft (PLANNED - Phase 4)
 **Created**: 2025-11-18
 **Phase**: 4 (Patient Search)
 **Sprint**: 1 (Foundation)
