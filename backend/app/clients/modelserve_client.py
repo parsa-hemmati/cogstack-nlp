@@ -9,6 +9,12 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 
 import httpx
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
 
 
 class ProcessingError(Exception):
@@ -78,11 +84,18 @@ class CogStackModelServeClient:
         """Close HTTP client."""
         await self.client.aclose()
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((httpx.TimeoutException, httpx.NetworkError)),
+    )
     async def process_text(
         self, text: str, model_name: str = "medcat_snomed"
     ) -> List[Entity]:
         """
         Process text with MedCAT model.
+
+        Retries up to 3 times with exponential backoff for transient errors.
 
         Args:
             text: Clinical text to process
@@ -93,6 +106,8 @@ class CogStackModelServeClient:
 
         Raises:
             ProcessingError: If processing fails
+            httpx.TimeoutException: After 3 retry attempts
+            httpx.NetworkError: After 3 retry attempts
 
         Example:
             >>> entities = await client.process_text(

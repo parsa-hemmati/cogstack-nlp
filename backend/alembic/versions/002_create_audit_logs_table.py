@@ -47,7 +47,38 @@ def upgrade() -> None:
     op.create_index('ix_audit_action_timestamp', 'audit_logs', ['action', 'timestamp'])
     op.create_index('ix_audit_resource', 'audit_logs', ['resource_type', 'resource_id'])
 
+    # CRITICAL: Make audit logs IMMUTABLE (HIPAA requirement)
+    # Prevent updates to audit log records
+    op.execute("""
+        CREATE RULE no_update_audit_logs AS
+        ON UPDATE TO audit_logs
+        DO INSTEAD NOTHING;
+    """)
+
+    # Prevent deletion of audit log records
+    op.execute("""
+        CREATE RULE no_delete_audit_logs AS
+        ON DELETE TO audit_logs
+        DO INSTEAD NOTHING;
+    """)
+
 
 def downgrade() -> None:
     """Drop audit_logs table."""
+    # Remove immutability rules first
+    op.execute("DROP RULE IF EXISTS no_delete_audit_logs ON audit_logs;")
+    op.execute("DROP RULE IF EXISTS no_update_audit_logs ON audit_logs;")
+
+    # Drop indexes
+    op.drop_index('ix_audit_resource')
+    op.drop_index('ix_audit_action_timestamp')
+    op.drop_index('ix_audit_user_timestamp')
+    op.drop_index('ix_audit_logs_timestamp')
+    op.drop_index('ix_audit_logs_resource_id')
+    op.drop_index('ix_audit_logs_resource_type')
+    op.drop_index('ix_audit_logs_action')
+    op.drop_index('ix_audit_logs_user_id')
+    op.drop_index('ix_audit_logs_id')
+
+    # Drop table
     op.drop_table('audit_logs')

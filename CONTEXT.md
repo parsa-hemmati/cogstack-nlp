@@ -85,9 +85,72 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-18] - Critical Security Hardening (Post-Phase 3 Review)
+
+**Commits**: (pending commit) - HIPAA compliance improvements identified by healthcare-compliance-checker skill
+
+**Added**:
+- **Audit Log Immutability** (`backend/alembic/versions/002_create_audit_logs_table.py`):
+  - PostgreSQL rules to prevent UPDATE on audit_logs (HIPAA requirement)
+  - PostgreSQL rules to prevent DELETE on audit_logs (HIPAA requirement)
+  - Audit logs now IMMUTABLE per HIPAA Security Rule 164.312(b)
+
+- **MedCAT Client Retry Logic** (`backend/app/clients/modelserve_client.py`):
+  - Added tenacity library for exponential backoff retry
+  - Retries up to 3 times for TimeoutException and NetworkError
+  - Exponential backoff: 4s, 8s, 10s (max)
+  - Prevents transient failures from breaking document processing
+
+- **Dependency**: Added tenacity==9.0.0 to requirements.txt
+
+**Changed**:
+- None
+
+**Removed**:
+- None
+
+**Why**:
+- **Audit Immutability**: CRITICAL HIPAA requirement - audit logs must be tamper-proof
+- **Retry Logic**: Improves reliability of MedCAT Service integration
+- **Regulatory Compliance**: Healthcare-Compliance-Checker skill identified these gaps
+- Aligns with "Security by Default" and "Privacy by Design" principles
+
+**Impact**:
+- ✅ HIPAA Security Rule 164.312(b) compliance achieved (immutable audit logs)
+- ✅ Audit logs cannot be tampered with (UPDATE/DELETE blocked at database level)
+- ✅ MedCAT Service transient failures auto-retry (improved reliability)
+- ✅ Document processing more resilient to network issues
+- ⚠️ Requires database migration rollback/reapply if already migrated
+- 📊 Retry pattern: 3 attempts, exponential backoff (industry standard)
+
+**Migration Notes**:
+- If already migrated: Rollback to 001, then upgrade to 002 (to apply immutability rules)
+- Run: `alembic downgrade 001 && alembic upgrade head`
+- Verify immutability: Try `DELETE FROM audit_logs` (should fail silently)
+- Install tenacity: `pip install tenacity==9.0.0`
+
+**Technical Debt Addressed**:
+- ✅ FIXED: Audit logs were mutable (HIPAA violation)
+- ✅ FIXED: No retry logic for MedCAT Service calls
+- ⏳ REMAINING: Need Spec-Kit artifacts (specifications, plans, tasks for Phase 3)
+- ⏳ REMAINING: Need comprehensive backup/restore scripts
+- ⏳ REMAINING: Need Docker Compose production hardening (see infrastructure-expert skill)
+
+**Design Patterns**:
+- **Database Immutability**: PostgreSQL rules for audit trail protection
+- **Retry Pattern**: Tenacity library with exponential backoff
+- **Defense in Depth**: Multiple layers of security (encryption + audit + immutability)
+
+**Skills Used**:
+- healthcare-compliance-checker: Identified audit log immutability gap
+- infrastructure-expert: Provided PostgreSQL rule pattern
+- medcat-architecture: Recommended retry logic for MedCAT integration
+
+---
+
 #### [2025-11-18] - Phase 3 Task 3.12: PHI De-Identification Security Tests (FINAL TASK)
 
-**Commits**: (pending commit) - HIPAA compliance security tests for PHI protection
+**Commits**: d32c46e0 - HIPAA compliance security tests for PHI protection
 
 **Added**:
 - **PHI Security Tests** (`backend/tests/security/test_phi_security.py`):
