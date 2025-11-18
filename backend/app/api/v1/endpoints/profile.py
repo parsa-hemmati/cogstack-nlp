@@ -15,6 +15,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserChangePassword, UserResponse, UserUpdate
 from app.services.audit_service import AuditService
+from app.services.session_service import session_service
 
 router = APIRouter()
 audit_service = AuditService()
@@ -164,10 +165,11 @@ async def change_my_password(
 
     await db.commit()
 
-    # TODO: Invalidate all existing sessions for security (Task 2.8)
-    # After password change, all other sessions should be invalidated
-    # This prevents compromised sessions from remaining active
-    # Implementation: await session_service.invalidate_all_user_sessions(user_id=str(current_user.id))
+    # Invalidate all existing sessions for security (except current one handled by client)
+    # After password change, all sessions should be invalidated to prevent compromised sessions
+    invalidated_count = await session_service.invalidate_all_user_sessions(
+        user_id=str(current_user.id)
+    )
 
     # Audit log (IMPORTANT: password changes must be logged)
     await audit_service.log_action(
@@ -176,7 +178,7 @@ async def change_my_password(
         action="CHANGE_PASSWORD",
         resource_type="user",
         resource_id=str(current_user.id),
-        details={"method": "self-service"},
+        details={"method": "self-service", "sessions_invalidated": invalidated_count},
     )
 
     return None

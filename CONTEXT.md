@@ -48,25 +48,102 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - API Endpoints: /api/v1/auth/login, /api/v1/auth/logout, /api/v1/auth/me, /api/v1/health
   - Frontend: Vue 3 + Vite + Vuetify project structure ready
   - Setup: Automated first-time setup script
-- 🚧 **Phase 2 (User Management)**: IN PROGRESS - 7/12 tasks (2.0h so far, 58% complete)
+- 🚧 **Phase 2 (User Management)**: IN PROGRESS - 10/12 tasks (2.5h so far, 83% complete)
   - ✅ Task 2.1: User CRUD API (GET list, GET by ID, POST create, PUT update, DELETE soft-delete)
   - ✅ Task 2.2: Role Management API (List roles, get role details, get user permissions, assign role)
   - ✅ Task 2.3: Break-Glass Workflow (Emergency access with justification, audit logs)
   - ✅ Task 2.4: User Profile Management (Get profile, update own email)
+  - ✅ Task 2.5: User Search API (Search by username/email, case-insensitive, paginated)
   - ✅ Task 2.6: User Deactivation (already implemented in Task 2.1 soft delete)
   - ✅ Task 2.7: Password Reset (Change own password with current password verification)
+  - ✅ Task 2.8: Session Management (List sessions, revoke session, revoke all sessions)
   - ✅ Task 2.11: User Permissions System (already implemented in Task 2.2)
-  - ⏸️ Tasks 2.5, 2.8-2.10, 2.12: Search, sessions, tests, frontend, activity logs
+  - ✅ Task 2.12: User Activity Logs (View own activity, admins view any user activity)
+  - ⏸️ Tasks 2.9-2.10: Integration tests, frontend UI
 - ⏸️ **Phases 3-7**: Pending (Document Mgmt, Patient Search, Testing, Deployment, Documentation)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: `45e3b55e` - Profile Management + Password Reset (Tasks 2.4+2.7)
+**Latest Commit**: (pending commit) - Search + Sessions + Activity Logs (Tasks 2.5+2.8+2.12)
 **Sprint**: MVP - Phase 2 User Management
-**Next Task**: Batch 2.5+2.8+2.12 (Search, Sessions, Activity Logs)
+**Next Task**: Task 2.9 (API Integration Tests), Task 2.10 (Frontend UI)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-18] - Tasks 2.5+2.8+2.12: Search + Sessions + Activity Logs
+
+**Commits**: (pending commit) - Final backend endpoints batch
+
+**Added**:
+- User Search API (`backend/app/api/v1/endpoints/users.py`):
+  - `GET /api/v1/users/search?query={term}` - Search users by username/email (admin only)
+  - Case-insensitive partial match (ILIKE query)
+  - Paginated results (default 20 per page, max 100)
+  - Minimum 2-character query requirement
+- Session Management API (`backend/app/api/v1/endpoints/sessions.py`):
+  - `GET /api/v1/sessions/me` - List all active sessions for current user (marks current session)
+  - `DELETE /api/v1/sessions/{session_id}` - Revoke specific session (logout from device)
+  - `DELETE /api/v1/sessions/me/all` - Revoke all sessions except current (logout from all other devices)
+  - Ownership verification (users can only revoke own sessions)
+- User Activity Logs API (`backend/app/api/v1/endpoints/users.py`):
+  - `GET /api/v1/users/{user_id}/activity` - View user activity logs (paginated)
+  - Authorization: Users can view own logs, admins can view any user logs
+  - Optional action filter (e.g., `?action=LOGIN`)
+  - Logs viewing audit logs (meta-audit)
+- Enhanced session service (`backend/app/services/session_service.py`):
+  - `list_user_sessions()` - Retrieve all active sessions for user from Redis
+  - `invalidate_all_user_sessions()` - Security method for password changes
+- Schemas for audit logs and sessions (`backend/app/schemas/audit.py`, `backend/app/schemas/session.py`):
+  - AuditLogEntry, AuditLogListResponse
+  - SessionInfo with is_current indicator, SessionListResponse
+- Router registration in `backend/app/main.py`
+
+**Changed**:
+- None (new features)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Phase 2, Tasks 2.5, 2.8, 2.12 (final backend endpoints)
+- Enables admins to search users efficiently (autocomplete, user lookup)
+- Allows users to manage their sessions (security best practice - view active devices, revoke compromised sessions)
+- Provides transparency into user activity (audit log access, security investigations)
+- Completes backend API surface for user management
+- Aligns with "Transparency" principle (users see their own sessions and activity)
+- Aligns with "Privacy by Design" principle (users control their session security)
+
+**Impact**:
+- ✅ User search functionality for admins (supports user management workflows)
+- ✅ Session management for all users (view active sessions, logout from specific devices)
+- ✅ Activity log access (users see their own actions, admins investigate security events)
+- ✅ All endpoints audit logged (comprehensive audit trail)
+- ✅ 10/12 Phase 2 tasks complete (83% progress)
+- ⚠️ Session revocation requires Redis connectivity
+- ⚠️ Activity logs may be large for high-activity users (pagination required)
+
+**Migration Notes**:
+- No database migrations required (uses existing audit_logs table)
+- API endpoints immediately available at `/api/v1/sessions/*` and `/api/v1/users/search`, `/api/v1/users/{id}/activity`
+- Redis must be running for session management operations
+
+**Security Enhancement**:
+- ✅ Implemented session invalidation after password changes (all sessions revoked for security)
+  - Password change now calls `invalidate_all_user_sessions()` automatically
+  - Invalidated session count tracked in audit log
+  - Prevents compromised sessions from remaining active after password reset
+
+**Technical Debt**:
+- No rate limiting on search endpoint (acceptable for MVP, add if abuse occurs)
+
+**Design Pattern**:
+- Self-service session management (users control their security)
+- Authorization layers (users can only access own data unless admin)
+- Meta-audit (viewing audit logs is itself audited)
+- Ownership verification (session revocation requires ownership check)
+
+---
 
 #### [2025-11-18] - Tasks 2.4+2.7: Profile Management + Password Reset
 

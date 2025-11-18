@@ -3,7 +3,7 @@ Session Management Service
 Redis-based session storage and management
 """
 import json
-from typing import Optional
+from typing import List, Optional
 from redis.asyncio import Redis
 from app.models.session import Session
 from app.core.config import settings
@@ -71,6 +71,31 @@ class SessionService:
         key = f"session:{session_id}"
         await redis.delete(key)
 
+    async def list_user_sessions(self, user_id: str) -> List[Session]:
+        """
+        List all active sessions for a user.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            List of active sessions
+        """
+        redis = await self.get_redis()
+        pattern = "session:*"
+        sessions = []
+
+        async for key in redis.scan_iter(match=pattern):
+            value = await redis.get(key)
+            if value:
+                session = Session.model_validate_json(value)
+                if session.user_id == user_id:
+                    sessions.append(session)
+
+        # Sort by created_at descending (newest first)
+        sessions.sort(key=lambda s: s.created_at, reverse=True)
+        return sessions
+
     async def delete_user_sessions(self, user_id: str) -> int:
         """
         Delete all sessions for a user.
@@ -94,6 +119,20 @@ class SessionService:
                     deleted += 1
 
         return deleted
+
+    async def invalidate_all_user_sessions(self, user_id: str) -> int:
+        """
+        Invalidate all sessions for a user (alias for delete_user_sessions).
+
+        Used after password changes for security.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            Number of sessions invalidated
+        """
+        return await self.delete_user_sessions(user_id)
 
 
 # Global session service instance

@@ -10,7 +10,7 @@ Endpoints for user management:
 All operations include RBAC protection and audit logging.
 """
 import math
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -22,6 +22,7 @@ from app.core.security import get_current_user, require_role
 from app.db.session import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User
+from app.schemas.audit import AuditLogEntry, AuditLogListResponse
 from app.schemas.user import (
     UserCreate,
     UserListResponse,
@@ -87,6 +88,73 @@ async def list_users(
         action="LIST_USERS",
         resource_type="user",
         details={"page": page, "page_size": page_size, "filters": {"role": role, "is_active": is_active}},
+    )
+
+    # Calculate total pages
+    total_pages = math.ceil(total / page_size) if total > 0 else 0
+
+    return UserListResponse(
+        items=[UserResponse.model_validate(user) for user in users],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+
+
+@router.get("/search", response_model=UserListResponse, status_code=status.HTTP_200_OK)
+async def search_users(
+    query: str = Query(..., min_length=2, description="Search query (username, email)"),
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page (max 100)"),
+    current_user: User = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Search users by username or email (admin only).
+
+    Case-insensitive partial match search.
+
+    Args:
+        query: Search query (min 2 chars)
+        page: Page number (1-indexed)
+        page_size: Items per page (max 100)
+        current_user: Current authenticated admin user
+        db: Database session
+
+    Returns:
+        Paginated list of matching users
+
+    Raises:
+        HTTPException: 403 if not admin
+    """
+    # Build search query (case-insensitive partial match)
+    search_pattern = f"%{query}%"
+    search_query = select(User).where(
+        (User.username.ilike(search_pattern)) | (User.email.ilike(search_pattern))
+    )
+
+    # Get total count
+    count_query = select(func.count()).select_from(search_query.subquery())
+    count_result = await db.execute(count_query)
+    total = count_result.scalar()
+
+    # Apply pagination
+    offset = (page - 1) * page_size
+    search_query = (
+        search_query.offset(offset).limit(page_size).order_by(User.created_at.desc())
+    )
+
+    # Execute query
+    result = await db.execute(search_query)
+    users = result.scalars().all()
+
+    # Audit log
+    await audit_service.log_action(
+        db=db,
+        user=current_user,
+        action="SEARCH_USERS",
+        resource_type="user",
+        details={"query": query, "results_count": len(users)},
     )
 
     # Calculate total pages
@@ -380,3 +448,90 @@ async def delete_user(
     )
 
     return None
+
+
+@router.get("/{user_id}/activity", response_model=AuditLogListResponse, status_code=status.HTTP_200_OK)
+async def get_user_activity_logs(
+    user_id: UUID,
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page (max 100)"),
+    action: Optional[str] = Query(None, description="Filter by action type"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get activity logs for a user.
+
+    Users can view their own activity logs. Admins can view any user's logs.
+
+    Args:
+        user_id: User UUID
+        page: Page number (1-indexed)
+        page_size: Items per page (max 100)
+        action: Optional filter by action type
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        Paginated list of audit logs
+
+    Raises:
+        HTTPException: 403 if not authorized, 404 if user not found
+    """
+    # Authorization: Users can view their own logs, admins can view any logs
+    if current_user.id != user_id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can only view your own activity logs unless admin",
+        )
+
+    # Verify user exists
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with ID {user_id} not found",
+        )
+
+    # Build query for user's audit logs
+    query = select(AuditLog).where(AuditLog.user_id == user_id)
+
+    # Apply action filter if provided
+    if action is not None:
+        query = query.where(AuditLog.action == action)
+
+    # Get total count
+    count_query = select(func.count()).select_from(query.subquery())
+    count_result = await db.execute(count_query)
+    total = count_result.scalar()
+
+    # Apply pagination
+    offset = (page - 1) * page_size
+    query = query.offset(offset).limit(page_size).order_by(AuditLog.timestamp.desc())
+
+    # Execute query
+    result = await db.execute(query)
+    logs = result.scalars().all()
+
+    # Audit log (viewing audit logs is itself auditable)
+    await audit_service.log_action(
+        db=db,
+        user=current_user,
+        action="VIEW_USER_ACTIVITY",
+        resource_type="user",
+        resource_id=str(user_id),
+        details={"viewed_user": user.username, "logs_count": len(logs)},
+    )
+
+    # Calculate total pages
+    total_pages = math.ceil(total / page_size) if total > 0 else 0
+
+    return AuditLogListResponse(
+        items=[AuditLogEntry.model_validate(log) for log in logs],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
