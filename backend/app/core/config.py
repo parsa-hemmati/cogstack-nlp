@@ -33,7 +33,9 @@ class Settings(BaseSettings):
     DATABASE_ECHO: bool = False  # SQL logging (True in development)
 
     # Redis (sessions & cache)
-    REDIS_URL: RedisDsn
+    # Note: Using str instead of RedisDsn because passwords with special chars (+, /, =)
+    # cause URL parsing errors. Redis client handles raw URLs correctly.
+    REDIS_URL: str
     SESSION_EXPIRE_SECONDS: int = 28800  # 8 hours
 
     # JWT Authentication
@@ -44,7 +46,7 @@ class Settings(BaseSettings):
     # CORS (allow frontend access)
     # Note: Stored as string in env, parsed to list via property
     # Format: comma-separated URLs: "http://localhost:8080,http://frontend:8080"
-    _cors_origins_str: str = Field(
+    cors_origins_str: str = Field(
         default="http://localhost:8080,http://localhost:3000",
         validation_alias="CORS_ORIGINS"
     )
@@ -52,7 +54,7 @@ class Settings(BaseSettings):
     @property
     def CORS_ORIGINS(self) -> List[str]:
         """Parse CORS origins from comma-separated string."""
-        return [origin.strip() for origin in self._cors_origins_str.split(',')]
+        return [origin.strip() for origin in self.cors_origins_str.split(',')]
 
     # MedCAT Service
     MEDCAT_SERVICE_URL: str = "http://medcat-service:5000"
