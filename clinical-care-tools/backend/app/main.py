@@ -120,11 +120,14 @@ from app.api.v1 import (
     search,
     timeline,
 )
+from app.api.v1.endpoints import deidentify, phi
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(patients.router, prefix="/api/v1/patients", tags=["Patients"])
 app.include_router(timeline.router, prefix="/api/v1/timeline", tags=["Timeline"])
 app.include_router(search.router, prefix="/api/v1", tags=["Search"])
+app.include_router(deidentify.router, prefix="/api/v1", tags=["De-identification"])
+app.include_router(phi.router, prefix="/api/v1", tags=["PHI Detection (Internal)"])
 app.include_router(admin.router, prefix="/api/v1", tags=["Admin"])
 app.include_router(
     clinical_overrides.router, prefix="/api/v1", tags=["Clinical Overrides"]
