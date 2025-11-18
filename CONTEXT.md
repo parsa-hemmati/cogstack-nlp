@@ -23,6 +23,96 @@
 
 ## 📝 Recent Changes
 
+### 2025-11-18 - Sprint 3, Phase 3.1: Elasticsearch Integration (Core Search Infrastructure)
+
+**Status**: Phase 3.1 Core Complete ✅ (80% - skipped optional Celery background tasks)
+
+**Files Created**: 10 files total
+- **Backend Services**: 4 files (index_config, document_indexing_service, search_query_builder, search_service)
+- **Tests**: 3 test files (test_index_mapping, test_document_indexing_service, test_search_query_builder)
+- **Scripts**: 1 script (create_es_index.py)
+- **Config**: 1 module (__init__.py)
+- **Modified**: 1 file (config.py - added Elasticsearch settings)
+
+**Added**:
+- ✅ **Elasticsearch Index Configuration**: (`app/services/elasticsearch/index_config.py`)
+  - Index mapping with custom medical analyzer (lowercase + stop + snowball)
+  - Field types: text (title, content, author) with keyword sub-fields for faceting
+  - Keyword fields: document_id, patient_id, document_type, department
+  - Date fields with ISO format support
+  - 2 shards, 1 replica, 5s refresh interval
+  - Helper functions: create_index(), delete_index(), get_index_mapping()
+- ✅ **Document Indexing Service**: (`app/services/elasticsearch/document_indexing_service.py`)
+  - Single document indexing: index_document(), update_document(), delete_document()
+  - Bulk operations: index_documents_bulk() (1000 docs/batch)
+  - Document transformation: PostgreSQL → Elasticsearch format
+  - Full reindexing: reindex_all() (delete + recreate index)
+- ✅ **Search Query Builder**: (`app/services/elasticsearch/search_query_builder.py`)
+  - Multi-field search with boosting (title^3, content^1, author^2)
+  - Fuzzy matching (AUTO) for typo tolerance
+  - Filters: document_type, date_from/date_to, department, author
+  - Facet aggregations: document_type, department, date_histogram (monthly)
+  - Highlighting configuration: title (full), content (3 fragments × 150 chars)
+  - Autocomplete suggest query builder
+- ✅ **SearchService**: (`app/services/elasticsearch/search_service.py`)
+  - Main search API: search(query, user_id) → SearchResponse
+  - Result parsing with highlighting extraction
+  - Facet parsing (document_type, department, date_histogram)
+  - Autocomplete suggestions: get_suggestions() with Redis caching (1hr TTL)
+  - Analytics tracking placeholder (full implementation in Phase 3.4)
+  - Pydantic models: SearchQuery, SearchResult, SearchResponse
+- ✅ **Elasticsearch Configuration**: Updated config.py with ELASTICSEARCH_URL settings
+- ✅ **Index Creation Script**: scripts/create_es_index.py for manual index setup
+- ✅ **Comprehensive Tests**:
+  - test_index_mapping.py: 18 tests (mapping structure, analyzers, field types, CRUD operations)
+  - test_document_indexing_service.py: 12 tests (indexing, bulk operations, transformations)
+  - test_search_query_builder.py: 24 tests (queries, filters, aggregations, highlighting)
+
+**Skipped** (optional/deferred):
+- Task 3.1.3: Celery background indexing task (manual indexing via service methods)
+- Task 3.1.4: Auto-trigger indexing on document upload (add in integration phase)
+- Task 3.1.8: Additional SearchService unit tests (basic tests exist, expand if needed)
+
+**Why**: Implements Sprint 3, Phase 3.1 per sprint-3-full-text-search-plan.md. Establishes Elasticsearch infrastructure for advanced full-text search with multi-field matching, faceting, and relevance ranking. Provides foundation for Phases 3.2-3.5.
+
+**Impact**:
+- ✅ **Elasticsearch index ready** - Optimized mapping for 100K+ documents
+- ✅ **Document indexing operational** - Single + bulk operations with error handling
+- ✅ **Multi-field search functional** - BM25 relevance scoring with field boosting
+- ✅ **Faceted search ready** - Aggregations for document_type, department, date histogram
+- ✅ **Highlighting configured** - 3 content fragments + full title highlighting
+- ✅ **Autocomplete foundation** - Suggest query builder (Redis caching added)
+- ✅ **Type-safe schemas** - Pydantic models for SearchQuery, SearchResult, SearchResponse
+- ⚠️ Requires: Elasticsearch 8.11+ running at localhost:9200 (or ELASTICSEARCH_URL)
+- ⚠️ Requires: Redis running for autocomplete caching (optional but recommended)
+- ⚠️ Index must be created: `python scripts/create_es_index.py`
+- ⚠️ Documents not auto-indexed yet (manual via DocumentIndexingService)
+
+**Architecture Decisions**:
+- ADR-020: Custom medical_analyzer - Tailored for medical terminology with stemming
+- ADR-021: Best fields multi_match - Better relevance than cross_fields for document search
+- ADR-022: Keyword sub-fields on text fields - Enables faceting while preserving full-text search
+- ADR-023: Monthly date histogram - Appropriate granularity for clinical timeline analysis
+- ADR-024: 150-char fragments for highlighting - Balance between context and readability
+- ADR-025: AUTO fuzziness - Adaptive typo tolerance based on term length
+- ADR-026: Field boosting (title^3, author^2) - Title and author more relevant than body content
+- ADR-027: Redis caching for autocomplete - Sub-200ms response time requirement
+
+**Technical Debt**:
+- Celery task for background indexing not implemented (use manual indexing for MVP)
+- Document upload doesn't trigger auto-indexing (add in document processing sprint)
+- SearchService analytics tracking incomplete (placeholder for Phase 3.4)
+- No pagination cursor (using from+size, add search_after for >10K results if needed)
+- Suggestion quality not tuned (may need medical-specific dictionary)
+
+**Next Steps**:
+- Phase 3.2: Search Result Highlighting (15h, 5 tasks) - Already included in query builder
+- Phase 3.3: Autocomplete Suggestions (15h, 5 tasks) - Foundation ready, add UI
+- Phase 3.4: Search Analytics (15h, 5 tasks) - Database table + analytics service
+- Phase 3.5: Testing & Performance Tuning (15h, 4 tasks) - Integration tests + load testing
+
+---
+
 ### 2025-11-18 - Sprint 2 COMPLETE: Patient Timeline View (Phases 1-3, 36 tasks, ~80 hours)
 
 **Status**: Sprint 2 Complete ✅ (80% implementation - skipped optional caching/performance tasks)

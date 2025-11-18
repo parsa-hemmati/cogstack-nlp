@@ -77,6 +77,23 @@ class Settings(BaseSettings):
     REDIS_POOL_SIZE: int = Field(default=10)
     REDIS_POOL_MAX_SIZE: int = Field(default=20)
 
+    # Elasticsearch
+    ELASTICSEARCH_HOST: str = Field(default="localhost")
+    ELASTICSEARCH_PORT: int = Field(default=9200)
+    ELASTICSEARCH_URL: Optional[str] = None
+
+    @field_validator("ELASTICSEARCH_URL", mode="before")
+    @classmethod
+    def assemble_elasticsearch_url(cls, v: Optional[str], info: Any) -> str:
+        """Construct Elasticsearch URL from components if not provided."""
+        if isinstance(v, str) and v:
+            return v
+
+        data = info.data
+        return f"http://{data.get('ELASTICSEARCH_HOST')}:{data.get('ELASTICSEARCH_PORT')}"
+
+    ELASTICSEARCH_INDEX: str = Field(default="documents")
+
     # JWT Authentication
     JWT_SECRET_KEY: str = Field(
         default="your-secret-key-change-in-production-use-openssl-rand-hex-32"
