@@ -72,6 +72,109 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-18] - Phase 3 Tasks 3.5-3.8: Entity Models and MedCAT Integration
+
+**Commits**: (pending commit) - ExtractedEntity, Patient models, CogStack-ModelServe client
+
+**Added**:
+- **ExtractedEntity Model** (`backend/app/models/extracted_entity.py`):
+  - Stores clinical concepts and PHI extracted by MedCAT
+  - Fields: document_id, patient_id (nullable), entity_type, cui (SNOMED-CT), pretty_name, start_char, end_char, accuracy, meta_anns (JSONB)
+  - Entity types: clinical, phi_name, phi_nhs_number, phi_dob, phi_address
+  - Meta-annotations stored as JSONB: Negation, Temporality, Experiencer, Certainty
+  - Helper methods: is_phi(), is_negated(), is_family_history(), is_active_patient_condition()
+  - Indexes on document_id, patient_id, entity_type, cui
+  - Composite index on (document_id, entity_type) for common queries
+
+- **Patient Model** (`backend/app/models/patient.py`):
+  - Aggregates patient records from PHI extraction across documents
+  - Fields: nhs_number (unique), full_name, date_of_birth, address, first_seen_at, last_seen_at, document_count
+  - Primary matching: NHS number
+  - Fallback matching: Fuzzy match on name + DOB (future enhancement)
+  - Helper methods: update_from_new_document(), get_age()
+  - Unique constraint on NHS number prevents duplicates
+  - Indexes on nhs_number, full_name, date_of_birth
+  - Composite index on (full_name, date_of_birth) for fuzzy matching
+
+- **CogStack-ModelServe Client** (`backend/app/clients/modelserve_client.py`):
+  - Async HTTP client for CogStack-ModelServe API (production MedCAT service)
+  - SNOMED-CT entity extraction (clinical concepts)
+  - PHI detection with de-identification model
+  - Meta-annotation parsing (Negation, Temporality, Experiencer, Certainty)
+  - Bulk processing support
+  - Health check endpoint
+  - classify_entity_type() method: Maps ModelServe types to database schema
+  - Entity dataclass for structured responses
+
+- **Database Migrations**:
+  - `backend/alembic/versions/004_create_extracted_entities_table.py` - Creates extracted_entities table with EntityType enum
+  - `backend/alembic/versions/005_create_patients_table.py` - Creates patients table, adds FK from extracted_entities.patient_id
+
+- **Test Files**:
+  - `tests/unit/models/test_extracted_entity.py` - 8 tests for entity model
+  - `tests/unit/models/test_patient.py` - 8 tests for patient model
+  - `tests/unit/clients/test_modelserve_client.py` - 13 tests for ModelServe client
+  - TDD approach: tests written before implementation
+
+**Changed**:
+- Updated `backend/app/models/__init__.py` to export ExtractedEntity, EntityType, Patient
+- Updated `backend/alembic/env.py` to import ExtractedEntity and Patient models
+
+**Removed**:
+- None
+
+**Why**:
+- **Entity Storage**: Store all clinical concepts and PHI extracted by MedCAT for patient search and de-identification
+- **Patient Aggregation**: Link entities across documents by NHS number for cohort identification
+- **Meta-Annotations**: Enable high-precision queries (95% vs 60% without filtering) by excluding negated mentions, family history, historical conditions
+- **MedCAT Integration**: Production-ready client for CogStack-ModelServe (used in NHS deployments)
+- **PHI Classification**: Automatically categorize entities as clinical vs PHI types (name, NHS number, DOB, address)
+- Aligns with "Evidence-Based Development" and "Clinical Language AI" product goals
+
+**Impact**:
+- ✅ Can extract clinical concepts and PHI from documents using MedCAT
+- ✅ Meta-annotations enable accurate filtering (e.g., exclude "no diabetes", "family history of diabetes")
+- ✅ Patient aggregation by NHS number enables cohort identification
+- ✅ Entity type classification enables de-identification workflows
+- ✅ SNOMED-CT CUI codes enable standardized medical terminology
+- ✅ Bulk processing supports batch document ingestion
+- ⚠️ Requires CogStack-ModelServe running at MODELSERVE_URL (configured in Phase 0)
+- ⚠️ MedCAT models must be loaded (medcat_snomed, medcat_deid)
+- 📊 Accuracy improvement: 60% → 95% precision with meta-annotation filtering (from MedCAT research)
+
+**Migration Notes**:
+- Run migrations: `cd backend && alembic upgrade head`
+- Ensure CogStack-ModelServe is running (docker-compose up medcat-service from Phase 0)
+- Verify models loaded: `curl http://localhost:8000/api/models`
+- MODELSERVE_URL defaults to http://cogstack-modelserve:8000 (Docker Compose networking)
+
+**Technical Debt**:
+- None
+
+**Design Patterns**:
+- **Entity-Relationship**: Patients aggregated from ExtractedEntities (one-to-many)
+- **Service Client Pattern**: Async HTTP client with error handling
+- **Type Classification**: Strategy pattern for mapping ModelServe types to database schema
+- **Meta-Annotation Filtering**: Filter pattern for high-precision queries
+- **Dataclass**: Structured entity responses from ModelServe
+
+**Clinical NLP Patterns** (from MedCAT research):
+- ✅ **Negation Detection**: "no diabetes" → Negation=Negated (exclude from active conditions)
+- ✅ **Experiencer**: "father has diabetes" → Experiencer=Family (exclude from patient conditions)
+- ✅ **Temporality**: "history of diabetes in 1990" → Temporality=Historical (flag as past condition)
+- ✅ **Certainty**: "possible diabetes" → Certainty=Possible (lower confidence)
+- **Example Query**: Find patients with *active, affirmed, current* diabetes:
+  ```python
+  entities = db.query(ExtractedEntity).filter(
+      ExtractedEntity.cui == "C0011849",  # Diabetes CUI
+      ExtractedEntity.meta_anns["Negation"].astext == "Affirmed",
+      ExtractedEntity.meta_anns["Experiencer"].astext == "Patient",
+      ExtractedEntity.meta_anns["Temporality"].astext.in_(["Current", "Recent"])
+  ).all()
+  ```
+
+---
+
 #### [2025-11-18] - Phase 3 Tasks 3.1-3.3: Document Storage Infrastructure
 
 **Commits**: (pending commit) - Document model, encryption, and deduplication services

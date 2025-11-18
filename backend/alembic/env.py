@@ -15,7 +15,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app.db.base import Base
 from app.models.user import User
 from app.models.audit_log import AuditLog
-from app.models.document import Document  # Import all models here!
+from app.models.document import Document
+from app.models.extracted_entity import ExtractedEntity
+from app.models.patient import Patient  # Import all models here!
 
 # Alembic Config object
 config = context.config
