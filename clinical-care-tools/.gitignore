@@ -66,9 +66,10 @@ backend/logs/
 *.sqlite3
 postgres_data/
 
-# Models
-models/
-medcat_models/
+# MedCAT model files (but not app/models Python code!)
+/models/
+/medcat_models/
+**/medcat_models/
 *.zip
 
 # Docker
