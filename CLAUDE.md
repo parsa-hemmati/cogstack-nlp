@@ -1,7 +1,7 @@
 # AI Assistant Guide for CogStack NLP
 
-**Version**: 1.4.0
-**Last Updated**: 2025-11-08
+**Version**: 1.5.0
+**Last Updated**: 2025-11-18
 **Purpose**: Guide AI assistants (Claude Code, GitHub Copilot, etc.) on project conventions and best practices
 
 ---
@@ -386,6 +386,390 @@ Result: Complete, compliant, production-ready implementation
    - ✅ Document data flows
 
 **If any answer is "yes" but you're unsure about compliance, STOP and ask the user for guidance.**
+
+---
+
+## 🛡️ Code Quality & Validation (MANDATORY)
+
+**⚠️ CRITICAL**: This project has **4 layers of validation** to ensure code integrity. You MUST use them proactively.
+
+### The 4-Layer Validation Framework
+
+```
+Layer 1: Pre-Commit Hook (Automatic)     → Every commit
+Layer 2: Validation Script (Manual)      → Before phase completion
+Layer 3: Validation Agent (AI-powered)   → Complex features
+Layer 4: CI/CD Pipeline (Automatic)      → Every push
+```
+
+**Documentation**: See `.claude/SAFEGUARDS.md` and `.claude/VALIDATION_CHECKLIST.md`
+
+---
+
+### When to Use Each Layer
+
+#### Layer 1: Pre-Commit Hook (Automatic - No Action Needed)
+
+**Runs automatically** on every `git commit`. You don't invoke this - it just works.
+
+**What it does**:
+- ✅ Enforces CONTEXT.md updates
+- ✅ Validates Python syntax
+- ✅ **Runs tests on modified test files**
+- ✅ Blocks commits with failing tests
+
+**If it fails**:
+```bash
+# Fix the issues shown
+# Then re-commit
+git add .
+git commit -m "fix: address validation issues"
+```
+
+---
+
+#### Layer 2: Validation Script (Manual - Use Before Major Milestones)
+
+**⚠️ MANDATORY: Run before completing any phase or major feature**
+
+**When to run**:
+- ✅ Before committing a completed phase
+- ✅ After implementing 3+ related tasks
+- ✅ Before creating a pull request
+- ✅ When you've written >500 lines of code
+
+**How to run**:
+```bash
+# Full validation (recommended)
+./scripts/validate-code.sh --full
+
+# Quick check (syntax only)
+./scripts/validate-code.sh --quick
+
+# Auto-fix formatting issues
+./scripts/validate-code.sh --fix
+```
+
+**What it checks**:
+1. Python syntax (all files)
+2. Import validation
+3. Type checking (mypy)
+4. Code formatting (black)
+5. **Full test suite** with coverage
+6. TypeScript types
+7. ESLint
+8. Security (secrets, SQL injection)
+
+**Example workflow**:
+```python
+# You just completed Phase 2 tasks
+
+# 1. Run full validation
+./scripts/validate-code.sh --full
+
+# 2. Fix any issues found
+# ... make fixes ...
+
+# 3. Re-run to verify
+./scripts/validate-code.sh --full
+
+# 4. Commit when passing
+git add .
+git commit -m "feat: Phase 2 complete"
+```
+
+---
+
+#### Layer 3: Validation Agent (AI-Powered - Use for Complex Features)
+
+**⚠️ MANDATORY: Spawn validation agent for:**
+- ✅ Complex features (>500 lines or >3 files)
+- ✅ **BEFORE committing PHI-related code** (use `healthcare-compliance-checker`)
+- ✅ Before phase completion (in addition to script)
+- ✅ After major refactoring
+- ✅ When implementing security-critical features
+
+**How to invoke**:
+Use the `Task` tool with `subagent_type="general-purpose"`:
+
+```typescript
+Task({
+  subagent_type: "general-purpose",
+  description: "Validate code quality",
+  model: "sonnet", // Use sonnet for thorough validation
+  prompt: `You are a code quality validation agent. Your task is to thoroughly validate the code.
+
+**Context**: I just implemented [describe feature]
+
+**Files to check**: [list files]
+
+**Validation tasks:**
+1. **Python Backend**:
+   - Check syntax and imports
+   - Verify type annotations
+   - Look for security issues (SQL injection, XSS)
+   - Check for hardcoded secrets
+
+2. **HIPAA Compliance** (if PHI-related):
+   - No PHI in application logs
+   - Audit logging for all PHI access
+   - Encryption in transit/at rest
+   - RBAC enforcement
+
+3. **Testing**:
+   - Check if tests exist for new code
+   - Verify test fixtures work
+   - Check for missing edge cases
+
+4. **Code Quality**:
+   - Look for code smells
+   - Check for unused imports
+   - Verify error handling
+
+**Report format:**
+
+## Validation Results
+
+### Critical Issues (blocking):
+[List issues that prevent code from running]
+
+### Warnings (non-blocking):
+[List issues that should be fixed]
+
+### Summary:
+- Total files checked: X
+- Critical issues: X
+- Warnings: X
+- Status: PASS/FAIL
+
+**For EACH issue, provide:**
+- File path and line number
+- Issue type
+- Exact error message
+- Suggested fix
+
+Start your validation now.`
+})
+```
+
+**Special: Healthcare Compliance Checker**
+
+For **ANY code touching patient data**, also invoke the `healthcare-compliance-checker` skill:
+
+```typescript
+Skill({
+  skill: "healthcare-compliance-checker"
+})
+```
+
+This skill automatically activates for PHI-related code, but invoke it explicitly before committing:
+- API endpoints handling patient data
+- Database schema changes
+- Authentication/authorization changes
+- Logging additions
+- Any code accessing PHI
+
+---
+
+#### Layer 4: CI/CD Pipeline (Automatic - No Action Needed)
+
+**Runs automatically** when you push to GitHub. You don't invoke this.
+
+**What it does**:
+- ✅ Full test suite with coverage
+- ✅ Security scanning (Trivy, TruffleHog)
+- ✅ Type checking, linting, build verification
+
+**View results**: GitHub → Actions tab
+
+---
+
+### Validation Workflow (Step-by-Step)
+
+**For EVERY task/feature you implement:**
+
+```bash
+# 1. Implement the feature
+# ... write code ...
+
+# 2. BEFORE committing complex features (>500 lines):
+#    Spawn validation agent (see prompt above)
+
+# 3. BEFORE committing PHI-related code:
+#    Invoke healthcare-compliance-checker skill
+
+# 4. Fix any critical issues found by agent
+
+# 5. Run validation script before major commits
+./scripts/validate-code.sh --full
+
+# 6. Fix any issues found
+
+# 7. Commit (pre-commit hook runs automatically)
+git add .
+git commit -m "feat: your feature"
+# → Hook validates syntax, tests, CONTEXT.md
+
+# 8. If hook fails, fix issues and re-commit
+
+# 9. Push to GitHub (CI/CD runs automatically)
+git push
+```
+
+**For phase completion:**
+
+```bash
+# 1. Complete all tasks in the phase
+
+# 2. Run full validation script
+./scripts/validate-code.sh --full
+
+# 3. Spawn validation agent for comprehensive review
+# (Use Task tool with prompt above)
+
+# 4. Fix ALL critical issues and warnings
+
+# 5. Re-validate
+./scripts/validate-code.sh --full
+
+# 6. Commit phase completion
+git add .
+git commit -m "feat: Phase X complete"
+
+# 7. Update CONTEXT.md with phase completion notes
+
+# 8. Push to GitHub
+git push
+```
+
+---
+
+### Quick Reference: When to Validate
+
+| Scenario | Layer 1 | Layer 2 | Layer 3 | Layer 4 |
+|----------|---------|---------|---------|---------|
+| Small bug fix (<50 lines) | ✅ Auto | ❌ Skip | ❌ Skip | ✅ Auto |
+| Medium feature (50-500 lines) | ✅ Auto | ✅ Run | ❌ Optional | ✅ Auto |
+| Complex feature (>500 lines) | ✅ Auto | ✅ Run | **✅ MUST** | ✅ Auto |
+| PHI-related code | ✅ Auto | ✅ Run | **✅ MUST** | ✅ Auto |
+| Phase completion | ✅ Auto | **✅ MUST** | **✅ MUST** | ✅ Auto |
+| Major refactoring | ✅ Auto | ✅ Run | **✅ MUST** | ✅ Auto |
+
+**Legend**:
+- ✅ Auto = Runs automatically
+- ✅ Run = You must run manually
+- ✅ MUST = Required, don't skip
+- ❌ Skip = Not needed
+- ❌ Optional = Use if unsure
+
+---
+
+### Example: Implementing a Complex Feature
+
+```python
+# Scenario: Implementing Task 2.5 (User Search API)
+
+# Step 1: Implement the feature
+# ... write backend/app/api/v1/endpoints/users.py search endpoint ...
+# ... write tests in backend/tests/integration/test_user_search.py ...
+
+# Step 2: BEFORE committing, spawn validation agent
+# Use Task tool:
+Task({
+  subagent_type: "general-purpose",
+  description: "Validate user search API",
+  prompt: "Validate backend/app/api/v1/endpoints/users.py and tests/integration/test_user_search.py for syntax, security, test coverage..."
+})
+
+# Step 3: Agent reports back
+# - ✅ Syntax valid
+# - ✅ Imports resolve
+# - ⚠️  Missing test for empty search query
+# - ⚠️  No SQL injection check (using ORM, safe)
+
+# Step 4: Fix critical issues
+# ... add test for empty search query ...
+
+# Step 5: Run validation script
+./scripts/validate-code.sh --full
+# → All checks pass
+
+# Step 6: Commit
+git add .
+git commit -m "feat(user-mgmt): add user search API"
+# → Pre-commit hook runs
+# → Tests pass
+# → Commit succeeds
+
+# Step 7: Push
+git push
+# → CI/CD pipeline runs
+# → All checks pass
+```
+
+---
+
+### What If Validation Fails?
+
+**Pre-commit hook fails:**
+```bash
+# Read the error message carefully
+# Fix the issue (syntax error, failing test, missing CONTEXT.md update)
+# Re-commit
+git add .
+git commit -m "fix: address validation issue"
+```
+
+**Validation script fails:**
+```bash
+# Run with full output
+./scripts/validate-code.sh --full 2>&1 | less
+
+# Fix issues one by one:
+# 1. Syntax errors first
+# 2. Failing tests second
+# 3. Warnings last
+
+# Re-run to verify
+./scripts/validate-code.sh --full
+```
+
+**Validation agent finds issues:**
+```bash
+# Agent reports critical issues
+
+# Fix each issue:
+# 1. Read file path and line number
+# 2. Apply suggested fix
+# 3. Verify fix works
+
+# Re-spawn agent to verify
+# (Use same Task prompt)
+```
+
+---
+
+### Bypassing Validation (EMERGENCY ONLY)
+
+**Never bypass on main/develop branches!**
+
+Only bypass pre-commit hook if:
+- ✅ Committing work-in-progress on feature branch
+- ✅ Documentation-only changes
+- ✅ Emergency hotfix (fix tests immediately after)
+
+```bash
+# Bypass pre-commit hook (not recommended)
+git commit --no-verify -m "wip: work in progress"
+
+# Then fix tests/issues in next commit
+```
+
+**Never bypass**:
+- ❌ To skip failing tests
+- ❌ To avoid fixing syntax errors
+- ❌ To skip CONTEXT.md updates
+- ❌ On main or develop branches
 
 ---
 
