@@ -109,6 +109,37 @@
         </button>
       </div>
     </div>
+
+    <!-- Export buttons -->
+    <div class="controls-section">
+      <h3>Export</h3>
+      <div class="export-buttons">
+        <button
+          :disabled="loading || exporting"
+          @click="exportTimeline('pdf')"
+          class="export-btn"
+        >
+          📄 Export PDF
+        </button>
+        <button
+          :disabled="loading || exporting"
+          @click="exportTimeline('json')"
+          class="export-btn"
+        >
+          📋 Export JSON
+        </button>
+        <button
+          :disabled="loading || exporting"
+          @click="exportTimeline('fhir')"
+          class="export-btn"
+        >
+          🏥 Export FHIR
+        </button>
+      </div>
+      <div v-if="exporting" class="export-status">
+        Generating export...
+      </div>
+    </div>
   </div>
 </template>
 
@@ -119,14 +150,16 @@ import type { TimelineFilters, ViewMode } from '@/types/timeline'
 // Props
 interface Props {
   loading?: boolean
+  patientId?: string
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 // Emits
 const emit = defineEmits<{
   filterChange: [filters: TimelineFilters]
   viewModeChange: [mode: ViewMode]
+  export: [format: 'pdf' | 'json' | 'fhir']
 }>()
 
 // Local state
@@ -140,6 +173,7 @@ const filters = reactive<TimelineFilters>({
 })
 
 const localViewMode = ref<ViewMode>('combined')
+const exporting = ref(false)
 
 // Methods
 const emitFilterChange = () => {
@@ -149,6 +183,10 @@ const emitFilterChange = () => {
 const setViewMode = (mode: ViewMode) => {
   localViewMode.value = mode
   emit('viewModeChange', mode)
+}
+
+const exportTimeline = async (format: 'pdf' | 'json' | 'fhir') => {
+  emit('export', format)
 }
 </script>
 
@@ -233,5 +271,40 @@ const setViewMode = (mode: ViewMode) => {
   background-color: #3498db;
   color: white;
   border-color: #3498db;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.export-btn {
+  padding: 0.5rem 1rem;
+  background-color: #2ecc71;
+  color: white;
+  border: 1px solid #27ae60;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.export-btn:hover:not(:disabled) {
+  background-color: #27ae60;
+}
+
+.export-btn:disabled {
+  background-color: #95a5a6;
+  border-color: #7f8c8d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.export-status {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #666;
+  font-style: italic;
 }
 </style>

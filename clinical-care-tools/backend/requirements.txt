@@ -56,3 +56,7 @@ mypy==1.11.2
 # Type stubs
 types-redis==4.6.0.20240903
 types-passlib==1.7.7.20240819
+
+# Export & FHIR
+reportlab==4.2.2
+fhir.resources==7.1.0

@@ -8,8 +8,10 @@
     <div class="timeline-container">
       <TimelineControls
         :loading="loading"
+        :patient-id="patientId"
         @filter-change="handleFilterChange"
         @view-mode-change="handleViewModeChange"
+        @export="handleExport"
       />
 
       <div v-if="loading" class="loading-state">
@@ -41,6 +43,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTimelineStore } from '@/stores/timeline'
+import { timelineApi } from '@/api/timeline'
 import PatientHeader from '@/components/timeline/PatientHeader.vue'
 import TimelineControls from '@/components/timeline/TimelineControls.vue'
 import TimelineChart from '@/components/timeline/TimelineChart.vue'
@@ -83,6 +86,35 @@ const handleSelectDocument = (documentId: string) => {
 const handleSelectConcept = (conceptCui: string) => {
   console.log('Concept selected:', conceptCui)
   // TODO: Implement concept detail view
+}
+
+const handleExport = async (format: 'pdf' | 'json' | 'fhir') => {
+  try {
+    const blob = await timelineApi.exportTimeline(
+      patientId.value,
+      format,
+      timelineStore.currentFilters
+    )
+
+    // Create download link
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+
+    const extension = format === 'fhir' ? 'json' : format
+    const filename = `timeline_${patientId.value}_${new Date().toISOString().split('T')[0]}.${extension}`
+    link.setAttribute('download', filename)
+
+    document.body.appendChild(link)
+    link.click()
+
+    // Cleanup
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Export failed:', err)
+    alert(`Failed to export timeline: ${err}`)
+  }
 }
 
 const retryLoad = async () => {
