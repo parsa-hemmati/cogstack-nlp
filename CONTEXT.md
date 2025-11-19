@@ -83,20 +83,68 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 4.6: Search History (COMPLETE - Redis cache with 7-day retention)
   - ✅ Task 4.7: Integration Tests (COMPLETE - 43 tests created during TDD implementation)
   - ✅ Task 4.8: Documentation & Deployment (COMPLETE - API docs in DEVELOPMENT.md)
-- 📋 **Phase 5 (Timeline View)**: READY FOR IMPLEMENTATION - Planning complete (0/8 implementation phases)
+- 🔄 **Phase 5 (Timeline View)**: IN PROGRESS - Phase 5.1 (Backend Timeline Data API) started (2/7 tasks)
   - ✅ Specification: `.specify/specifications/sprint-2-timeline-view.md` (v1.0.0)
   - ✅ Technical Plan: `.specify/plans/timeline-view-plan.md` (v1.0.0)
   - ✅ Task Breakdown: `.specify/tasks/timeline-view-tasks.md` (v1.0.0, 60 tasks)
-  - ⏸️ Implementation: Pending (8 phases: 5.1-5.8, starting with 5.1.1)
+  - 🔄 Implementation: Phase 5.1 started (2/7 tasks complete)
+    - ✅ Task 5.1.1: Database schema - timeline_filters table (migration 008)
+    - ✅ Task 5.1.2: Database schema - timeline_exports table (migration 009)
+    - ⏸️ Task 5.1.3: Elasticsearch - clinical_concepts index (next)
+    - ⏸️ Task 5.1.4: Pydantic models - timeline schemas
+    - ⏸️ Task 5.1.5: Repository - ElasticsearchTimelineRepository
+    - ⏸️ Task 5.1.6: Service - TimelineService
+    - ⏸️ Task 5.1.7: API endpoint - GET /timeline/{patient_id}
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: (this commit) - Create task breakdown for Phase 5 (Timeline View)
-**Sprint**: Sprint 2 - Timeline View (Phase 5) - Ready for Implementation
-**Next Milestone**: Begin Phase 5.1.1 implementation (Database Schema - timeline_filters table)
+**Latest Commit**: (this commit) - Phase 5.1: Tasks 5.1.1-5.1.2 complete (database migrations)
+**Sprint**: Sprint 2 - Timeline View (Phase 5) - Implementation Phase
+**Next Milestone**: Complete Phase 5.1 (Backend Timeline Data API) - 5/7 tasks remaining
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.1 Started: Database Migrations for Timeline Tables
+
+**Commits**: (this commit) - Create database migrations for timeline_filters and timeline_exports
+
+**Added**:
+- Database migration 008: timeline_filters table (`backend/alembic/versions/008_add_timeline_filters_table.py`)
+  - Stores user-defined filter presets for timeline view
+  - Columns: id, user_id, name, description, filters (JSONB), is_default, created_at, updated_at
+  - Foreign key to users(id) with CASCADE delete
+  - Unique constraint on (user_id, name)
+  - Index on user_id for fast lookups
+- Database migration 009: timeline_exports table (`backend/alembic/versions/009_add_timeline_exports_table.py`)
+  - Tracks timeline exports for audit and cleanup
+  - Columns: id, patient_id, user_id, format, filters (JSONB), file_path, download_count, expires_at, created_at, audit_log_id
+  - Foreign keys to patients(id), users(id), audit_logs(id)
+  - Indexes on patient_id, user_id, created_at, expires_at for performance
+- Frontend dependency fix: package-lock.json generated via Docker (`frontend/package-lock.json`)
+  - Fixed Docker build failure (`npm ci` requires lockfile)
+  - 216 packages locked to specific versions
+  - Generated using Node.js 20 Alpine container
+
+**Why**:
+- Implements Task 5.1.1 and 5.1.2 from Phase 5.1 (Backend Timeline Data API)
+- Provides database schema for saving user filter presets
+- Enables export tracking for audit compliance and automatic cleanup
+- Fixes Docker Compose build failure (frontend missing package-lock.json)
+
+**Impact**:
+- ✅ Phase 5.1 progress: 2/7 tasks complete (28.6%)
+- ✅ Database ready for timeline filter persistence
+- ✅ Database ready for export audit logging
+- ✅ Docker Compose can now build frontend service
+- ⏸️ Migrations not yet tested (awaiting Docker services start)
+
+**Next Steps**:
+1. Complete Task 5.1.3: Create Elasticsearch clinical_concepts index
+2. Complete Task 5.1.4: Define Pydantic models for timeline schemas
+3. Test migrations when Docker services are running
+
+---
 
 #### [2025-11-19] - Phase 5 Task Breakdown: Timeline View Module
 
