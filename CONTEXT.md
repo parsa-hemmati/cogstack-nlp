@@ -95,10 +95,11 @@ The current development focus is **extending** this ecosystem with **clinical ca
     - ✅ Task 5.1.5: Repository - ElasticsearchTimelineRepository (2 methods, 29 tests)
     - ✅ Task 5.1.6: Service - TimelineService (orchestrates PostgreSQL + Elasticsearch, 14 tests)
     - ✅ Task 5.1.7: API endpoint - GET /api/v1/timeline/{patient_id} (auth + audit logging)
-- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 3/12 tasks (25%)
+- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 4/12 tasks (33%)
   - ✅ Task 5.2.1: Install D3.js dependencies (d3@7.9.0, @types/d3@7.4.3)
   - ✅ Task 5.2.2: Timeline API client (getPatientTimeline method, 10 unit tests)
   - ✅ Task 5.2.3: useTimeline composable (fetchTimeline, refreshTimeline, 13 unit tests)
+  - ✅ Task 5.2.4: TimelineAxis component (D3.js time axis, 9 unit tests)
 
 **Branch**: `autonomous/mvp-execution`
 **Latest Commit**: (this commit) - Phase 5.1 COMPLETE - Timeline API endpoint
@@ -108,6 +109,65 @@ The current development focus is **extending** this ecosystem with **clinical ca
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.2: Task 5.2.4 TimelineAxis Component
+
+**Commits**: (this commit) - Create TimelineAxis component with D3.js time axis
+
+**Added**:
+- TimelineAxis component: `frontend/src/components/timeline/TimelineAxis.vue` (~110 lines)
+  - **D3.js Time Axis**: Renders horizontal timeline with month/year labels
+    - scaleTime: Maps date domain to pixel range
+    - axisBottom: D3 axis generator with ticks and labels
+    - tickFormat: Displays dates as "Jan 2023", "Feb 2023", etc.
+    - 50px padding on each side
+  - **Reactive Updates**: Watches dateRange and width props
+    - Re-renders axis when dateRange changes
+    - Re-renders axis when width changes
+    - Uses onMounted for initial render
+  - **Props**:
+    - dateRange: { start: Date, end: Date } (required)
+    - width: number (default 800)
+    - height: number (default 60)
+  - **SVG Structure**:
+    - Root SVG element with width/height
+    - Axis group (g element) centered vertically
+    - D3 renders path, line, text elements for axis
+  - **Styling**: Scoped CSS for axis appearance (gray lines, dark text)
+- Unit tests: `frontend/tests/unit/components/TimelineAxis.spec.ts` (9 tests, ~320 lines)
+  - Test component mounting and SVG rendering
+  - Test axis group with correct transform
+  - Test D3 axis rendering (path, line, text elements)
+  - Test axis updates when dateRange prop changes
+  - Test axis updates when width prop changes
+  - Test default props (width 800, height 60)
+  - Test axis domain (date range)
+  - Test axis range (50px padding)
+  - Test cleanup on unmount
+
+**Why**:
+- Implements Task 5.2.4 from Phase 5.2 task breakdown
+- Provides foundational time axis for timeline visualization
+- Enables temporal context for document and concept markers
+- D3.js integration with Vue 3 reactivity
+- Reusable component for multiple timeline views
+
+**Impact**:
+- ✅ Time axis component ready for use in timeline view
+- ✅ D3.js scaleTime and axisBottom integrated with Vue 3
+- ✅ Reactive updates on prop changes
+- ✅ 9 unit tests passing (100% component coverage)
+- ✅ Styled axis with gray lines and dark text
+- 🎯 **Next**: Task 5.2.5 - Create TimelineDocuments component for document markers
+
+**Technical Notes**:
+- Uses D3.js v7 time scale and axis
+- SVG refs for D3 manipulation
+- Watches props with { deep: true } for nested object changes
+- Clears previous axis before re-rendering (prevents duplicates)
+- Scoped CSS with :deep() for D3-generated elements
+
+---
 
 #### [2025-11-19] - Phase 5.2: Task 5.2.3 useTimeline Composable
 
