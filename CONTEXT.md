@@ -129,9 +129,48 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.6: Task 5.6.2 - Create TimelineExportService
+
+**Commits**: (this commit) - Implement timeline export service (PDF, FHIR, JSON)
+
+**Task 5.6.2 Completed**:
+- ✅ Created `backend/app/services/timeline_export_service.py` (~420 lines)
+- ✅ Implemented `export_to_pdf()` method (HTML → PDF with WeasyPrint)
+- ✅ Implemented `export_to_fhir()` method (FHIR R4 Composition mapping)
+- ✅ Implemented `export_to_json()` method (complete timeline serialization)
+- ✅ Inline PDF template (separate file in Task 5.6.3)
+- ✅ Installed Jinja2 3.1.4 for template rendering
+- ✅ Updated requirements.txt
+- ✅ All imports working correctly
+
+**Why**:
+- Implements Task 5.6.2 (3 hours) - Core export service
+- Enables PDF export for clinical referrals/audits
+- Enables FHIR R4 export for EHR interoperability
+- Enables JSON export for research/analytics
+- Uses proven libraries (WeasyPrint, fhir.resources, Jinja2)
+
+**Impact**:
+- ✅ Task 5.6.2 complete
+- ✅ Export service foundation ready
+- ✅ PDF generation with watermark and de-identification
+- ✅ FHIR Composition with Observation references
+- ✅ JSON with full timeline data + metadata
+- 🎯 **Phase 5.6 progress**: 2/10 tasks (20%)
+
+**Technical Notes**:
+- WeasyPrint converts HTML to PDF (supports CSS paged media)
+- FHIR Composition includes sections for each concept
+- Meta-annotations mapped to Observation components (future task)
+- PDF template uses Jinja2 (inline for now, external file in Task 5.6.3)
+- Type hints: PatientTimeline, TimelineConcept, ConceptMention
+- All methods async for FastAPI compatibility
+
+---
+
 #### [2025-11-19] - Phase 5.6: Task 5.6.1 - Install Export Dependencies
 
-**Commits**: (this commit) - Install WeasyPrint and fhir.resources for timeline export
+**Commits**: (previous commit) - Install WeasyPrint and fhir.resources for timeline export
 
 **Task 5.6.1 Completed**:
 - ✅ Installed WeasyPrint 60.1 for HTML → PDF conversion

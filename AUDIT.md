@@ -18,6 +18,57 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
+### Commit Status: ✅ CLEAR - Phase 5.6 Task 5.6.2
+
+**Phase 5.6: Export Capabilities - TimelineExportService** (2025-11-19)
+
+**This Commit** (Task 5.6.2):
+- ✅ Created `backend/app/services/timeline_export_service.py` (~420 lines)
+- ✅ Implemented PDF export (WeasyPrint + Jinja2 template)
+- ✅ Implemented FHIR R4 export (Composition resource)
+- ✅ Implemented JSON export (complete serialization)
+- ✅ Installed Jinja2 3.1.4
+- ✅ Updated `backend/requirements.txt`
+- ✅ Updated CONTEXT.md and AUDIT.md
+
+**Implementation Scope**:
+- `export_to_pdf()`: HTML → PDF with watermark and de-identification options
+- `export_to_fhir()`: Timeline → FHIR R4 Composition with concept sections
+- `export_to_json()`: Complete timeline serialization with metadata
+- Inline Jinja2 template for PDF (external template in Task 5.6.3)
+
+**Compliance Review**:
+- ✅ **PRD Alignment**: Implements export requirements
+  - User Story US-E1: "Export timeline to PDF" ✅
+  - User Story US-E2: "Export to FHIR for EHR integration" ✅
+  - User Story US-E3: "Export to JSON for research" ✅
+  - Watermark option for confidential handling ✅
+  - De-identification option for privacy ✅
+- ✅ **HIPAA Considerations**: Service layer only (no PHI exposure yet)
+  - No PHI in code (service receives data from caller)
+  - De-identification option implemented
+  - Watermark for confidential marking
+  - Audit logging implemented in API layer (Task 5.6.4)
+- ✅ **No Security Impact**: Service layer (not exposed)
+  - No API endpoints yet (Task 5.6.4)
+  - No database access (pure transformation)
+  - Input validation via Pydantic schemas
+- ✅ **FHIR Compliance**: Uses official fhir.resources library
+  - FHIR R4 Composition structure
+  - SNOMED-CT concept codes
+  - Pydantic validation ensures schema compliance
+
+**Technical Notes**:
+- WeasyPrint 60.1 for PDF (HTML + CSS → PDF)
+- fhir.resources 7.1.0 for FHIR R4 (Composition, Observation)
+- Jinja2 3.1.4 for template rendering
+- All methods async (FastAPI compatible)
+- Type hints: PatientTimeline, TimelineConcept, ConceptMention
+
+**Action**: ✅ CLEAR - Ready for Task 5.6.3 (PDF HTML Template)
+
+---
+
 ### Commit Status: ✅ CLEAR - Phase 5.6 Task 5.6.1
 
 **Phase 5.6: Export Capabilities - Install Dependencies** (2025-11-19)
