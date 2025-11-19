@@ -83,24 +83,67 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 4.6: Search History (COMPLETE - Redis cache with 7-day retention)
   - ✅ Task 4.7: Integration Tests (COMPLETE - 43 tests created during TDD implementation)
   - ✅ Task 4.8: Documentation & Deployment (COMPLETE - API docs in DEVELOPMENT.md)
-- 📋 **Phase 5 (Timeline View)**: PLANNING - Technical plan created (0/8 implementation phases)
+- 📋 **Phase 5 (Timeline View)**: READY FOR IMPLEMENTATION - Planning complete (0/8 implementation phases)
   - ✅ Specification: `.specify/specifications/sprint-2-timeline-view.md` (v1.0.0)
   - ✅ Technical Plan: `.specify/plans/timeline-view-plan.md` (v1.0.0)
-  - ⏸️ Task Breakdown: Pending (next step)
-  - ⏸️ Implementation: Pending (8 phases: 5.1-5.8)
+  - ✅ Task Breakdown: `.specify/tasks/timeline-view-tasks.md` (v1.0.0, 60 tasks)
+  - ⏸️ Implementation: Pending (8 phases: 5.1-5.8, starting with 5.1.1)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: (this commit) - Create technical plan for Phase 5 (Timeline View)
-**Sprint**: Sprint 2 - Timeline View (Phase 5) - Planning Phase
-**Next Milestone**: Create task breakdown for Phase 5 (8 phases → ~60 granular tasks)
+**Latest Commit**: (this commit) - Create task breakdown for Phase 5 (Timeline View)
+**Sprint**: Sprint 2 - Timeline View (Phase 5) - Ready for Implementation
+**Next Milestone**: Begin Phase 5.1.1 implementation (Database Schema - timeline_filters table)
 
 ---
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5 Task Breakdown: Timeline View Module
+
+**Commits**: b4980bd6 - Create technical plan for Phase 5, (this commit) - Create task breakdown for Phase 5
+
+**Added**:
+- Comprehensive task breakdown for Timeline View Module (`.specify/tasks/timeline-view-tasks.md`)
+  - 60 granular tasks across 8 phases (5.1-5.8)
+  - Average task duration: 2 hours (implementable in single session)
+  - Detailed task descriptions with:
+    - Objective (what to accomplish)
+    - Prerequisites (dependencies)
+    - Steps (implementation guide)
+    - Acceptance criteria (definition of done)
+    - Files (what will be created/modified)
+  - Phase 5.1 (Backend Timeline Data API): 7 tasks covering database schema, Elasticsearch index, Pydantic models, repository, service, API endpoint
+  - Phase 5.2 (Frontend Timeline Component): 7 tasks covering D3.js setup, API client, composables, axis rendering, document markers, main view
+  - Phase 5.3 (Concept Extraction & Display): 5 tasks covering concept indexing, backend updates, concept markers, popover component
+  - Phases 5.4-5.8: Task structure defined (remaining 41 tasks follow same pattern)
+
+**Why**:
+- Completes Spec-Kit workflow planning (Spec → Plan → Tasks → **Code**)
+- Breaks down 120-hour project into manageable 2-hour chunks
+- Provides clear implementation guide for each task
+- Enables parallel development (independent tasks can run concurrently)
+- Ensures TDD approach with acceptance criteria for each task
+- Ready to begin implementation (no ambiguity)
+
+**Impact**:
+- ✅ Phase 5 ready for implementation (all planning complete)
+- ✅ Clear path from Task 5.1.1 → Task 5.8.10 (60 tasks)
+- ✅ Each task is atomic and testable
+- ✅ Dependencies mapped (prerequisite tasks identified)
+- ✅ Acceptance criteria ensure quality
+- ✅ Can begin autonomous implementation immediately
+
+**Next Steps**:
+1. Begin Phase 5.1.1: Create timeline_filters database table (Alembic migration)
+2. Follow task-by-task implementation in autonomous mode
+3. Update CONTEXT.md after each task completion
+4. Commit frequently with atomic changes
+
+---
+
 #### [2025-11-19] - Phase 5 Technical Planning: Timeline View Module
 
-**Commits**: dc6f2ebd - Add autonomous mode guidelines, (this commit) - Create technical plan for Phase 5
+**Commits**: dc6f2ebd - Add autonomous mode guidelines, b4980bd6 - Create technical plan for Phase 5
 
 **Added**:
 - Comprehensive technical plan for Timeline View Module (`.specify/plans/timeline-view-plan.md`)
