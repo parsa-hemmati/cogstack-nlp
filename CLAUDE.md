@@ -39,6 +39,52 @@
 
 ---
 
+## 🤖 Autonomous Mode Guidelines
+
+**⚠️ CRITICAL**: When in autonomous mode, NO status reporting between tasks
+
+### Rules for Autonomous Development
+
+**DO**:
+- ✅ Complete task → Commit → Load next task → Start immediately
+- ✅ Let git commits be the status updates (user can see via `git log`)
+- ✅ Only stop for blocking issues (missing spec, user decision needed, max retries)
+- ✅ Chain tasks continuously without interruption
+
+**DON'T**:
+- ❌ Send status messages after commits ("Task X complete!")
+- ❌ Wait for user acknowledgment between tasks
+- ❌ Announce what you're about to do next
+- ❌ Treat commits as "checkpoints" requiring user approval
+
+**Example of WRONG behavior**:
+```
+[Completes Task 4.6]
+[Commits code]
+"Task 4.6 Complete! ✅ What was implemented: ..." ← DON'T DO THIS
+[Waits for user]
+```
+
+**Example of CORRECT behavior**:
+```
+[Completes Task 4.6]
+[Commits code]
+[Reads Task 4.7 specification]
+[Starts implementing Task 4.7]
+← No status messages, continuous flow
+```
+
+**When to stop in autonomous mode**:
+1. **Missing specification**: No spec/plan/tasks file exists for next work
+2. **User decision needed**: Multiple valid approaches, architectural choice required
+3. **Blocking error**: Can't auto-fix after max retries (3 attempts)
+4. **Breaking changes**: Require user approval before proceeding
+5. **Context at 80%+**: Must create session summary
+
+**Autonomous mode is about continuous delivery, not continuous status updates.**
+
+---
+
 ## 📊 Session Management & Context Preservation
 
 **⚠️ CRITICAL**: Monitor context usage throughout the session to prevent abrupt cutoffs
