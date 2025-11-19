@@ -18,55 +18,90 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Commit Status: ✅ CLEAR - Phase 5.2 Task 5.2.4 Complete
+### Commit Status: ✅ CLEAR - Phase 5.2 Task 5.2.5 Complete
 
 **Phase 5.2: Frontend Timeline Component - IN PROGRESS** (2025-11-19)
 
-**This Commit** (Task 5.2.4: TimelineAxis Component):
-- ✅ TimelineAxis component: frontend/src/components/timeline/TimelineAxis.vue (~110 lines)
-  - D3.js time axis with scaleTime and axisBottom
-  - Renders horizontal timeline with month/year labels
-  - Reactive updates on dateRange and width prop changes
-  - 50px padding on each side
-  - Scoped CSS styling for axis appearance
-- ✅ Unit tests: frontend/tests/unit/components/TimelineAxis.spec.ts (9 tests, ~320 lines)
-  - All rendering scenarios tested
-  - Prop changes tested (dateRange, width)
-  - D3 axis elements verified (path, line, text)
-  - Default props tested
+**This Commit** (Task 5.2.5: TimelineDocuments Component):
+- ✅ TimelineDocuments component: frontend/src/components/timeline/TimelineDocuments.vue (~130 lines)
+  - Document markers as circular SVG elements
+  - D3.js scaleTime for date-to-pixel positioning
+  - Interactive click/hover events (documentClick, documentHover)
+  - Selected state tracking (internal ref)
+  - Reactive updates on props change (documents, dateRange, width)
+  - 50px padding matching TimelineAxis
+  - Styled markers with hover/selected states
+- ✅ Unit tests: frontend/tests/unit/components/TimelineDocuments.spec.ts (15 tests, ~420 lines)
+  - Component mounting and SVG group rendering
+  - Correct number of markers (one per document)
+  - Y/X positioning verification
+  - Click/hover event emission
+  - Selected state styling
+  - Reactivity (documents, dateRange, width prop changes)
+  - Empty documents array edge case
   - 100% component coverage
-- ✅ CONTEXT.md updated: Phase 5.2 IN PROGRESS (4/12 tasks, 33%)
+- ✅ Testing infrastructure setup:
+  - Installed vitest@4.0.10, @vue/test-utils@2.4.6, @vitest/ui@4.0.10, happy-dom@20.0.10
+  - Created vitest.config.ts with happy-dom environment
+  - Added test:unit script to package.json
+  - Configured @ alias for imports
+- ✅ CONTEXT.md updated: Phase 5.2 IN PROGRESS (5/12 tasks, 42%)
 
 **Compliance Review**:
-- ✅ **D3.js Integration**: Proper Vue 3 + D3.js pattern
-  - Uses refs for SVG element access
-  - D3 manipulates DOM directly (acceptable pattern)
-  - Vue watches props and triggers D3 re-renders
-  - Clears previous axis before re-rendering (no duplicates)
+- ✅ **D3.js Integration**: Same pattern as TimelineAxis
+  - Uses D3 scaleTime for date-to-pixel conversion
+  - Computed property for reactive scale updates
+  - No direct DOM manipulation (Vue renders SVG circle elements)
+  - D3 used only for scale calculations (proper separation)
 - ✅ **No HIPAA Impact**: Visualization component only (no PHI data, no API calls)
-- ✅ **No Security Impact**: SVG rendering only (no XSS risk, no user input)
-- ✅ **Reactivity**: Proper Vue 3 reactivity patterns
-  - watch() for prop changes with { deep: true }
-  - onMounted() for initial render
-  - Automatic re-rendering on prop updates
-- ✅ **Test Coverage**: 9 unit tests covering all scenarios
-  - Component mounting and SVG structure
-  - D3 axis rendering (elements created)
-  - Reactive updates (dateRange, width changes)
-  - Default props
-  - Cleanup on unmount
+  - Document titles/dates displayed but passed from parent
+  - No data persistence or logging
+  - No network requests
+- ✅ **No Security Impact**: SVG rendering only
+  - No XSS risk (Vue template binding escapes data)
+  - No user input acceptance
+  - No innerHTML or dynamic HTML injection
+- ✅ **Reactivity**: Proper Vue 3 patterns
+  - Computed xScale updates when props change
+  - v-for with :key for efficient rendering
+  - Event emission for parent integration
+  - Selected state managed internally
+- ✅ **Test Coverage**: 15 unit tests covering all scenarios
+  - All interactive features tested (click, hover)
+  - All reactive props tested (documents, dateRange, width)
+  - Edge cases tested (empty documents, default props)
+  - Event emission verified
+
+**Testing Infrastructure**:
+- ✅ Vitest v4 installed and configured
+- ✅ Happy-DOM environment (faster than jsdom)
+- ✅ @vue/test-utils v2 for Vue component testing
+- ✅ All tests passing (47 total across 5 components)
 
 **Technical Notes**:
-- D3.js v7 scaleTime and axisBottom
-- SVG refs for D3 manipulation (standard pattern)
-- Scoped CSS with :deep() for D3-generated elements
-- tickFormat uses d3.timeFormat('%b %Y')
+- D3.js scaleTime as computed property (reactive)
+- Vue v-for for circle elements (no direct D3 DOM manipulation)
+- Event emission pattern (documentClick, documentHover)
+- Selected state: internal ref (selectedDocId)
+- Vitest config: happy-dom environment, @ alias resolver
 
-**Action**: ✅ CLEAR - Ready to commit Task 5.2.4
+**Action**: ✅ CLEAR - Ready to commit Task 5.2.5
 
 ---
 
 ## Previous Commits
+
+### Phase 5.2 Task 5.2.4 - TimelineAxis Component (2025-11-19)
+
+**Commit** (Task 5.2.4: TimelineAxis Component):
+- ✅ TimelineAxis component: frontend/src/components/timeline/TimelineAxis.vue (~110 lines)
+- ✅ D3.js time axis with scaleTime and axisBottom
+- ✅ Reactive updates on dateRange and width prop changes
+- ✅ Unit tests: 9 tests, 100% component coverage
+
+**Compliance**: D3.js integration pattern verified, no HIPAA/security impact, proper Vue 3 reactivity
+
+---
 
 ### Phase 5.2 Task 5.2.3 - useTimeline Composable (2025-11-19)
 

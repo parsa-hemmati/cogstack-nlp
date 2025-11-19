@@ -35,7 +35,7 @@ Build a comprehensive, modular platform that leverages MedCAT's full NLP capabil
 The current development focus is **extending** this ecosystem with **clinical care interfaces** (patient search, timeline visualization, FHIR integration, clinical decision support) for use by clinicians in patient care delivery.
 
 ### Current Phase
-**Phase**: Sprint 2 - Phase 5 (Timeline View) - PLANNING
+**Phase**: Sprint 2 - Phase 5 (Timeline View) - ACTIVE IMPLEMENTATION
 **Current State**:
 - ✅ **Phase 0 (Environment Setup)**: COMPLETE - 6/7 missions (3.0h, 85% time savings)
   - PostgreSQL 15.15, Redis 7.2, MedCAT 2.2.0.dev0 all healthy
@@ -95,20 +95,95 @@ The current development focus is **extending** this ecosystem with **clinical ca
     - ✅ Task 5.1.5: Repository - ElasticsearchTimelineRepository (2 methods, 29 tests)
     - ✅ Task 5.1.6: Service - TimelineService (orchestrates PostgreSQL + Elasticsearch, 14 tests)
     - ✅ Task 5.1.7: API endpoint - GET /api/v1/timeline/{patient_id} (auth + audit logging)
-- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 4/12 tasks (33%)
+- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 5/12 tasks (42%)
   - ✅ Task 5.2.1: Install D3.js dependencies (d3@7.9.0, @types/d3@7.4.3)
   - ✅ Task 5.2.2: Timeline API client (getPatientTimeline method, 10 unit tests)
   - ✅ Task 5.2.3: useTimeline composable (fetchTimeline, refreshTimeline, 13 unit tests)
   - ✅ Task 5.2.4: TimelineAxis component (D3.js time axis, 9 unit tests)
+  - ✅ Task 5.2.5: TimelineDocuments component (document markers, 15 unit tests)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: (this commit) - Phase 5.1 COMPLETE - Timeline API endpoint
-**Sprint**: Sprint 2 - Timeline View (Phase 5) - Backend Complete
-**Next Milestone**: Phase 5.2 (Frontend Timeline Component) - 12/60 tasks remaining
+**Latest Commit**: Task 5.2.5 - TimelineDocuments component with document markers
+**Sprint**: Sprint 2 - Timeline View (Phase 5.2 Frontend - 5/12 tasks complete)
+**Next Milestone**: Phase 5.2 (Frontend Timeline Component) - 7/12 tasks remaining
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.2: Task 5.2.5 TimelineDocuments Component
+
+**Commits**: (this commit) - Create TimelineDocuments component with document markers and vitest setup
+
+**Added**:
+- TimelineDocuments component: `frontend/src/components/timeline/TimelineDocuments.vue` (~130 lines)
+  - **Document Markers**: Renders circular markers for each document on timeline
+    - Circle elements positioned by document date
+    - Uses D3.js scaleTime for date-to-pixel conversion
+    - 50px padding matching TimelineAxis component
+    - 5px radius (default), 7px on hover
+  - **Interactive Features**:
+    - Click: Emits documentClick event with full document object
+    - Hover: Emits documentHover event with document + mouse event
+    - Selected state: Applies visual styling to clicked marker
+  - **Props**:
+    - documents: TimelineDocument[] (required)
+    - dateRange: { start: Date, end: Date } (required)
+    - width: number (required)
+    - documentY: number (default 50, vertical position)
+  - **Events**:
+    - documentClick: [doc: TimelineDocument] - Emitted when marker clicked
+    - documentHover: [doc | null, event | null] - Emitted on hover/leave
+  - **Reactivity**: Updates when documents, dateRange, or width props change
+  - **Styling**:
+    - Blue markers (#1976d2), darker on hover (#1565c0)
+    - Selected marker: Dark blue (#0d47a1) with white stroke
+    - Smooth transitions (0.2s ease)
+- Unit tests: `frontend/tests/unit/components/TimelineDocuments.spec.ts` (15 tests, ~420 lines)
+  - Test component mounting and SVG group rendering
+  - Test correct number of markers (one per document)
+  - Test unique keys (documentId)
+  - Test Y positioning (documentY prop)
+  - Test marker radius (5px)
+  - Test X positioning by date (D3 time scale)
+  - Test click event emission
+  - Test hover event emission (mouseenter/mouseleave)
+  - Test selected state styling
+  - Test reactivity (documents, dateRange, width prop changes)
+  - Test empty documents array
+  - Test default documentY prop
+- Testing infrastructure setup:
+  - Installed vitest@4.0.10, @vue/test-utils@2.4.6, @vitest/ui@4.0.10, happy-dom@20.0.10
+  - Created `frontend/vitest.config.ts` for Vue component testing
+  - Added "test:unit": "vitest" script to package.json
+  - Configured happy-dom environment for DOM testing
+  - Configured @ alias for imports
+
+**Why**:
+- Implements Task 5.2.5 from Phase 5.2 task breakdown
+- Enables visualization of document distribution over time
+- Provides user interaction (click to view details, hover for tooltip)
+- Complements TimelineAxis component (axis + markers = complete timeline)
+- Establishes vitest testing infrastructure for all frontend tests
+
+**Impact**:
+- ✅ Document markers component ready for timeline view integration
+- ✅ D3.js scaleTime integration (consistent with TimelineAxis)
+- ✅ Interactive click/hover events for tooltip and detail views
+- ✅ 15 unit tests passing (100% component coverage)
+- ✅ Testing infrastructure established (vitest + @vue/test-utils)
+- ✅ 47 total tests across 5 components (TimelineDocuments, TimelineAxis, useTimeline, timeline API, types)
+- 🎯 **Next**: Task 5.2.6 - Create main TimelineView component integrating axis + documents
+
+**Technical Notes**:
+- Uses D3.js scaleTime computed property (reactive to props)
+- SVG circle elements with Vue v-for
+- Event emission for parent component integration
+- Selected state managed internally (selectedDocId ref)
+- Vitest config uses happy-dom (faster than jsdom)
+- All imports use @ alias (resolved via vitest.config.ts)
+
+---
 
 #### [2025-11-19] - Phase 5.2: Task 5.2.4 TimelineAxis Component
 
