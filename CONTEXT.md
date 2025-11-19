@@ -111,13 +111,66 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 5.3.5: Integration tests for concept rendering (7 tests)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Task 5.4.5 - Filter preset CRUD API (Phase 5.4: 5/8 tasks complete)
+**Latest Commit**: Task 5.4.6 - Filter preset UI (Phase 5.4: 6/8 tasks complete)
 **Sprint**: Sprint 2 - Timeline View (Phases 5.1-5.3 COMPLETE, Phase 5.4 in progress)
-**Next Milestone**: Phase 5.4 (Filtering & Search) - Task 5.4.6 (Add filter preset UI)
+**Next Milestone**: Phase 5.4 (Filtering & Search) - Task 5.4.7 (URL query param sync)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.4: Task 5.4.6 - Filter Preset UI
+
+**Commits**: (this commit) - Add filter preset UI to ConceptFilterSidebar
+
+**Task 5.4.6 Completed**:
+- ✅ **API client methods**: `frontend/src/api/timeline.ts` (~80 lines added)
+  - getFilterPresets() - Fetch user's presets
+  - createFilterPreset() - Save preset
+  - updateFilterPreset() - Update preset
+  - deleteFilterPreset() - Delete preset
+  - TypeScript interfaces: FilterPreset, FilterPresetListResponse, CreateFilterPresetRequest, UpdateFilterPresetRequest
+- ✅ **Preset UI**: Modified `frontend/src/components/ConceptFilterSidebar.vue` (~200 lines added)
+  - Load preset dropdown at top of sidebar
+  - "Manage Presets" button opens management dialog
+  - Save preset dialog with name input and "Set as default" checkbox
+  - Manage presets dialog with list, default star indicator, delete buttons
+  - Auto-load default preset on mount
+  - Filter loading logic from preset (concept CUIs, dates, meta-annotations, document types)
+- ✅ **Unit tests**: Updated `frontend/tests/unit/components/ConceptFilterSidebar.spec.ts` (5 new tests)
+  - Test save preset dialog opens
+  - Test load preset populates filters
+  - Test presets displayed in dropdown with default indicator
+  - Test manage presets dialog opens
+  - Test default preset star indicator shown
+- ✅ Updated CONTEXT.md and AUDIT.md
+
+**Why**:
+- Implements Task 5.4.6 from Phase 5.4 task breakdown
+- Enables users to save and reuse filter combinations
+- Improves user experience with quick filter recall
+- Auto-loads default preset for immediate access
+- Completes frontend preset functionality (backend added in Task 5.4.5)
+
+**Impact**:
+- ✅ Filter preset UI complete
+- ✅ Load preset dropdown working
+- ✅ Save preset dialog working
+- ✅ Manage presets dialog working (view, delete, toggle default)
+- ✅ Default preset loaded on mount
+- ✅ 33 unit tests passing (28 existing + 5 new)
+- 🎯 **Next**: Task 5.4.7 (URL query param sync) - 1 hour
+
+**Technical Notes**:
+- Preset dropdown shows "(Default)" indicator for default preset
+- Star icon in manage dialog: Filled=default, Outlined=not default
+- Click star to toggle default status
+- Delete button with loading state
+- Auto-reloads presets after create/update/delete
+- Filters object serialized to match backend schema
+- TypeScript types for all preset operations
+
+---
 
 #### [2025-11-19] - Phase 5.4: Task 5.4.5 - Filter Preset API
 

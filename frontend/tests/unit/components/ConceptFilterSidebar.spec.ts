@@ -315,15 +315,135 @@ describe('ConceptFilterSidebar', () => {
     expect(vm.conceptSuggestions.length).toBe(0)
   })
 
-  it('handles Save as Preset click (logs for now)', async () => {
-    const consoleSpy = vi.spyOn(console, 'log')
-
+  it('opens save preset dialog when Save as Preset clicked', async () => {
     const buttons = wrapper.findAllComponents({ name: 'VBtn' })
     const saveBtn = buttons.find((btn: any) => btn.text().includes('Save as Preset'))
     await saveBtn!.trigger('click')
 
-    expect(consoleSpy).toHaveBeenCalledWith('Save preset clicked - to be implemented in Task 5.4.6')
+    await wrapper.vm.$nextTick()
 
-    consoleSpy.mockRestore()
+    const vm = wrapper.vm as any
+    expect(vm.showSavePresetDialog).toBe(true)
+  })
+
+  it('loads preset filters when preset selected', async () => {
+    const vm = wrapper.vm as any
+
+    const mockPreset = {
+      id: 'preset-123',
+      name: 'Test Preset',
+      filters: {
+        concept_cuis: ['C0011849', 'C0020538'],
+        dateFrom: new Date('2023-01-01'),
+        dateTo: new Date('2023-12-31'),
+        meta_annotations: {
+          Negation: 'Affirmed',
+          Experiencer: 'Patient',
+          Temporality: ['Current']
+        },
+        document_types: ['clinical_note']
+      },
+      is_default: false,
+      user_id: 'user-123',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    vm.presets = [mockPreset]
+    vm.handlePresetSelected('preset-123')
+
+    await wrapper.vm.$nextTick()
+
+    expect(vm.selectedConcepts).toEqual(['C0011849', 'C0020538'])
+    expect(vm.dateFrom).toBe('2023-01-01')
+    expect(vm.dateTo).toBe('2023-12-31')
+    expect(vm.metaNegation).toBe('Affirmed')
+    expect(vm.metaExperiencer).toBe('Patient')
+    expect(vm.metaTemporality).toEqual(['Current'])
+    expect(vm.selectedDocumentTypes).toEqual(['clinical_note'])
+  })
+
+  it('displays presets in dropdown', async () => {
+    const vm = wrapper.vm as any
+
+    const mockPresets = [
+      {
+        id: 'preset-1',
+        name: 'Preset 1',
+        filters: {},
+        is_default: true,
+        user_id: 'user-123',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'preset-2',
+        name: 'Preset 2',
+        filters: {},
+        is_default: false,
+        user_id: 'user-123',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ]
+
+    vm.presets = mockPresets
+
+    await wrapper.vm.$nextTick()
+
+    const presetOptions = vm.presetOptions
+    expect(presetOptions.length).toBe(2)
+    expect(presetOptions[0].title).toBe('Preset 1 (Default)')
+    expect(presetOptions[1].title).toBe('Preset 2')
+  })
+
+  it('opens manage presets dialog when Manage Presets clicked', async () => {
+    const buttons = wrapper.findAllComponents({ name: 'VBtn' })
+    const manageBtn = buttons.find((btn: any) => btn.text().includes('Manage Presets'))
+    await manageBtn!.trigger('click')
+
+    await wrapper.vm.$nextTick()
+
+    const vm = wrapper.vm as any
+    expect(vm.showManagePresetsDialog).toBe(true)
+  })
+
+  it('shows default preset indicator in manage dialog', async () => {
+    const vm = wrapper.vm as any
+
+    const mockPresets = [
+      {
+        id: 'preset-1',
+        name: 'Default Preset',
+        filters: {},
+        is_default: true,
+        user_id: 'user-123',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'preset-2',
+        name: 'Regular Preset',
+        filters: {},
+        is_default: false,
+        user_id: 'user-123',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ]
+
+    vm.presets = mockPresets
+    vm.showManagePresetsDialog = true
+
+    await wrapper.vm.$nextTick()
+
+    const icons = wrapper.findAllComponents({ name: 'VIcon' })
+    const starIcons = icons.filter((icon: any) =>
+      icon.text().includes('mdi-star') || icon.text().includes('mdi-star-outline')
+    )
+
+    // Should have 2 star icons (one filled, one outlined)
+    expect(starIcons.length).toBe(2)
   })
 })
+

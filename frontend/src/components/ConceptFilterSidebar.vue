@@ -21,6 +21,33 @@
       <v-divider />
 
       <v-card-text class="pa-4">
+        <!-- Load Preset Dropdown --><v-card variant="outlined" class="mb-4">
+          <v-card-title class="text-subtitle-1 pa-3">
+            Load Preset
+          </v-card-title>
+          <v-card-text>
+            <v-select
+              v-model="selectedPreset"
+              :items="presetOptions"
+              :loading="loadingPresets"
+              label="Select saved preset"
+              clearable
+              hide-details="auto"
+              prepend-inner-icon="mdi-bookmark-outline"
+              @update:model-value="handlePresetSelected"
+            />
+            <v-btn
+              variant="text"
+              size="small"
+              prepend-icon="mdi-cog"
+              class="mt-2"
+              @click="showManagePresetsDialog = true"
+            >
+              Manage Presets
+            </v-btn>
+          </v-card-text>
+        </v-card>
+
         <!-- Concept Filter -->
         <v-card variant="outlined" class="mb-4">
           <v-card-title class="text-subtitle-1 pa-3">
@@ -299,12 +326,105 @@
         </v-btn>
       </v-card-actions>
     </v-card>
+
+    <!-- Save Preset Dialog -->
+    <v-dialog v-model="showSavePresetDialog" max-width="500">
+      <v-card>
+        <v-card-title>Save Filter Preset</v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="presetName"
+            label="Preset Name"
+            placeholder="e.g., Diabetes Management"
+            autofocus
+            hide-details="auto"
+            class="mb-3"
+          />
+          <v-checkbox
+            v-model="presetIsDefault"
+            label="Set as default preset"
+            hide-details
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            variant="text"
+            @click="showSavePresetDialog = false"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            :loading="savingPreset"
+            :disabled="!presetName.trim()"
+            @click="savePreset"
+          >
+            Save
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Manage Presets Dialog -->
+    <v-dialog v-model="showManagePresetsDialog" max-width="600">
+      <v-card>
+        <v-card-title>Manage Filter Presets</v-card-title>
+        <v-card-text>
+          <v-list v-if="presets.length > 0">
+            <v-list-item
+              v-for="preset in presets"
+              :key="preset.id"
+            >
+              <template #prepend>
+                <v-icon
+                  :color="preset.is_default ? 'amber' : 'grey'"
+                  @click="toggleDefault(preset)"
+                >
+                  {{ preset.is_default ? 'mdi-star' : 'mdi-star-outline' }}
+                </v-icon>
+              </template>
+
+              <v-list-item-title>{{ preset.name }}</v-list-item-title>
+              <v-list-item-subtitle>
+                Created {{ new Date(preset.created_at).toLocaleDateString() }}
+              </v-list-item-subtitle>
+
+              <template #append>
+                <v-btn
+                  icon="mdi-delete"
+                  variant="text"
+                  size="small"
+                  :loading="deletingPreset === preset.id"
+                  @click="deletePreset(preset.id)"
+                />
+              </template>
+            </v-list-item>
+          </v-list>
+          <v-alert v-else type="info" variant="tonal">
+            No saved presets. Create one by clicking "Save as Preset" after configuring filters.
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            variant="text"
+            @click="showManagePresetsDialog = false"
+          >
+            Close
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-navigation-drawer>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useTimelineFilters } from '@/composables/useTimelineFilters'
+import { getFilterPresets, createFilterPreset, updateFilterPreset, deleteFilterPreset } from '@/api/timeline'
+import type { FilterPreset } from '@/api/timeline'
 
 interface Props {
   modelValue: boolean
@@ -454,11 +574,177 @@ function handleClearFilters() {
   handleApplyFilters()
 }
 
-// Save preset (emit event for parent to handle)
-function handleSavePreset() {
-  // Future: Open dialog to save preset
-  console.log('Save preset clicked - to be implemented in Task 5.4.6')
+// Filter presets
+const presets = ref<FilterPreset[]>([])
+const loadingPresets = ref(false)
+const selectedPreset = ref<string | null>(null)
+
+// Save preset dialog
+const showSavePresetDialog = ref(false)
+const presetName = ref('')
+const presetIsDefault = ref(false)
+const savingPreset = ref(false)
+
+// Manage presets dialog
+const showManagePresetsDialog = ref(false)
+const deletingPreset = ref<string | null>(null)
+
+// Preset dropdown options
+const presetOptions = computed(() => {
+  return presets.value.map(p => ({
+    title: p.is_default ? `${p.name} (Default)` : p.name,
+    value: p.id
+  }))
+})
+
+// Load presets from API
+async function loadPresets() {
+  loadingPresets.value = true
+  try {
+    const { presets: userPresets } = await getFilterPresets()
+    presets.value = userPresets
+
+    // Load default preset if exists
+    const defaultPreset = userPresets.find(p => p.is_default)
+    if (defaultPreset) {
+      loadPresetFilters(defaultPreset)
+    }
+  } catch (error) {
+    console.error('Failed to load presets:', error)
+  } finally {
+    loadingPresets.value = false
+  }
 }
+
+// Load filters from a preset
+function loadPresetFilters(preset: FilterPreset) {
+  const { filters } = preset
+
+  // Load concept CUIs
+  if (filters.concept_cuis) {
+    selectedConcepts.value = filters.concept_cuis
+  }
+
+  // Load date range
+  if (filters.dateFrom) {
+    dateFrom.value = new Date(filters.dateFrom).toISOString().split('T')[0]
+  }
+  if (filters.dateTo) {
+    dateTo.value = new Date(filters.dateTo).toISOString().split('T')[0]
+  }
+
+  // Load meta-annotations
+  if (filters.meta_annotations) {
+    if (filters.meta_annotations.Negation) {
+      metaNegation.value = filters.meta_annotations.Negation
+    }
+    if (filters.meta_annotations.Experiencer) {
+      metaExperiencer.value = filters.meta_annotations.Experiencer
+    }
+    if (filters.meta_annotations.Temporality) {
+      metaTemporality.value = filters.meta_annotations.Temporality
+    }
+    if (filters.meta_annotations.Certainty) {
+      metaCertainty.value = filters.meta_annotations.Certainty
+    }
+  }
+
+  // Load document types
+  if (filters.document_types) {
+    selectedDocumentTypes.value = filters.document_types
+  }
+}
+
+// Handle preset selection from dropdown
+function handlePresetSelected(presetId: string | null) {
+  if (!presetId) return
+
+  const preset = presets.value.find(p => p.id === presetId)
+  if (preset) {
+    loadPresetFilters(preset)
+  }
+}
+
+// Open save preset dialog
+function handleSavePreset() {
+  presetName.value = ''
+  presetIsDefault.value = false
+  showSavePresetDialog.value = true
+}
+
+// Save preset to API
+async function savePreset() {
+  if (!presetName.value.trim()) {
+    return
+  }
+
+  savingPreset.value = true
+  try {
+    const filters = {
+      concept_cuis: selectedConcepts.value,
+      dateFrom: dateFrom.value ? new Date(dateFrom.value) : null,
+      dateTo: dateTo.value ? new Date(dateTo.value) : null,
+      meta_annotations: {
+        Negation: metaNegation.value,
+        Experiencer: metaExperiencer.value,
+        Temporality: metaTemporality.value,
+        ...(metaCertainty.value && { Certainty: metaCertainty.value })
+      },
+      document_types: selectedDocumentTypes.value
+    }
+
+    await createFilterPreset({
+      name: presetName.value.trim(),
+      filters,
+      is_default: presetIsDefault.value
+    })
+
+    // Reload presets
+    await loadPresets()
+
+    // Close dialog
+    showSavePresetDialog.value = false
+    presetName.value = ''
+  } catch (error) {
+    console.error('Failed to save preset:', error)
+  } finally {
+    savingPreset.value = false
+  }
+}
+
+// Delete preset
+async function deletePreset(presetId: string) {
+  deletingPreset.value = presetId
+  try {
+    await deleteFilterPreset(presetId)
+
+    // Reload presets
+    await loadPresets()
+  } catch (error) {
+    console.error('Failed to delete preset:', error)
+  } finally {
+    deletingPreset.value = null
+  }
+}
+
+// Toggle default status
+async function toggleDefault(preset: FilterPreset) {
+  try {
+    await updateFilterPreset(preset.id, {
+      is_default: !preset.is_default
+    })
+
+    // Reload presets
+    await loadPresets()
+  } catch (error) {
+    console.error('Failed to update preset:', error)
+  }
+}
+
+// Load presets on mount
+onMounted(() => {
+  loadPresets()
+})
 </script>
 
 <style scoped>
