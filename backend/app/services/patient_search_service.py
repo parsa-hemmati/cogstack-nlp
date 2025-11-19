@@ -3,16 +3,19 @@ Patient Search Service.
 
 Business logic for searching patients by clinical concepts with meta-annotation filtering.
 """
+import json
 import logging
 import time
 from datetime import date, datetime
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
+from redis.asyncio import Redis
 from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, joinedload
 
+from app.core.redis_client import get_redis
 from app.models.document import Document
 from app.models.extracted_entity import ExtractedEntity
 from app.models.patient import Patient
@@ -58,6 +61,11 @@ class PatientSearchService:
         ... )
     """
 
+    # Search history configuration
+    HISTORY_KEY_PREFIX = "search_history:"
+    HISTORY_MAX_ITEMS = 10
+    HISTORY_TTL_SECONDS = 7 * 24 * 60 * 60  # 7 days
+
     def __init__(self, db: AsyncSession):
         """
         Initialize patient search service.
@@ -66,6 +74,13 @@ class PatientSearchService:
             db: Async database session
         """
         self.db = db
+        self.redis: Optional[Redis] = None
+
+    async def _get_redis(self) -> Redis:
+        """Get Redis client (lazy initialization)."""
+        if self.redis is None:
+            self.redis = await get_redis()
+        return self.redis
 
     async def search(
         self,
@@ -555,3 +570,83 @@ class PatientSearchService:
             bolded_snippet = bolded_snippet + "..."
 
         return bolded_snippet
+
+    async def save_search_history(
+        self,
+        user_id: UUID,
+        concept: str,
+        filters: SearchFilters,
+    ) -> None:
+        """
+        Save search to user's history (Redis LIST).
+
+        Stores last 10 searches per user with 7-day TTL.
+
+        Args:
+            user_id: User UUID
+            concept: Search concept
+            filters: Search filters used
+
+        Example:
+            >>> await service.save_search_history(
+            ...     user_id=user.id,
+            ...     concept="diabetes",
+            ...     filters=SearchFilters(temporal="current")
+            ... )
+        """
+        redis = await self._get_redis()
+        key = f"{self.HISTORY_KEY_PREFIX}{user_id}"
+
+        # Create history item
+        history_item = {
+            "concept": concept,
+            "filters": {
+                "temporal": filters.temporal,
+                "includeNegated": filters.includeNegated,
+                "includeFamily": filters.includeFamily,
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        # Add to front of list (LPUSH)
+        await redis.lpush(key, json.dumps(history_item))
+
+        # Keep only last 10 items (LTRIM)
+        await redis.ltrim(key, 0, self.HISTORY_MAX_ITEMS - 1)
+
+        # Set expiry (7 days)
+        await redis.expire(key, self.HISTORY_TTL_SECONDS)
+
+        logger.debug(f"Saved search history for user {user_id}: {concept}")
+
+    async def get_search_history(self, user_id: UUID) -> List[Dict]:
+        """
+        Retrieve user's search history (last 10 searches).
+
+        Args:
+            user_id: User UUID
+
+        Returns:
+            List of search history items (most recent first)
+
+        Example:
+            >>> history = await service.get_search_history(user.id)
+            >>> print(history[0]["concept"])  # Most recent search
+        """
+        redis = await self._get_redis()
+        key = f"{self.HISTORY_KEY_PREFIX}{user_id}"
+
+        # Get all items from list (LRANGE)
+        history_items = await redis.lrange(key, 0, self.HISTORY_MAX_ITEMS - 1)
+
+        # Parse JSON items
+        history = []
+        for item in history_items:
+            try:
+                history.append(json.loads(item))
+            except json.JSONDecodeError:
+                logger.warning(f"Failed to parse search history item: {item}")
+                continue
+
+        logger.debug(f"Retrieved {len(history)} search history items for user {user_id}")
+        return history

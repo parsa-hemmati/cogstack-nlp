@@ -132,6 +132,17 @@ async def search_patients(
             sort=request.sort,
         )
 
+        # Save to search history (non-blocking)
+        try:
+            await search_service.save_search_history(
+                user_id=current_user.id,
+                concept=request.concept,
+                filters=request.filters,
+            )
+        except Exception as history_error:
+            # Log failure but don't abort the search
+            logger.warning(f"Failed to save search history: {history_error}")
+
         # Log audit trail (HIPAA compliance - PHI access)
         # NOTE: Audit logging must not abort the search if it fails
         try:
@@ -312,4 +323,75 @@ async def get_concept_highlights(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve concept highlights. Please try again.",
+        )
+
+
+@router.get("/search/history", status_code=status.HTTP_200_OK)
+async def get_search_history(
+    current_user: User = Depends(require_role("clinician", "researcher", "admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Retrieve user's search history (last 10 searches).
+
+    **Authorization**: Requires one of: clinician, researcher, admin
+
+    **Features**:
+    - Last 10 searches per user
+    - Most recent first
+    - 7-day retention
+    - Stored in Redis for fast retrieval
+
+    **Response Format**:
+    ```json
+    {
+      "history": [
+        {
+          "concept": "diabetes",
+          "filters": {
+            "temporal": "current",
+            "includeNegated": false,
+            "includeFamily": false
+          },
+          "timestamp": "2024-01-15T10:30:00"
+        },
+        ...
+      ]
+    }
+    ```
+
+    Args:
+        current_user: Authenticated user (injected by FastAPI)
+        db: Database session (injected by FastAPI)
+
+    Returns:
+        Dict with "history" key containing list of search history items
+
+    Raises:
+        HTTPException 401: Unauthorized (no valid JWT token)
+        HTTPException 403: Forbidden (insufficient role permissions)
+        HTTPException 500: Internal server error
+
+    Example:
+        ```bash
+        curl -X GET "http://localhost:8000/api/v1/patients/search/history" \\
+          -H "Authorization: Bearer $TOKEN"
+        ```
+    """
+    try:
+        search_service = PatientSearchService(db)
+        history = await search_service.get_search_history(current_user.id)
+
+        logger.info(
+            f"Search history retrieved: user={current_user.username}, "
+            f"items={len(history)}"
+        )
+
+        return {"history": history}
+
+    except Exception as e:
+        logger.error(f"Failed to retrieve search history: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve search history. Please try again.",
         )

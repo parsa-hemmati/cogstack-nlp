@@ -20,20 +20,18 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ### Commit Status: ✅ CLEAR
 
-**Task 4.5: Frontend Highlights Panel implemented** (2025-11-18)
+**Task 4.6: Search History implemented** (2025-11-18)
 
 **This Commit**:
-- ✅ DocumentHighlights.vue component created (expandable highlights panel)
-- ✅ DocumentModal.vue component created (full document view)
-- ✅ PatientSearchView.vue updated (expandable rows with highlights)
-- ✅ 10 frontend unit tests created (DocumentHighlights.spec.ts)
-- ✅ All components follow Vue 3 Composition API patterns
-- ✅ TypeScript types complete (no `any` types)
-- ✅ Color-coded meta-annotation chips (green/red/grey)
-- ✅ CONTEXT.md updated with Task 4.5 details
-- ✅ No breaking changes introduced (backward compatible)
-- ✅ Accessibility: ARIA labels, keyboard navigation
-- ✅ Responsive design (tablets + desktops)
+- ✅ Search history methods added to PatientSearchService
+- ✅ Redis integration with LPUSH/LTRIM (7-day TTL, max 10 items)
+- ✅ GET /api/v1/patients/search/history endpoint created
+- ✅ POST /search endpoint updated to save history (non-blocking)
+- ✅ JSON serialization for filters and timestamps
+- ✅ Error handling (non-blocking failures)
+- ✅ CONTEXT.md updated with Task 4.6 details
+- ✅ No breaking changes (backward compatible)
+- ✅ GDPR compliant (7-day auto-expiry)
 
 **Action**: Ready to commit.
 
