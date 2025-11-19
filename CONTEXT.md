@@ -119,6 +119,48 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.4: Task Breakdown Creation
+
+**Commits**: (this commit) - Create detailed task breakdown for Phase 5.4 (Filtering & Search)
+
+**Added**:
+- Task breakdown: `.specify/tasks/timeline-view-phase-5.4-tasks.md` (~550 lines)
+  - **Purpose**: Detailed implementation tasks for Phase 5.4 (Filtering & Search)
+  - **Scope**: 8 tasks, 15 hours estimated, 58 tests planned
+  - **Tasks**:
+    - Task 5.4.1: Backend filter API (concept CUIs, date range, meta-annotations, document types)
+    - Task 5.4.2: useTimelineFilters composable (state management, URL sync)
+    - Task 5.4.3: ConceptFilterSidebar component (search, checkboxes, date pickers)
+    - Task 5.4.4: TimelineView integration (wire up filters, active filter chips)
+    - Task 5.4.5: Filter preset API (save/load/manage presets)
+    - Task 5.4.6: Filter preset UI (dropdown, save dialog, manage dialog)
+    - Task 5.4.7: URL query param sync (shareable links)
+    - Task 5.4.8: Integration tests + performance validation (<500ms filter updates)
+
+**Why**:
+- Implements Spec-Kit workflow (Spec → Plan → Tasks → Code)
+- Breaks down Phase 5.4 from technical plan into implementable tasks (1-2.5 hours each)
+- Enables TDD approach (tests specified in each task)
+- Aligns with Sprint 2 specification (Interactive Filters P1 goal)
+- Follows tech-plan-to-tasks skill guidance
+
+**Impact**:
+- ✅ Phase 5.4 ready for implementation (all 8 tasks defined)
+- ✅ Clear acceptance criteria for each task
+- ✅ Test coverage specified (58 unit + integration + performance tests)
+- ✅ Files to create/modify documented
+- ✅ Time estimates per task (resource planning)
+- 🎯 **Next**: Start implementing Task 5.4.1 (Backend filter API)
+
+**Technical Notes**:
+- Filter schema: `TimelineFilterRequest` with concept_cuis, date_from/to, meta_annotations, document_types
+- URL sync: Filters encoded as query params for shareable links
+- Filter presets: Saved in PostgreSQL (timeline_filter_presets table)
+- Performance target: <500ms filter update latency
+- Meta-annotation defaults: Affirmed, Patient, Current/Recent (excludes negated, family, historical)
+
+---
+
 #### [2025-11-19] - Multi-Agent Workflow: Git Hook Scripts Implementation
 
 **Commits**: 7d8644ae+ - Create Git hook helper scripts for multi-agent workflow
