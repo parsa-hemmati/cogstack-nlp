@@ -103,15 +103,67 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 5.2.5: TimelineDocuments component (document markers, 15 unit tests)
   - ✅ Task 5.2.6: TimelineView component (main view, router integration, 15 unit tests)
   - ✅ Task 5.2.7: Integration tests (full timeline rendering workflow, 7 tests)
+- 🔄 **Phase 5.3 (Concept Extraction & Display)**: IN PROGRESS - 1/8 tasks (13%)
+  - ✅ Task 5.3.1: Populate clinical_concepts index script
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Phase 5.2 COMPLETE - All 7 frontend timeline tasks done
-**Sprint**: Sprint 2 - Timeline View (Phase 5.1 + 5.2 COMPLETE)
-**Next Milestone**: Phase 5.3 (Concept Extraction & Display)
+**Latest Commit**: Task 5.3.1 - Populate clinical_concepts Elasticsearch index
+**Sprint**: Sprint 2 - Timeline View (Phases 5.1-5.2 COMPLETE, Phase 5.3 IN PROGRESS)
+**Next Milestone**: Phase 5.3 (Concept Extraction & Display) - 7/8 tasks remaining
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.3: Task 5.3.1 Populate clinical_concepts Index
+
+**Commits**: (this commit) - Create script to populate clinical_concepts Elasticsearch index
+
+**Added**:
+- Population script: `scripts/populate_clinical_concepts_index.py` (~130 lines)
+  - **Purpose**: Index all ExtractedEntity records into clinical_concepts Elasticsearch index
+  - **Data Indexed**:
+    - patient_id: UUID of patient
+    - document_id: UUID of document
+    - concept_cui: SNOMED-CT or UMLS CUI
+    - concept_name: Human-readable concept name
+    - concept_type: UMLS semantic type (first type)
+    - date: Document date (ISO 8601 format)
+    - meta_annotations: Negation, Temporality, Experiencer, Certainty
+    - confidence: MedCAT confidence score (0.0-1.0)
+    - sentence: Sentence containing the concept mention
+  - **Features**:
+    - Async Elasticsearch operations
+    - Eager loading (joinedload) for documents
+    - Progress indicators every 100 records
+    - Verification count comparison (PostgreSQL vs Elasticsearch)
+    - Error handling for missing documents
+    - Index existence check
+  - **Output**: Colored console output with status indicators
+
+**Why**:
+- Implements Task 5.3.1 from Phase 5.3 task breakdown
+- Enables concept visualization on timeline
+- Populates clinical_concepts index created in Task 5.1.3
+- Provides foundation for concept markers on timeline
+- Required for Phase 5.3 concept extraction and display
+
+**Impact**:
+- ✅ Script ready to populate clinical_concepts index
+- ✅ Supports timeline concept visualization
+- ✅ Preserves meta-annotations for filtering
+- ✅ Async operations for performance
+- 🎯 **Next**: Task 5.3.2 - Verify TimelineService includes concepts
+
+**Technical Notes**:
+- Uses AsyncElasticsearch for async indexing
+- SQLAlchemy joinedload for efficient queries
+- Progress tracking for large datasets
+- Verification step compares counts
+- Skips orphaned entities (no document)
+- Compatible with existing clinical_concepts mapping
+
+---
 
 #### [2025-11-19] - Phase 5.2: COMPLETE - All 7 Frontend Timeline Tasks
 
