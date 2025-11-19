@@ -7,9 +7,11 @@
       :cy="conceptY(mention.concept_type)"
       :r="mention.is_first_mention ? 8 : 4"
       :fill="conceptColor(mention.concept_type)"
-      class="concept-marker"
+      :class="['concept-marker', mention.is_first_mention ? 'concept-marker-first' : 'concept-marker-recurring']"
       @click="$emit('concept-click', mention, $event)"
-    />
+    >
+      <title>{{ formatTooltip(mention) }}</title>
+    </circle>
   </g>
 </template>
 
@@ -37,18 +39,23 @@ const xScale = computed(() => {
 const allMentions = computed(() => {
   const mentions = []
   for (const concept of props.concepts) {
-    for (let i = 0; i < concept.mentions.length; i++) {
+    for (const mention of concept.mentions) {
       mentions.push({
-        ...concept.mentions[i],
+        ...mention,
         concept_cui: concept.concept_cui,
         concept_name: concept.concept_name,
-        concept_type: concept.concept_type,
-        is_first_mention: i === 0
+        concept_type: concept.concept_type
       })
     }
   }
   return mentions
 })
+
+const formatTooltip = (mention: any) => {
+  const date = new Date(mention.date).toLocaleDateString()
+  const prefix = mention.is_first_mention ? 'First mentioned' : 'Also mentioned'
+  return `${prefix}: ${date}\n${mention.concept_name}`
+}
 
 const conceptY = (conceptType: string) => {
   const yPositions: Record<string, number> = {
@@ -78,8 +85,32 @@ const conceptColor = (conceptType: string) => {
   cursor: pointer;
   stroke: #fff;
   stroke-width: 1;
+  transition: all 0.2s ease;
 }
+
 .concept-marker:hover {
   stroke-width: 2;
+}
+
+/* First mention markers - larger and bolder */
+.concept-marker-first {
+  stroke-width: 2;
+  opacity: 1;
+}
+
+.concept-marker-first:hover {
+  stroke-width: 3;
+  filter: brightness(1.2);
+}
+
+/* Recurring mention markers - smaller and lighter */
+.concept-marker-recurring {
+  stroke-width: 1;
+  opacity: 0.7;
+}
+
+.concept-marker-recurring:hover {
+  stroke-width: 2;
+  opacity: 1;
 }
 </style>

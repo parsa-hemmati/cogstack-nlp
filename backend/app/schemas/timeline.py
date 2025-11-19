@@ -86,6 +86,11 @@ class ConceptMention(BaseModel):
         description="Confidence score from NLP model (0.0-1.0)",
         example=0.95
     )
+    is_first_mention: bool = Field(
+        default=False,
+        description="Whether this is the first (earliest) mention of this concept for the patient",
+        example=True
+    )
 
 
 class TimelineConcept(BaseModel):

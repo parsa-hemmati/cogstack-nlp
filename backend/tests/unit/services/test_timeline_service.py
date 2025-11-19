@@ -476,3 +476,161 @@ async def test_audit_logging_includes_filters(
     assert call_args["details"]["filters"]["meta_annotations"] == {"Negation": "Affirmed"}
     assert call_args["ip_address"] == "192.168.1.1"
     assert call_args["user_agent"] == "Mozilla/5.0"
+
+
+# ===== Task 5.5.4: First vs Recurring Mention Tests =====
+
+
+@pytest.mark.asyncio
+async def test_first_mention_marked_correctly(mock_db):
+    """Test that the earliest mention is marked as first mention (is_first_mention=True)."""
+    # Arrange
+    service = TimelineService(mock_db)
+
+    mentions = [
+        ConceptMention(
+            concept_cui="C0011849",
+            concept_name="Diabetes",
+            concept_type="condition",
+            document_id=str(uuid4()),
+            date=datetime(2023, 3, 15),  # Later date
+            sentence="Follow-up for diabetes.",
+            meta_annotations=MetaAnnotations(
+                Negation="Affirmed", Temporality="Current",
+                Experiencer="Patient", Certainty="High"
+            ),
+            confidence=0.9
+        ),
+        ConceptMention(
+            concept_cui="C0011849",
+            concept_name="Diabetes",
+            concept_type="condition",
+            document_id=str(uuid4()),
+            date=datetime(2023, 1, 10),  # Earliest date (first mention)
+            sentence="Patient diagnosed with diabetes.",
+            meta_annotations=MetaAnnotations(
+                Negation="Affirmed", Temporality="Current",
+                Experiencer="Patient", Certainty="High"
+            ),
+            confidence=0.95
+        ),
+        ConceptMention(
+            concept_cui="C0011849",
+            concept_name="Diabetes",
+            concept_type="condition",
+            document_id=str(uuid4()),
+            date=datetime(2023, 2, 20),  # Middle date
+            sentence="Diabetes management plan.",
+            meta_annotations=MetaAnnotations(
+                Negation="Affirmed", Temporality="Current",
+                Experiencer="Patient", Certainty="High"
+            ),
+            confidence=0.92
+        )
+    ]
+
+    # Act
+    concepts = service._aggregate_concepts(mentions)
+
+    # Assert
+    assert len(concepts) == 1
+    diabetes = concepts[0]
+    assert diabetes.mention_count == 3
+    assert len(diabetes.mentions) == 3
+
+    # Mentions should be sorted chronologically
+    assert diabetes.mentions[0].date == datetime(2023, 1, 10)
+    assert diabetes.mentions[1].date == datetime(2023, 2, 20)
+    assert diabetes.mentions[2].date == datetime(2023, 3, 15)
+
+    # First mention should be marked
+    assert diabetes.mentions[0].is_first_mention is True
+    assert diabetes.mentions[0].sentence == "Patient diagnosed with diabetes."
+
+
+@pytest.mark.asyncio
+async def test_recurring_mentions_marked_correctly(mock_db):
+    """Test that non-first mentions are marked as recurring (is_first_mention=False)."""
+    # Arrange
+    service = TimelineService(mock_db)
+
+    mentions = [
+        ConceptMention(
+            concept_cui="C0020538",
+            concept_name="Hypertension",
+            concept_type="condition",
+            document_id=str(uuid4()),
+            date=datetime(2023, 1, 5),  # First mention
+            sentence="Newly diagnosed hypertension.",
+            meta_annotations=MetaAnnotations(
+                Negation="Affirmed", Temporality="Current",
+                Experiencer="Patient", Certainty="High"
+            ),
+            confidence=0.94
+        ),
+        ConceptMention(
+            concept_cui="C0020538",
+            concept_name="Hypertension",
+            concept_type="condition",
+            document_id=str(uuid4()),
+            date=datetime(2023, 2, 10),  # Recurring mention
+            sentence="Hypertension controlled with medication.",
+            meta_annotations=MetaAnnotations(
+                Negation="Affirmed", Temporality="Current",
+                Experiencer="Patient", Certainty="High"
+            ),
+            confidence=0.91
+        )
+    ]
+
+    # Act
+    concepts = service._aggregate_concepts(mentions)
+
+    # Assert
+    assert len(concepts) == 1
+    hypertension = concepts[0]
+    assert hypertension.mention_count == 2
+
+    # First mention marked as first
+    assert hypertension.mentions[0].is_first_mention is True
+    assert hypertension.mentions[0].date == datetime(2023, 1, 5)
+
+    # Recurring mention NOT marked as first (default False)
+    assert hypertension.mentions[1].is_first_mention is False
+    assert hypertension.mentions[1].date == datetime(2023, 2, 10)
+
+
+@pytest.mark.asyncio
+async def test_single_mention_marked_as_first(mock_db):
+    """Test that a concept with only one mention is marked as first."""
+    # Arrange
+    service = TimelineService(mock_db)
+
+    mentions = [
+        ConceptMention(
+            concept_cui="C0004096",
+            concept_name="Asthma",
+            concept_type="condition",
+            document_id=str(uuid4()),
+            date=datetime(2023, 6, 1),
+            sentence="Patient has asthma.",
+            meta_annotations=MetaAnnotations(
+                Negation="Affirmed", Temporality="Historical",
+                Experiencer="Patient", Certainty="High"
+            ),
+            confidence=0.93
+        )
+    ]
+
+    # Act
+    concepts = service._aggregate_concepts(mentions)
+
+    # Assert
+    assert len(concepts) == 1
+    asthma = concepts[0]
+    assert asthma.mention_count == 1
+    assert len(asthma.mentions) == 1
+
+    # Single mention should be marked as first
+    assert asthma.mentions[0].is_first_mention is True
+    assert asthma.mentions[0].concept_name == "Asthma"

@@ -129,6 +129,58 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.5: Task 5.5.4 - Differentiate First vs Recurring Mentions
+
+**Commits**: (this commit) - Add first mention vs recurring mention differentiation
+
+**Task 5.5.4 Completed**:
+- ✅ Backend changes:
+  - Updated `backend/app/schemas/timeline.py` - Added `is_first_mention: bool` field to `ConceptMention` schema
+  - Updated `backend/app/services/timeline_service.py` - Mark first mentions in `_aggregate_concepts()` method
+  - Added 3 backend unit tests in `backend/tests/unit/services/test_timeline_service.py`:
+    - `test_first_mention_marked_correctly` - Verifies earliest mention marked as first
+    - `test_recurring_mentions_marked_correctly` - Verifies non-first mentions marked as recurring
+    - `test_single_mention_marked_as_first` - Verifies single mention marked as first
+- ✅ Frontend changes:
+  - Updated `frontend/src/types/timeline.ts` - Added `isFirstMention: boolean` to `ConceptMention` interface
+  - Updated `frontend/src/components/TimelineConcepts.vue`:
+    - Removed client-side is_first_mention calculation (now uses backend data)
+    - Added dynamic marker sizes: r=8 for first mention, r=4 for recurring
+    - Added CSS classes: `concept-marker-first` and `concept-marker-recurring`
+    - Added tooltip differentiation: "First mentioned: {date}" vs "Also mentioned: {date}"
+    - Enhanced CSS styling: First mentions bolder (stroke-width: 2), recurring lighter (opacity: 0.7)
+  - Updated `frontend/tests/unit/components/TimelineConcepts.spec.ts`:
+    - Updated mock data to include `is_first_mention` field
+    - Added 3 frontend unit tests:
+      - `renders first mention with larger marker (r=8)` - Verifies first marker size
+      - `renders recurring mention with smaller marker (r=4)` - Verifies recurring marker size
+      - `renders correct tooltip text for first vs recurring mentions` - Verifies tooltip differentiation
+
+**Why**:
+- Implements Task 5.5.4 (2 hours)
+- Visual differentiation helps clinicians identify disease onset vs ongoing management
+- Larger markers for first mentions make them more prominent (important for temporal analysis)
+- Backend calculation ensures consistency across all clients
+
+**Impact**:
+- ✅ Task 5.5.4 complete
+- ✅ First mentions visually distinct (larger, bolder, opacity: 1)
+- ✅ Recurring mentions smaller and lighter (r=4, opacity: 0.7)
+- ✅ Tooltips provide context: "First mentioned" vs "Also mentioned"
+- ✅ 6 total tests added (3 backend + 3 frontend)
+- ✅ Backend provides authoritative is_first_mention value (no client-side calculation)
+- 🎯 **Next**: Task 5.5.5 (Create concept frequency chart component)
+
+**Technical Notes**:
+- Backend sorts mentions chronologically and marks earliest as first
+- Frontend removed `is_first_mention: i === 0` logic (was client-side assumption)
+- SVG <title> element provides native browser tooltip
+- CSS transition (0.2s ease) for smooth hover effects
+- First mention: stroke-width: 2, opacity: 1, hover brightness: 1.2
+- Recurring mention: stroke-width: 1, opacity: 0.7, hover opacity: 1
+
+---
+
 #### [2025-11-19] - Phase 5.5: Task 5.5.3 - Integrate Zoom/Pan into TimelineView
 
 **Commits**: (this commit) - Integrate zoom/pan controls into TimelineView component

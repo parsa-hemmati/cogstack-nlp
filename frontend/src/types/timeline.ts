@@ -26,6 +26,7 @@ export interface ConceptMention {
   sentence: string
   metaAnnotations: MetaAnnotations
   confidence: number
+  isFirstMention: boolean  // True for earliest mention, false for recurring
 }
 
 /**

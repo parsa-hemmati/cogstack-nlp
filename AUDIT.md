@@ -18,6 +18,62 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
+### Commit Status: ✅ CLEAR - Phase 5.5 Task 5.5.4
+
+**Phase 5.5: Zoom, Pan, and Temporal Analysis - First vs Recurring Mentions** (2025-11-19)
+
+**This Commit** (Task 5.5.4):
+- ✅ Backend: `backend/app/schemas/timeline.py` (1 new field)
+- ✅ Backend: `backend/app/services/timeline_service.py` (first mention marking logic)
+- ✅ Backend tests: `backend/tests/unit/services/test_timeline_service.py` (3 new tests)
+- ✅ Frontend: `frontend/src/types/timeline.ts` (1 new field)
+- ✅ Frontend: `frontend/src/components/TimelineConcepts.vue` (~40 lines modified)
+- ✅ Frontend tests: `frontend/tests/unit/components/TimelineConcepts.spec.ts` (mock data + 3 new tests)
+- ✅ Updated CONTEXT.md and AUDIT.md
+
+**Implementation Scope**:
+- Backend marks first mentions (earliest by date) with `is_first_mention: True`
+- All other mentions marked `is_first_mention: False`
+- Frontend renders first mentions larger (r=8) and bolder (stroke-width: 2, opacity: 1)
+- Frontend renders recurring mentions smaller (r=4) and lighter (stroke-width: 1, opacity: 0.7)
+- Tooltip differentiation: "First mentioned: {date}" vs "Also mentioned: {date}"
+- 6 comprehensive tests (3 backend + 3 frontend)
+
+**Compliance Review**:
+- ✅ **PRD Alignment**: Implements temporal pattern detection requirements
+  - User Story US-C5: "Identify temporal patterns" - First mention identification ✅
+  - Helps clinicians distinguish disease onset from ongoing management ✅
+  - Visual differentiation improves clinical decision-making ✅
+- ✅ **No HIPAA Impact**: UI/data enhancement only
+  - No PHI in logs (only concept CUIs and dates)
+  - No new patient data accessed
+  - Backend marks mentions during existing aggregation process
+  - No audit logging required (data transformation only)
+- ✅ **No Security Impact**: Backend logic + frontend rendering
+  - No network requests added
+  - No new API endpoints
+  - No data persistence changes
+  - Backend calculation prevents client-side tampering
+- ✅ **Test Coverage**: Excellent
+  - 3 backend tests: first mention, recurring mentions, single mention
+  - 3 frontend tests: marker size (r=8 vs r=4), CSS classes, tooltip text
+  - All edge cases covered (single mention, multiple mentions)
+  - Mock data updated for test consistency
+
+**Technical Notes**:
+- Backend sorts mentions chronologically before marking first
+- Backend marks only earliest mention as first (is_first_mention=True)
+- Frontend removed client-side calculation (was: `is_first_mention: i === 0`)
+- Frontend now trusts backend authoritative value
+- SVG <title> element provides native browser tooltip
+- CSS transition (0.2s ease) for smooth hover effects
+- First mention hover: brightness filter (1.2x), stroke-width: 3
+- Recurring mention hover: opacity transition (0.7 → 1.0)
+
+**Action**: ✅ CLEAR - Ready for Task 5.5.5
+
+---
+
 ### Commit Status: ✅ CLEAR - Phase 5.5 Task 5.5.3
 
 **Phase 5.5: Zoom, Pan, and Temporal Analysis - Zoom/Pan Integration** (2025-11-19)

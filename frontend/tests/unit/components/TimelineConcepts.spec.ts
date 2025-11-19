@@ -22,7 +22,8 @@ describe('TimelineConcepts.vue', () => {
             Experiencer: 'Patient',
             Certainty: 'Definite'
           },
-          sentence: 'Patient diagnosed with diabetes mellitus.'
+          sentence: 'Patient diagnosed with diabetes mellitus.',
+          is_first_mention: true  // First mention (earliest date)
         },
         {
           document_id: 'doc-2',
@@ -34,7 +35,8 @@ describe('TimelineConcepts.vue', () => {
             Experiencer: 'Patient',
             Certainty: 'Definite'
           },
-          sentence: 'Diabetes mellitus management ongoing.'
+          sentence: 'Diabetes mellitus management ongoing.',
+          is_first_mention: false  // Recurring mention
         },
         {
           document_id: 'doc-3',
@@ -46,7 +48,8 @@ describe('TimelineConcepts.vue', () => {
             Experiencer: 'Patient',
             Certainty: 'Definite'
           },
-          sentence: 'Follow-up for diabetes mellitus.'
+          sentence: 'Follow-up for diabetes mellitus.',
+          is_first_mention: false  // Recurring mention
         }
       ]
     },
@@ -67,7 +70,8 @@ describe('TimelineConcepts.vue', () => {
             Experiencer: 'Patient',
             Certainty: 'Definite'
           },
-          sentence: 'Started on metformin 500mg.'
+          sentence: 'Started on metformin 500mg.',
+          is_first_mention: true  // First mention
         },
         {
           document_id: 'doc-2',
@@ -79,7 +83,8 @@ describe('TimelineConcepts.vue', () => {
             Experiencer: 'Patient',
             Certainty: 'Definite'
           },
-          sentence: 'Metformin continued.'
+          sentence: 'Metformin continued.',
+          is_first_mention: false  // Recurring mention
         }
       ]
     }
@@ -293,5 +298,51 @@ describe('TimelineConcepts.vue', () => {
     expect(emittedMention).toHaveProperty('meta_annotations')
     expect(emittedMention).toHaveProperty('sentence')
     expect(emittedMention).toHaveProperty('is_first_mention')
+  })
+
+  // ===== Task 5.5.4: First vs Recurring Mention Tests =====
+
+  it('renders first mention with larger marker (r=8)', () => {
+    const wrapper = mount(TimelineConcepts, {
+      props: defaultProps
+    })
+
+    const markers = wrapper.findAll('.concept-marker')
+
+    // First marker should be Diabetes first mention (r=8)
+    const firstMarker = markers[0]
+    expect(firstMarker.attributes('r')).toBe('8')
+    expect(firstMarker.classes()).toContain('concept-marker-first')
+  })
+
+  it('renders recurring mention with smaller marker (r=4)', () => {
+    const wrapper = mount(TimelineConcepts, {
+      props: defaultProps
+    })
+
+    const markers = wrapper.findAll('.concept-marker')
+
+    // Second marker should be Diabetes recurring mention (r=4)
+    const recurringMarker = markers[1]
+    expect(recurringMarker.attributes('r')).toBe('4')
+    expect(recurringMarker.classes()).toContain('concept-marker-recurring')
+  })
+
+  it('renders correct tooltip text for first vs recurring mentions', () => {
+    const wrapper = mount(TimelineConcepts, {
+      props: defaultProps
+    })
+
+    const markers = wrapper.findAll('.concept-marker')
+
+    // First mention tooltip (Diabetes first mention)
+    const firstMarkerTitle = markers[0].find('title')
+    expect(firstMarkerTitle.text()).toContain('First mentioned')
+    expect(firstMarkerTitle.text()).toContain('Diabetes Mellitus')
+
+    // Recurring mention tooltip (Diabetes recurring mention)
+    const recurringMarkerTitle = markers[1].find('title')
+    expect(recurringMarkerTitle.text()).toContain('Also mentioned')
+    expect(recurringMarkerTitle.text()).toContain('Diabetes Mellitus')
   })
 })

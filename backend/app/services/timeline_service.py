@@ -228,6 +228,7 @@ class TimelineService:
         - First mention date
         - Total mention count
         - All mentions chronologically
+        - Marks first (earliest) mention with is_first_mention=True
 
         Args:
             mentions: List of concept mentions from Elasticsearch
@@ -259,6 +260,16 @@ class TimelineService:
             # Update first mention date if earlier
             if mention.date < concept_map[cui]["first_mention_date"]:
                 concept_map[cui]["first_mention_date"] = mention.date
+
+        # Mark first mentions for each concept
+        for concept_data in concept_map.values():
+            # Sort mentions chronologically
+            concept_data["mentions"].sort(key=lambda m: m.date)
+
+            # Mark first mention (earliest by date)
+            if concept_data["mentions"]:
+                concept_data["mentions"][0].is_first_mention = True
+                # All others remain False (default from schema)
 
         # Convert to TimelineConcept objects
         concepts = [
