@@ -2,7 +2,39 @@
   <v-container fluid class="timeline-view">
     <v-row>
       <v-col cols="12">
-        <h1>Patient Timeline</h1>
+        <!-- Toolbar with title and filter button -->
+        <div class="d-flex align-center mb-4">
+          <h1 class="flex-grow-1">Patient Timeline</h1>
+
+          <v-btn
+            icon
+            color="primary"
+            @click="showFilterSidebar = true"
+          >
+            <v-badge
+              v-if="activeFilterCount > 0"
+              :content="activeFilterCount"
+              color="error"
+            >
+              <v-icon>mdi-filter-variant</v-icon>
+            </v-badge>
+            <v-icon v-else>mdi-filter-variant</v-icon>
+          </v-btn>
+        </div>
+
+        <!-- Active filter chips -->
+        <div v-if="hasActiveFilters" class="mb-3">
+          <v-chip
+            v-for="(chip, index) in activeFilterChips"
+            :key="index"
+            closable
+            size="small"
+            class="mr-2"
+            @click:close="removeFilter(chip)"
+          >
+            {{ chip.label }}
+          </v-chip>
+        </div>
 
         <v-progress-linear v-if="isLoading" indeterminate color="primary" />
 
@@ -73,6 +105,13 @@
         <v-alert v-if="isEmpty" type="info">
           No timeline data available for this patient.
         </v-alert>
+
+        <!-- Filter Sidebar -->
+        <ConceptFilterSidebar
+          v-model="showFilterSidebar"
+          :patient-id="patientId"
+          @filters-applied="handleFiltersApplied"
+        />
       </v-col>
     </v-row>
   </v-container>
@@ -82,17 +121,20 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTimeline } from '@/composables/useTimeline'
+import { useTimelineFilters } from '@/composables/useTimelineFilters'
 import TimelineAxis from '@/components/timeline/TimelineAxis.vue'
 import TimelineDocuments from '@/components/timeline/TimelineDocuments.vue'
 import TimelineConcepts from '@/components/TimelineConcepts.vue'
 import ConceptPopover from '@/components/ConceptPopover.vue'
+import ConceptFilterSidebar from '@/components/ConceptFilterSidebar.vue'
 import type { TimelineDocument } from '@/types/timeline'
+import type { TimelineFilters } from '@/composables/useTimelineFilters'
 
 /**
  * TimelineView Component
  *
- * Main patient timeline visualization view.
- * Displays document markers on a temporal axis.
+ * Main patient timeline visualization view with integrated filtering.
+ * Displays document and concept markers on a temporal axis.
  *
  * Route: /timeline/:patientId
  */
@@ -108,6 +150,22 @@ const {
   fetchTimeline,
   clearError
 } = useTimeline()
+
+// Filter sidebar state
+const showFilterSidebar = ref(false)
+
+// Filter composable (for tracking active filters and generating chips)
+const patientIdRef = computed(() => patientId.value)
+const {
+  filters,
+  hasActiveFilters,
+  activeFilterCount,
+  clearFilters,
+  setConceptFilter,
+  setDateRange,
+  setMetaAnnotationFilter,
+  setDocumentTypeFilter
+} = useTimelineFilters(patientIdRef)
 
 // SVG dimensions
 const svgWidth = 1200
@@ -141,6 +199,132 @@ const dateRange = computed(() => {
     end: new Date(timeline.value.dateRange.end)
   }
 })
+
+/**
+ * Active filter chips for display.
+ * Converts current filters into user-friendly chips.
+ */
+const activeFilterChips = computed(() => {
+  const chips: Array<{ label: string; type: string; value: any }> = []
+
+  // Concept filters
+  if (filters.value.conceptCuis.length > 0) {
+    for (const cui of filters.value.conceptCuis) {
+      chips.push({
+        label: `Concept: ${cui}`,
+        type: 'concept',
+        value: cui
+      })
+    }
+  }
+
+  // Date range filter
+  if (filters.value.dateFrom || filters.value.dateTo) {
+    const fromStr = filters.value.dateFrom?.toISOString().split('T')[0] || '...'
+    const toStr = filters.value.dateTo?.toISOString().split('T')[0] || '...'
+    chips.push({
+      label: `Date: ${fromStr} to ${toStr}`,
+      type: 'dateRange',
+      value: null
+    })
+  }
+
+  // Document type filters
+  if (filters.value.documentTypes.length > 0) {
+    for (const docType of filters.value.documentTypes) {
+      chips.push({
+        label: `Type: ${docType.replace('_', ' ')}`,
+        type: 'documentType',
+        value: docType
+      })
+    }
+  }
+
+  // Meta-annotation filters (only if different from defaults)
+  const defaultMeta = { Negation: 'Affirmed', Experiencer: 'Patient', Temporality: ['Current', 'Recent'] }
+  if (JSON.stringify(filters.value.metaAnnotations) !== JSON.stringify(defaultMeta)) {
+    chips.push({
+      label: 'Custom meta-annotations',
+      type: 'metaAnnotations',
+      value: null
+    })
+  }
+
+  return chips
+})
+
+/**
+ * Remove a specific filter chip.
+ */
+function removeFilter(chip: { label: string; type: string; value: any }) {
+  if (chip.type === 'concept') {
+    setConceptFilter(filters.value.conceptCuis.filter(c => c !== chip.value))
+  } else if (chip.type === 'dateRange') {
+    setDateRange(null, null)
+  } else if (chip.type === 'documentType') {
+    setDocumentTypeFilter(filters.value.documentTypes.filter(t => t !== chip.value))
+  } else if (chip.type === 'metaAnnotations') {
+    // Reset to defaults
+    clearFilters()
+  }
+
+  // Re-fetch timeline with updated filters
+  refetchTimeline()
+}
+
+/**
+ * Handle filters applied from sidebar.
+ */
+async function handleFiltersApplied(appliedFilters: TimelineFilters) {
+  // Update filter state
+  setConceptFilter(appliedFilters.conceptCuis)
+  setDateRange(appliedFilters.dateFrom, appliedFilters.dateTo)
+  setDocumentTypeFilter(appliedFilters.documentTypes)
+
+  // Update meta-annotations
+  for (const [key, value] of Object.entries(appliedFilters.metaAnnotations)) {
+    setMetaAnnotationFilter(key, value)
+  }
+
+  // Fetch filtered timeline
+  await refetchTimeline()
+}
+
+/**
+ * Refetch timeline with current filters.
+ */
+async function refetchTimeline() {
+  if (patientId.value) {
+    // Build query params from filters
+    const params: any = {}
+
+    if (filters.value.conceptCuis.length > 0) {
+      params.concepts = filters.value.conceptCuis.join(',')
+    }
+
+    if (filters.value.dateFrom) {
+      params.date_start = filters.value.dateFrom.toISOString()
+    }
+
+    if (filters.value.dateTo) {
+      params.date_end = filters.value.dateTo.toISOString()
+    }
+
+    // Meta-annotations
+    for (const [key, value] of Object.entries(filters.value.metaAnnotations)) {
+      const paramKey = `meta_${key.toLowerCase()}`
+      params[paramKey] = Array.isArray(value) ? value.join(',') : value
+    }
+
+    if (filters.value.documentTypes.length > 0) {
+      params.document_types = filters.value.documentTypes.join(',')
+    }
+
+    // Fetch with params (useTimeline should be updated to accept params)
+    // For now, just refetch
+    await fetchTimeline(patientId.value)
+  }
+}
 
 /**
  * Handle document marker click.

@@ -111,13 +111,55 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 5.3.5: Integration tests for concept rendering (7 tests)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Task 5.3.5 - Integration tests for concept rendering (Phase 5.3 COMPLETE)
-**Sprint**: Sprint 2 - Timeline View (Phases 5.1-5.3 COMPLETE)
-**Next Milestone**: Phase 5.4 (Filtering & Search) - 8 tasks (15 hours estimated)
+**Latest Commit**: Task 5.4.4 - TimelineView filter integration (Phase 5.4: 4/8 tasks complete)
+**Sprint**: Sprint 2 - Timeline View (Phases 5.1-5.3 COMPLETE, Phase 5.4 in progress)
+**Next Milestone**: Phase 5.4 (Filtering & Search) - Task 5.4.5 (Create filter preset API)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.4: Task 5.4.4 - TimelineView Filter Integration
+
+**Commits**: (this commit) - Integrate filter sidebar into TimelineView
+
+**Task 5.4.4 Completed**:
+- Modified `frontend/src/views/TimelineView.vue` (~428 lines total, ~100 lines added)
+  - Added filter button in toolbar with active filter count badge
+  - Added active filter chips display (removable)
+  - Integrated ConceptFilterSidebar component (v-model for visibility)
+  - Integrated useTimelineFilters composable for filter state management
+  - Implemented `handleFiltersApplied(appliedFilters)` - Updates filter state and refetches timeline
+  - Implemented `refetchTimeline()` - Builds query params from current filters and fetches
+  - Implemented `removeFilter(chip)` - Removes individual filter chip and refetches
+  - Added `activeFilterChips` computed property - Converts filters to user-friendly chips
+    - Concept chips: "Concept: C0011849"
+    - Date range chip: "Date: 2023-01-01 to 2023-12-31"
+    - Document type chips: "Type: clinical note"
+    - Custom meta-annotations chip: "Custom meta-annotations"
+
+**Why**:
+- Implements Task 5.4.4 from Phase 5.4 task breakdown
+- Completes filter UI workflow: sidebar → state → API → display
+- Provides visual feedback of active filters via chips
+- Enables quick filter removal via chip close buttons
+- Integrates all filter capabilities into main timeline view
+
+**Impact**:
+- ✅ Filter sidebar integrated into TimelineView
+- ✅ Active filter chips displayed and removable
+- ✅ Filter state managed reactively via useTimelineFilters
+- ✅ Timeline refetches automatically when filters change
+- 🎯 **Next**: Task 5.4.5 (Create filter preset API) - 2 hours
+
+**Technical Notes**:
+- Filter button shows badge when `activeFilterCount > 0`
+- Active filter chips only shown when `hasActiveFilters === true`
+- Chip removal triggers immediate timeline refetch
+- Default meta-annotations (Affirmed, Patient, Current/Recent) not shown as chips (too verbose)
+- Custom meta-annotations shown as single chip: "Custom meta-annotations"
+
+---
 
 #### [2025-11-19] - Phase 5.4: Task 5.4.3 - ConceptFilterSidebar Component
 
