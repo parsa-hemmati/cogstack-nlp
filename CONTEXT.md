@@ -87,27 +87,94 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Specification: `.specify/specifications/sprint-2-timeline-view.md` (v1.0.0)
   - ✅ Technical Plan: `.specify/plans/timeline-view-plan.md` (v1.0.0)
   - ✅ Task Breakdown: `.specify/tasks/timeline-view-tasks.md` (v1.0.0, 60 tasks)
-  - 🔄 Implementation: Phase 5.1 started (5/7 tasks complete, 71.4%)
+  - 🔄 Implementation: Phase 5.1 started (6/7 tasks complete, 85.7%)
     - ✅ Task 5.1.1: Database schema - timeline_filters table (migration 008)
     - ✅ Task 5.1.2: Database schema - timeline_exports table (migration 009)
     - ✅ Task 5.1.3: Elasticsearch - clinical_concepts index (mapping + script)
     - ✅ Task 5.1.4: Pydantic models - timeline schemas (10 models defined)
     - ✅ Task 5.1.5: Repository - ElasticsearchTimelineRepository (2 methods, 29 tests)
-    - ⏸️ Task 5.1.6: Service - TimelineService (next)
-    - ⏸️ Task 5.1.7: API endpoint - GET /timeline/{patient_id}
+    - ✅ Task 5.1.6: Service - TimelineService (orchestrates PostgreSQL + Elasticsearch, 14 tests)
+    - ⏸️ Task 5.1.7: API endpoint - GET /timeline/{patient_id} (next)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: (this commit) - Phase 5.1: Task 5.1.5 complete (Elasticsearch repository)
+**Latest Commit**: (this commit) - Phase 5.1: Task 5.1.6 complete (TimelineService)
 **Sprint**: Sprint 2 - Timeline View (Phase 5) - Implementation Phase
-**Next Milestone**: Complete Phase 5.1 (Backend Timeline Data API) - 2/7 tasks remaining
+**Next Milestone**: Complete Phase 5.1 (Backend Timeline Data API) - 1/7 tasks remaining
 
 ---
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.1: Task 5.1.6 TimelineService for Timeline Aggregation
+
+**Commits**: (this commit) - Implement TimelineService with comprehensive tests, b1664517 (schema fix)
+
+**Added**:
+- Timeline service: `backend/app/services/timeline_service.py` (320 lines)
+  - **get_patient_timeline()**: Main method orchestrating PostgreSQL + Elasticsearch queries
+    - Audit logging for every access (HIPAA requirement)
+    - Document retrieval from PostgreSQL (via extracted_entities linkage)
+    - Concept retrieval from Elasticsearch (via repository)
+    - Concept aggregation (group by CUI, calculate first mention date, count)
+    - Date range calculation (min/max from documents + concepts)
+    - Returns PatientTimeline with documents, concepts, filters
+  - **_get_documents()**: Query documents via extracted_entities (current schema limitation)
+    - Workaround: Document model doesn't have patient_id field (Phase 3 design)
+    - Uses created_at as document date (MVP approach)
+    - Uses filename as title
+    - Infers document_type from filename patterns
+    - Gets concept CUIs for each document
+  - **_aggregate_concepts()**: Group concept mentions by CUI
+    - Calculates first_mention_date (earliest mention across all documents)
+    - Counts total mentions
+    - Sorts by first mention date
+  - **_calculate_date_range()**: Calculate min/max dates from documents + concepts
+  - **_infer_document_type()**: Infer type from filename patterns (discharge_summary, lab_result, letter, clinical_note, report)
+  - **Async context manager support**
+- Unit tests: `backend/tests/unit/services/test_timeline_service.py` (14 tests, 450+ lines)
+  - Mocked database and Elasticsearch
+  - Tests for basic timeline retrieval
+  - Tests for filters (concepts, date_range, meta_annotations)
+  - Tests for concept aggregation (multiple mentions, first mention date)
+  - Tests for date range calculation
+  - Tests for document type inference
+  - Tests for audit logging with filter details
+  - Tests for empty data handling
+  - Tests for context manager
+- Schema fix: Added concept_cui, concept_name, concept_type to ConceptMention (commit b1664517)
+  - Required for concept aggregation
+  - Updated repository and unit tests
+
+**Why**:
+- Implements Task 5.1.6 from Phase 5.1 task breakdown
+- Orchestrates PostgreSQL (documents) + Elasticsearch (concepts) for complete timeline
+- Enables audit logging for all PHI access (HIPAA compliance)
+- Concept aggregation provides frequency and first mention analytics
+- Pragmatic approach handles current schema limitations (Document model lacks clinical metadata)
+- Comprehensive test coverage (14 tests, 100% method coverage)
+
+**Impact**:
+- ✅ Backend can now generate complete patient timelines
+- ✅ Documents and concepts integrated in single view
+- ✅ Audit logging tracks every timeline access
+- ✅ Concept aggregation provides temporal analytics
+- ⚠️ Uses extracted_entities linkage (not direct patient_id on Document)
+- ⚠️ Uses created_at as document date (not actual clinical document date)
+- ⚠️ Document type inferred from filename (not from database field)
+
+**Technical Debt**:
+- Document model should have: patient_id, document_date, document_type, title, author
+- Requires migration to add these fields for proper timeline functionality
+- Current implementation is MVP workaround using existing schema
+- Future: Add proper clinical document metadata in Phase 5.2+
+
+**Next**: Task 5.1.7 - API endpoint GET /api/v1/timeline/{patient_id}
+
+---
+
 #### [2025-11-19] - Phase 5.1: Task 5.1.5 Elasticsearch Repository for Timeline Queries
 
-**Commits**: (this commit) - Implement ElasticsearchTimelineRepository with comprehensive tests
+**Commits**: 3fdbcefb - Implement ElasticsearchTimelineRepository with comprehensive tests
 
 **Added**:
 - Elasticsearch repository: `backend/app/repositories/elasticsearch_timeline_repo.py` (260 lines)

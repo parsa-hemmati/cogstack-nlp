@@ -18,72 +18,87 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Commit Status: ✅ CLEAR (Repository + Tests)
+### Commit Status: ✅ CLEAR (Service + Tests)
 
-**Phase 5.1 Continued: Timeline View Elasticsearch Repository** (2025-11-19)
+**Phase 5.1 Continued: Timeline View Service Layer** (2025-11-19)
 
 **This Commit**:
-- ✅ Elasticsearch repository: backend/app/repositories/elasticsearch_timeline_repo.py (Task 5.1.5)
-  - ElasticsearchTimelineRepository class (260 lines)
-  - query_concepts_by_patient() method with filters (concept, date, meta-annotations)
-  - aggregate_concepts_by_date() method for temporal frequency analysis
-  - Async methods for FastAPI integration
-  - Context manager support for resource cleanup
-- ✅ Unit tests: backend/tests/unit/repositories/test_elasticsearch_timeline_repo.py (16 tests)
-  - Mocked AsyncElasticsearch client
+- ✅ Timeline service: backend/app/services/timeline_service.py (Task 5.1.6)
+  - TimelineService class (320 lines)
+  - get_patient_timeline() method (orchestrates PostgreSQL + Elasticsearch)
+  - Audit logging for every PHI access (HIPAA compliance)
+  - Concept aggregation (group by CUI, first mention date, count)
+  - Document retrieval via extracted_entities linkage
+  - Date range calculation from documents + concepts
+  - Document type inference from filename
+- ✅ Unit tests: backend/tests/unit/services/test_timeline_service.py (14 tests, 450+ lines)
+  - Mocked database and Elasticsearch
   - 100% method coverage
-  - Tests for all filter combinations
-- ✅ Integration tests: backend/tests/integration/repositories/test_elasticsearch_timeline_repo_integration.py (13 tests)
-  - Real Elasticsearch with test data
-  - Tests for combined filters, aggregations, meta-annotation filtering
-- ✅ CONTEXT.md updated: Phase 5.1 progress (5/7 tasks complete, 71.4%)
+  - Tests for filters, aggregation, audit logging, empty data
+- ✅ Schema fix: Added concept fields to ConceptMention (commit b1664517)
+  - concept_cui, concept_name, concept_type required for aggregation
+  - Updated repository and tests
+- ✅ CONTEXT.md updated: Phase 5.1 progress (6/7 tasks complete, 85.7%)
 
 **HIPAA Compliance Review**:
-- ✅ **Repository Pattern**: Data access layer, no direct PHI handling
-- ✅ **No PHI Logging**: Uses patient_id UUID only (not identifiable MRNs)
-- ✅ **Async Methods**: Supports FastAPI async endpoints (performance + scalability)
-- ⚠️ **PHI in Query Results**: ConceptMention.sentence may contain PHI excerpts
-  - REQUIRED: Service layer must enforce authentication before calling repository
-  - REQUIRED: Audit logging must track WHO queried WHAT concepts for WHICH patient
-  - REQUIRED: RBAC enforcement at service/API layer
-- ⚠️ **Elasticsearch Access**: Repository queries clinical_concepts index
-  - REQUIRED: Elasticsearch must not be directly accessible to users (only via backend)
-  - REQUIRED: Network segmentation (ES on internal network only)
-  - RECOMMENDED: Elasticsearch authentication enabled (currently localhost without auth)
-- ✅ **Meta-Annotation Filtering**: Implements critical safety filtering
-  - Filters out Negation="Negated" (e.g., "denies chest pain")
-  - Filters out Experiencer="Family" (e.g., family history)
-  - Filters out Temporality="Historical" for current conditions
-  - **Impact**: Prevents false positives in clinical decision-making (95% vs 60% accuracy)
+- ✅ **Audit Logging Implemented**: Every timeline access logged to audit_logs table
+  - WHO: user_id, username
+  - WHAT: action="VIEW_TIMELINE", resource_type="patient"
+  - WHEN: timestamp
+  - WHERE: ip_address, user_agent
+  - DETAILS: filters applied (concepts, date_range, meta_annotations)
+  - **CRITICAL**: Mandatory for HIPAA compliance (45 CFR § 164.312(b))
+- ✅ **Service Layer Orchestration**: Combines PostgreSQL + Elasticsearch with audit trail
+- ✅ **No PHI in Logs**: Uses patient_id UUID only (not MRNs, names, DOBs)
+- ⚠️ **PHI in Response**: PatientTimeline includes documents and concept sentences (PHI)
+  - REQUIRED: API layer must enforce authentication (implemented in Task 5.1.7)
+  - REQUIRED: RBAC enforcement (clinicians see assigned patients only)
+  - REQUIRED: TLS 1.3 for transmission (deployment requirement)
+- ⚠️ **Schema Limitation Workaround**: Document model lacks clinical metadata
+  - Uses extracted_entities linkage instead of direct patient_id
+  - Uses created_at as document date (not actual clinical date)
+  - Uses filename for title and document type inference
+  - **Technical Debt**: Requires migration to add patient_id, document_date, document_type, title, author
+- ✅ **Meta-Annotation Filtering**: Delegates to repository (95% accuracy)
+  - Filters out Negation="Negated"
+  - Filters out Experiencer="Family"
+  - Filters for Temporality=["Current","Recent"] for active conditions
 
 **PRD Compliance**:
 - ✅ Aligned with Sprint 2 Timeline View specification (.specify/specifications/sprint-2-timeline-view.md)
+- ✅ Implements FR1: Chronological Document Timeline
+  - get_patient_timeline() returns documents in chronological order
+  - Documents include title, type, date, author (as available)
+  - Linked to concepts via concept_cuis list
 - ✅ Implements FR2: Clinical Concept Timeline
-  - Query concepts by patient_id
-  - Filter by concept CUI (e.g., ["C0011849"] for diabetes)
-  - Filter by date range (e.g., last 6 months)
-  - Filter by meta-annotations (Negation, Temporality, Experiencer, Certainty)
+  - Concepts aggregated by CUI with first_mention_date and mention_count
+  - Each concept includes all mentions with sentences, dates, meta-annotations
+  - Meta-annotation filtering applied (Negation, Temporality, Experiencer)
 - ✅ Implements FR3: Temporal Pattern Detection
-  - aggregate_concepts_by_date() provides frequency data by time bucket
-  - Supports multiple granularities (day, week, month, quarter, year)
-  - Returns concept counts per time bucket (top 50 concepts)
+  - Date range calculation (min/max from documents + concepts)
+  - First mention date tracking for disease onset analysis
+  - Concept aggregation enables temporal trend analysis
 - ✅ Implements FR4: Filtering & Search
   - Concept filter (AND logic for multiple CUIs)
-  - Meta-annotation filter (single value OR list for OR logic)
   - Date range filter (ISO 8601 format)
-- ✅ Test Coverage: 29 tests (16 unit + 13 integration)
-  - All query methods tested
+  - Meta-annotation filter (single value OR list for OR logic)
+  - Document type filter (inferred from filename)
+- ✅ Test Coverage: 14 tests (unit tests with mocked database + Elasticsearch)
+  - All service methods tested
   - All filter combinations tested
-  - Aggregation accuracy verified
-- ⚠️ No breaking changes (new repository, no existing code modified)
+  - Aggregation logic verified
+  - Audit logging verified
+- ⚠️ Schema Limitation: Document model lacks clinical metadata (patient_id, document_date, document_type)
+  - Workaround implemented using extracted_entities linkage
+  - Technical debt noted for future migration
 
-**Action**: Ready to commit (repository + comprehensive tests)
+**Action**: Ready to commit (service + comprehensive tests)
 
 **Next Steps**:
-1. Complete Task 5.1.6: Implement TimelineService (orchestrates PostgreSQL + Elasticsearch)
-2. Complete Task 5.1.7: Implement GET /api/v1/timeline/{patient_id} endpoint
-3. Add authentication + RBAC to timeline endpoint
-4. Add audit logging for timeline access
+1. Complete Task 5.1.7: Implement GET /api/v1/timeline/{patient_id} endpoint
+2. Add authentication + RBAC to endpoint (require_role("clinician"))
+3. Add request context (IP address, user agent) for audit logging
+4. Integration tests for full stack (API → Service → Repository → Elasticsearch)
 
 ---
 
