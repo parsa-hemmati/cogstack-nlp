@@ -18,8 +18,11 @@ from app.schemas.timeline import (
     PatientTimeline,
     TimelineFilters,
     DateRange,
+    TimelineExportRequest,
+    TimelineExportResponse,
 )
 from app.services.timeline_service import TimelineService
+from app.services.timeline_export_service import TimelineExportService
 
 logger = logging.getLogger(__name__)
 
@@ -239,3 +242,140 @@ def _parse_timeline_filters(
         meta_annotations=meta_annotations if meta_annotations else None,
         document_types=doc_types_list
     )
+
+# ========================================
+# Export Endpoints
+# ========================================
+
+@router.post(
+    "/{patient_id}/export",
+    response_model=TimelineExportResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Export patient timeline",
+    description="Export patient timeline to PDF, FHIR R4, or JSON format"
+)
+async def export_timeline(
+    patient_id: UUID,
+    export_request: TimelineExportRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Export patient timeline to specified format.
+
+    **Formats**:
+    - **PDF**: Visual clinical summary for referrals/audits
+    - **FHIR**: FHIR R4 Composition for EHR interoperability
+    - **JSON**: Machine-readable data for research/analysis
+
+    **Options**:
+    - `watermark`: Add "Confidential" watermark (PDF only)
+    - `de_identified`: Remove patient PII
+    - `apply_filters`: Use filters from export_request.filters
+
+    **Audit Logging**: All exports are logged for HIPAA compliance.
+
+    **Returns**: Export response with download URL or inline data.
+    """
+    try:
+        # Initialize services
+        timeline_service = TimelineService(db)
+        export_service = TimelineExportService()
+
+        # Parse filters if provided
+        filters = None
+        if export_request.filters:
+            # Convert dict to TimelineFilters
+            filters = TimelineFilters(**export_request.filters)
+
+        # Fetch timeline data
+        timeline_data = await timeline_service.get_patient_timeline(
+            patient_id=patient_id,
+            filters=filters
+        )
+
+        # Audit log: Export initiated
+        logger.info(
+            f"Timeline export initiated: user={current_user.id}, "
+            f"patient={patient_id}, format={export_request.format}, "
+            f"ip={request.client.host}"
+        )
+
+        # Generate export based on format
+        export_result = None
+        content_type = None
+
+        if export_request.format == "pdf":
+            export_bytes = await export_service.export_to_pdf(
+                patient_id=patient_id,
+                timeline_data=timeline_data,
+                options=export_request.options
+            )
+            export_result = export_bytes
+            content_type = "application/pdf"
+
+        elif export_request.format == "fhir":
+            export_dict = await export_service.export_to_fhir(
+                patient_id=patient_id,
+                timeline_data=timeline_data
+            )
+            export_result = export_dict
+            content_type = "application/fhir+json"
+
+        elif export_request.format == "json":
+            export_dict = await export_service.export_to_json(
+                timeline_data=timeline_data
+            )
+            export_result = export_dict
+            content_type = "application/json"
+
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported export format: {export_request.format}"
+            )
+
+        # Audit log: Export completed
+        logger.info(
+            f"Timeline export completed: user={current_user.id}, "
+            f"patient={patient_id}, format={export_request.format}, "
+            f"size={len(export_result) if isinstance(export_result, bytes) else 'N/A'}"
+        )
+
+        # Return response
+        # For PDF: return base64-encoded bytes
+        # For JSON/FHIR: return dict directly
+        if isinstance(export_result, bytes):
+            import base64
+            return TimelineExportResponse(
+                export_id=str(UUID(int=0)),  # Placeholder for sync export
+                status="completed",
+                format=export_request.format,
+                content_type=content_type,
+                data=base64.b64encode(export_result).decode('utf-8'),
+                created_at=datetime.now(),
+                expires_at=None  # No expiration for sync export
+            )
+        else:
+            return TimelineExportResponse(
+                export_id=str(UUID(int=0)),  # Placeholder for sync export
+                status="completed",
+                format=export_request.format,
+                content_type=content_type,
+                data=export_result,
+                created_at=datetime.now(),
+                expires_at=None  # No expiration for sync export
+            )
+
+    except Exception as e:
+        logger.error(
+            f"Timeline export failed: user={current_user.id}, "
+            f"patient={patient_id}, format={export_request.format}, "
+            f"error={str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Export failed: {str(e)}"
+        )

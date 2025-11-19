@@ -6,7 +6,7 @@ supporting timeline data retrieval, filtering, and export functionality.
 """
 
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Any
 from datetime import datetime
 from uuid import UUID
 
@@ -299,16 +299,16 @@ class TimelineExportRequest(BaseModel):
         description="Export format: 'pdf', 'fhir', or 'json'",
         example="pdf"
     )
-    filters: TimelineFilters = Field(
-        default_factory=TimelineFilters,
-        description="Filters to apply before export (same as timeline filters)"
+    filters: Optional[dict] = Field(
+        None,
+        description="Filters to apply before export (dict matching TimelineFilters structure)"
     )
     options: Optional[dict] = Field(
         None,
-        description="Format-specific options",
+        description="Format-specific options (watermark, de_identified, etc.)",
         example={
-            "include_provenance": True,
-            "watermark": "Clinical Summary - Confidential"
+            "watermark": True,
+            "de_identified": False
         }
     )
 
@@ -316,27 +316,41 @@ class TimelineExportRequest(BaseModel):
 class TimelineExportResponse(BaseModel):
     """Response after creating a timeline export.
 
-    Contains export ID and download URL. The actual file is downloaded separately.
+    Supports both synchronous (data inline) and asynchronous (download URL) exports.
     """
 
     export_id: str = Field(
         ...,
-        description="UUID of the export (for downloading)"
+        description="UUID of the export"
+    )
+    status: str = Field(
+        ...,
+        description="Export status: 'completed', 'processing', 'failed'",
+        example="completed"
     )
     format: str = Field(
         ...,
         description="Export format: 'pdf', 'fhir', or 'json'"
     )
-    download_url: str = Field(
+    content_type: str = Field(
         ...,
-        description="URL to download the exported file",
+        description="MIME type of the export",
+        example="application/pdf"
+    )
+    data: Optional[Any] = Field(
+        None,
+        description="Exported data (inline for sync exports). Base64-encoded for PDF, dict for JSON/FHIR."
+    )
+    download_url: Optional[str] = Field(
+        None,
+        description="URL to download the exported file (async exports only)",
         example="/api/v1/timeline/exports/export-789/download"
     )
-    expires_at: datetime = Field(
+    created_at: datetime = Field(
         ...,
-        description="When this export will be automatically deleted (30 days)"
+        description="When the export was created"
     )
-    audit_log_id: str = Field(
-        ...,
-        description="UUID of the audit log entry for this export"
+    expires_at: Optional[datetime] = Field(
+        None,
+        description="When this export will be automatically deleted (30 days for async exports)"
     )

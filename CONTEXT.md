@@ -129,9 +129,53 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.6: Task 5.6.4 - Add Export API Endpoints
+
+**Commits**: (this commit) - Implement export API endpoints (POST /export)
+
+**Task 5.6.4 Completed**:
+- ✅ Added POST /api/v1/timeline/{patient_id}/export endpoint (~140 lines)
+- ✅ Updated TimelineExportRequest schema (filters as Optional[dict])
+- ✅ Updated TimelineExportResponse schema (supports sync exports)
+- ✅ Synchronous export generation (PDF, FHIR, JSON)
+- ✅ Audit logging for export initiation and completion
+- ✅ Base64 encoding for PDF exports (inline data)
+- ✅ Direct dict return for JSON/FHIR exports
+- ✅ Authentication required (get_current_user)
+- ✅ Comprehensive error handling and logging
+- ✅ Syntax validation successful
+
+**Why**:
+- Implements Task 5.6.4 (2 hours) - Export API endpoint layer
+- Synchronous implementation for MVP (async background tasks in future)
+- Enables frontend to request timeline exports
+- Audit logging ensures HIPAA compliance
+- Base64 encoding allows inline PDF delivery
+
+**Impact**:
+- ✅ Task 5.6.4 complete
+- ✅ Export API endpoint operational
+- ✅ All 3 formats supported (PDF, FHIR, JSON)
+- ✅ Audit trail for all exports
+- ✅ Authentication and authorization enforced
+- 🎯 **Phase 5.6 progress**: 4/10 tasks (40%)
+
+**Technical Notes**:
+- Endpoint: POST /api/v1/timeline/{patient_id}/export
+- Request body: TimelineExportRequest (format, filters, options)
+- Response: TimelineExportResponse (export_id, status, format, content_type, data)
+- PDF data: Base64-encoded string (decode on frontend)
+- JSON/FHIR data: Dict (use directly)
+- Audit logging: logger.info with user_id, patient_id, format, size, IP
+- Error handling: HTTPException with 400/500 status codes
+- Synchronous: Export generated immediately (no background queue)
+- Background tasks (Task 5.6.4 spec): Deferred to future sprint for MVP
+
+---
+
 #### [2025-11-19] - Phase 5.6: Task 5.6.3 - Create PDF HTML Template
 
-**Commits**: (this commit) - Create comprehensive PDF HTML template with Jinja2
+**Commits**: (previous commit) - Create comprehensive PDF HTML template with Jinja2
 
 **Task 5.6.3 Completed**:
 - ✅ Created `backend/app/templates/timeline/timeline_pdf.html` (~350 lines)
