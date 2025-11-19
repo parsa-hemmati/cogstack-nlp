@@ -1,7 +1,7 @@
 # Project Context - Living Architecture & Decisions
 
 **Status**: Living Document - Updated with EVERY commit
-**Last Updated**: 2025-11-18
+**Last Updated**: 2025-11-19
 **Version**: 1.0.0
 
 > ⚠️ **CRITICAL**: This document MUST be updated before any code commit. No PR can be merged without context updates.
@@ -35,7 +35,7 @@ Build a comprehensive, modular platform that leverages MedCAT's full NLP capabil
 The current development focus is **extending** this ecosystem with **clinical care interfaces** (patient search, timeline visualization, FHIR integration, clinical decision support) for use by clinicians in patient care delivery.
 
 ### Current Phase
-**Phase**: MVP Development - Phase 3 (Document Management) IN PROGRESS
+**Phase**: Sprint 2 - Phase 5 (Timeline View) - PLANNING
 **Current State**:
 - ✅ **Phase 0 (Environment Setup)**: COMPLETE - 6/7 missions (3.0h, 85% time savings)
   - PostgreSQL 15.15, Redis 7.2, MedCAT 2.2.0.dev0 all healthy
@@ -83,16 +83,94 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 4.6: Search History (COMPLETE - Redis cache with 7-day retention)
   - ✅ Task 4.7: Integration Tests (COMPLETE - 43 tests created during TDD implementation)
   - ✅ Task 4.8: Documentation & Deployment (COMPLETE - API docs in DEVELOPMENT.md)
-- ⏸️ **Phases 5-7**: Pending (Testing, Deployment, Documentation)
+- 📋 **Phase 5 (Timeline View)**: PLANNING - Technical plan created (0/8 implementation phases)
+  - ✅ Specification: `.specify/specifications/sprint-2-timeline-view.md` (v1.0.0)
+  - ✅ Technical Plan: `.specify/plans/timeline-view-plan.md` (v1.0.0)
+  - ⏸️ Task Breakdown: Pending (next step)
+  - ⏸️ Implementation: Pending (8 phases: 5.1-5.8)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: (this commit) - Fix 4 breaking changes in Patient Search API response schema
-**Sprint**: MVP - Phases 1-4 COMPLETE (100%)
-**Next Milestone**: Begin Phase 5 (Timeline View)
+**Latest Commit**: (this commit) - Create technical plan for Phase 5 (Timeline View)
+**Sprint**: Sprint 2 - Timeline View (Phase 5) - Planning Phase
+**Next Milestone**: Create task breakdown for Phase 5 (8 phases → ~60 granular tasks)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5 Technical Planning: Timeline View Module
+
+**Commits**: dc6f2ebd - Add autonomous mode guidelines, (this commit) - Create technical plan for Phase 5
+
+**Added**:
+- Comprehensive technical plan for Timeline View Module (`.specify/plans/timeline-view-plan.md`)
+  - 8 implementation phases (5.1-5.8, 15 hours each = 120 hours total)
+  - Complete architecture design (frontend D3.js + backend FastAPI)
+  - 6 API endpoints (GET /timeline, POST /export, GET /exports/download, POST /filters, GET /filters)
+  - Database schema (timeline_filters, timeline_exports PostgreSQL tables)
+  - Elasticsearch index schema (clinical_concepts for temporal queries)
+  - Technology choices with rationale (D3.js v7, WeasyPrint, fhir.resources)
+  - Frontend component hierarchy (TimelineView, ConceptFilterSidebar, TimelineExportToolbar)
+  - Backend service architecture (TimelineService, TimelineExportService, TimelineFilterService)
+  - Testing strategy (60% unit, 30% integration, 10% E2E)
+  - Performance optimization (virtualization, caching, lazy loading)
+  - Security considerations (HIPAA audit logging, export watermarks, RBAC)
+  - Deployment plan (Docker Compose, database migrations, Elasticsearch index)
+  - Risk assessment (5 risks with mitigation strategies)
+- Autonomous mode guidelines in CLAUDE.md
+  - DO/DON'T patterns for continuous development flow
+  - 5 conditions when to stop in autonomous mode
+  - Examples of correct vs incorrect behavior
+
+**Why**:
+- Completes Spec-Kit workflow planning phase (Spec → Plan → Tasks → Code)
+- Provides detailed implementation roadmap for Phase 5
+- Documents all technology choices with rationale
+- Establishes clear architecture for Timeline View feature
+- Ensures team alignment before implementation begins
+- Addresses user feedback on autonomous mode interruptions
+
+**Impact**:
+- ✅ Phase 5 ready for task breakdown (next step)
+- ✅ Clear 8-phase implementation plan (5.1-5.8)
+- ✅ Technology stack decided (D3.js, WeasyPrint, fhir.resources)
+- ✅ Architecture designed (frontend D3.js SVG + backend FastAPI)
+- ✅ 1,243-line comprehensive technical plan created
+- ✅ Risk mitigation strategies in place (performance, PDF export, ES queries)
+- ✅ Autonomous mode workflow improved (no status interruptions)
+
+**Architecture Decisions** (ADRs):
+- **ADR-005**: D3.js v7 for timeline visualization
+  - **Decision**: Use D3.js v7 for SVG-based timeline rendering
+  - **Rationale**: Industry-standard, fine-grained control, 60fps performance, powerful axis generation
+  - **Alternatives**: Vis.js (less flexible), Timeline.js (limited customization), Chart.js (not designed for timelines)
+  - **Impact**: Enables zoom/pan at 60fps with 500+ elements
+
+- **ADR-006**: WeasyPrint for PDF export
+  - **Decision**: Use WeasyPrint for HTML-to-PDF conversion
+  - **Rationale**: Pure Python, CSS support, fast (<5s), production-ready
+  - **Alternatives**: wkhtmltopdf (deprecated), ReportLab (low-level), Puppeteer (heavyweight)
+  - **Impact**: <5 second PDF generation with watermarks
+
+- **ADR-007**: fhir.resources for FHIR R4 export
+  - **Decision**: Use fhir.resources Python library for FHIR R4 export
+  - **Rationale**: Pydantic-based, complete FHIR R4 coverage, validation ensures compliance
+  - **Impact**: Type-safe FHIR export with automatic validation
+
+- **ADR-008**: Elasticsearch clinical_concepts index for temporal queries
+  - **Decision**: Create dedicated Elasticsearch index for clinical concepts with temporal data
+  - **Rationale**: Fast range queries, aggregations for frequency, boolean queries for meta-annotations
+  - **Impact**: <500ms filter updates, concept frequency analysis
+
+**Technical Debt**:
+- None introduced (planning phase only)
+
+**Next Steps**:
+1. Create task breakdown (`.specify/tasks/timeline-view-tasks.md`)
+2. Break 8 phases into ~60 granular tasks (1-2 hours each)
+3. Begin Phase 5.1 implementation (Backend Timeline Data API)
+
+---
 
 #### [2025-11-18] - Phase 4 Complete: Patient Search & Discovery
 
