@@ -18,61 +18,69 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Commit Status: ✅ CLEAR - Phase 5.2 Task 5.2.2 Complete
+### Commit Status: ✅ CLEAR - Phase 5.2 Task 5.2.3 Complete
 
 **Phase 5.2: Frontend Timeline Component - IN PROGRESS** (2025-11-19)
 
-**This Commit** (Task 5.2.2: Timeline API Client):
-- ✅ Timeline API client: frontend/src/api/timeline.ts (~95 lines)
-  - getPatientTimeline() method implemented
-  - Query parameter encoding for all filter types
-  - Uses shared API client with JWT auth
-  - Comprehensive JSDoc documentation
-- ✅ TypeScript types: frontend/src/types/timeline.ts (~150 lines)
-  - 10 type definitions matching backend Pydantic schemas
-  - MetaAnnotations, ConceptMention, TimelineConcept, TimelineDocument
-  - DateRange, TimelineFilters, PatientTimeline
-  - TimelineFilterPreset, TimelineExportRequest/Response (future use)
-- ✅ API re-export: frontend/src/api/api.ts
-  - Re-exports apiClient for consistent import pattern
-- ✅ Unit tests: frontend/tests/unit/api/timeline.spec.ts (10 tests, ~280 lines)
-  - All filter encoding tests passing
-  - Error propagation tested
-  - 100% method coverage
-- ✅ CONTEXT.md updated: Phase 5.2 IN PROGRESS (2/12 tasks, 17%)
+**This Commit** (Task 5.2.3: useTimeline Composable):
+- ✅ Timeline composable: frontend/src/composables/useTimeline.ts (~140 lines)
+  - State management: timeline, isLoading, error, lastPatientId
+  - Computed properties: hasTimeline, isEmpty, documentCount, conceptCount
+  - fetchTimeline() method with validation and error handling
+  - refreshTimeline() method for polling
+  - clearTimeline() and clearError() utility methods
+- ✅ Unit tests: frontend/tests/unit/composables/useTimeline.spec.ts (13 tests, ~350 lines)
+  - All state management scenarios tested
+  - Loading state tested
+  - Error handling tested
+  - Computed properties tested
+  - 100% function coverage
+- ✅ CONTEXT.md updated: Phase 5.2 IN PROGRESS (3/12 tasks, 25%)
 
 **Compliance Review**:
-- ✅ **Type Safety**: TypeScript types match backend schemas (no drift)
-  - Verified against backend/app/schemas/timeline.py
-  - Field names use camelCase (frontend) vs snake_case (backend) as per convention
-  - Date fields use ISO 8601 strings (matches backend JSON serialization)
-- ✅ **No HIPAA Impact**: API client only (no PHI rendering, authentication handled by apiClient interceptor)
-- ✅ **No Security Impact**: Uses shared API client with JWT auth and 401 handling
-  - Authentication token added via axios interceptor
-  - Unauthorized responses redirect to login
-- ✅ **Backend Alignment**: Query parameters match backend API endpoint
-  - Concepts: comma-separated CUIs
-  - Date range: ISO 8601 start/end
-  - Meta-annotations: Negation, Experiencer, Temporality (single or array), Certainty
-  - Document types: comma-separated types
-  - Matches backend/app/api/v1/endpoints/timeline.py implementation
-- ✅ **Test Coverage**: 10 unit tests covering all scenarios
-  - Basic retrieval
-  - All filter types (individually and combined)
-  - Empty filters (no query params)
-  - Error handling
+- ✅ **Composition API Best Practices**: Follows Vue 3 patterns
+  - Uses ref() and computed() correctly
+  - Reactive state automatically updates UI
+  - Encapsulates business logic in composable
+- ✅ **No HIPAA Impact**: Composable only (no PHI rendering, delegates auth to API client)
+- ✅ **No Security Impact**: Uses existing timeline API client (already reviewed)
+- ✅ **Error Handling**: Comprehensive error state management
+  - Validates patient ID before fetch
+  - Extracts error details from axios responses
+  - Provides user-friendly error messages
+  - Clears errors on successful fetch
+- ✅ **Test Coverage**: 13 unit tests covering all scenarios
+  - Initial state
+  - Successful fetch
+  - Filter passing
+  - Loading state management
+  - Error handling (API errors, validation errors)
+  - Clear operations
+  - Refresh operation
+  - Computed properties
 
 **Technical Notes**:
-- Temporality supports array for OR logic (e.g., ['Current', 'Recent'])
-- Empty filter arrays don't append query parameters
-- Date objects converted to ISO 8601 strings
-- Axios errors propagated to caller
+- Composable pattern enables state reuse across components
+- lastPatientId enables refresh without re-passing patient ID
+- Reactive state automatically updates all consuming components
 
-**Action**: ✅ CLEAR - Ready to commit Task 5.2.2
+**Action**: ✅ CLEAR - Ready to commit Task 5.2.3
 
 ---
 
 ## Previous Commits
+
+### Phase 5.2 Task 5.2.2 - Timeline API Client (2025-11-19)
+
+**Commit** (Task 5.2.2: Timeline API Client):
+- ✅ Timeline API client: frontend/src/api/timeline.ts
+- ✅ TypeScript types: frontend/src/types/timeline.ts
+- ✅ API re-export: frontend/src/api/api.ts
+- ✅ Unit tests: 10 tests, 100% method coverage
+
+**Compliance**: Type safety verified, backend alignment confirmed, test coverage complete
+
+---
 
 ### Phase 5.2 Task 5.2.1 - Install D3.js Dependencies (2025-11-19)
 

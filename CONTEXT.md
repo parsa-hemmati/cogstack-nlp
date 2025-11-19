@@ -95,9 +95,10 @@ The current development focus is **extending** this ecosystem with **clinical ca
     - ✅ Task 5.1.5: Repository - ElasticsearchTimelineRepository (2 methods, 29 tests)
     - ✅ Task 5.1.6: Service - TimelineService (orchestrates PostgreSQL + Elasticsearch, 14 tests)
     - ✅ Task 5.1.7: API endpoint - GET /api/v1/timeline/{patient_id} (auth + audit logging)
-- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 2/12 tasks (17%)
+- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 3/12 tasks (25%)
   - ✅ Task 5.2.1: Install D3.js dependencies (d3@7.9.0, @types/d3@7.4.3)
   - ✅ Task 5.2.2: Timeline API client (getPatientTimeline method, 10 unit tests)
+  - ✅ Task 5.2.3: useTimeline composable (fetchTimeline, refreshTimeline, 13 unit tests)
 
 **Branch**: `autonomous/mvp-execution`
 **Latest Commit**: (this commit) - Phase 5.1 COMPLETE - Timeline API endpoint
@@ -107,6 +108,72 @@ The current development focus is **extending** this ecosystem with **clinical ca
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.2: Task 5.2.3 useTimeline Composable
+
+**Commits**: (this commit) - Create useTimeline composable with state management and unit tests
+
+**Added**:
+- Timeline composable: `frontend/src/composables/useTimeline.ts` (~140 lines)
+  - **State Management**:
+    - timeline: Reactive ref to PatientTimeline
+    - isLoading: Loading state (boolean)
+    - error: Error message (string | null)
+    - lastPatientId: Last fetched patient ID
+  - **Computed Properties**:
+    - hasTimeline: Boolean if timeline is loaded
+    - isEmpty: Boolean if timeline loaded but has no documents/concepts
+    - documentCount: Number of documents
+    - conceptCount: Number of concepts
+  - **fetchTimeline()**: Fetch patient timeline with filters
+    - Parameters: patientId (string), filters (optional TimelineFilters)
+    - Validates patient ID before fetch
+    - Sets loading state during fetch
+    - Handles errors and updates error state
+    - Clears error on successful fetch
+  - **refreshTimeline()**: Refetch timeline with same filters
+    - Uses lastPatientId and filtersApplied from timeline
+    - Useful for polling or refresh buttons
+  - **clearTimeline()**: Clear all timeline data
+  - **clearError()**: Clear error state
+  - Comprehensive JSDoc with usage examples
+- Unit tests: `frontend/tests/unit/composables/useTimeline.spec.ts` (13 tests, ~350 lines)
+  - Test initial state (null timeline, loading false, error null)
+  - Test successful timeline fetch (updates timeline, loading, error)
+  - Test filter passing to API
+  - Test loading state management (true during fetch, false after)
+  - Test error handling (API errors, response errors)
+  - Test empty patient ID validation
+  - Test clear timeline
+  - Test clear error
+  - Test refresh timeline (with same filters)
+  - Test refresh without previous fetch (error)
+  - Test isEmpty computed property
+  - Test hasTimeline computed property
+  - Test documentCount/conceptCount computed
+
+**Why**:
+- Implements Task 5.2.3 from Phase 5.2 task breakdown
+- Provides reusable state management for timeline components
+- Encapsulates API call logic and loading/error states
+- Enables multiple components to share timeline state
+- Follows Vue 3 Composition API best practices
+
+**Impact**:
+- ✅ Timeline composable ready for use in components
+- ✅ State management centralized (timeline, loading, error)
+- ✅ Reactive computed properties for UI rendering
+- ✅ 13 unit tests passing (100% function coverage)
+- ✅ Refresh functionality for polling
+- 🎯 **Next**: Task 5.2.4 - Create TimelineAxis component with D3.js
+
+**Technical Notes**:
+- Uses Composition API (ref, computed)
+- Reactive state automatically updates UI
+- Error messages extract detail from axios responses
+- lastPatientId enables refresh without re-passing patient ID
+
+---
 
 #### [2025-11-19] - Phase 5.2: Task 5.2.2 Timeline API Client
 
