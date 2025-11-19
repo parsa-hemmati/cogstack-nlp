@@ -13,6 +13,11 @@
         Home
       </v-btn>
 
+      <v-btn to="/patients/search">
+        <v-icon start>mdi-account-search</v-icon>
+        Patient Search
+      </v-btn>
+
       <v-btn to="/documents">
         <v-icon start>mdi-file-document-multiple</v-icon>
         Documents

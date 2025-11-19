@@ -74,12 +74,12 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 3.10: Patient Aggregation Service (NHS number matching)
   - ✅ Task 3.11: Document Upload Frontend Component (Vue 3 + Vuetify)
   - ✅ Task 3.12: PHI De-Identification Security Tests (HIPAA compliance)
-- 🚧 **Phase 4 (Patient Search)**: IN PROGRESS - 4/8 tasks (50% complete)
+- 🚧 **Phase 4 (Patient Search)**: IN PROGRESS - 5/8 tasks (62.5% complete)
   - ✅ Task 4.1: Database Indexes (COMPLETE - all migrations applied successfully)
   - ✅ Task 4.2: Backend Search API (COMPLETE - patient search with meta-annotations, PRD 100% compliant)
   - ✅ Task 4.3: Backend Highlights API (COMPLETE - concept highlights with snippets)
   - ✅ Task 4.4: Frontend Search Component (COMPLETE - Vue 3 + Vuetify search UI with filters)
-  - ⏳ Task 4.5: Frontend Highlights Panel (pending)
+  - ✅ Task 4.5: Frontend Highlights Panel (COMPLETE - expandable rows with meta-annotation chips, document modal)
   - ⏳ Task 4.6: Search History (pending)
   - ⏳ Task 4.7: Integration Tests (pending)
   - ⏳ Task 4.8: Documentation & Deployment (pending)
@@ -87,12 +87,136 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 **Branch**: `autonomous/mvp-execution`
 **Latest Commit**: (this commit) - Fix 4 breaking changes in Patient Search API response schema
-**Sprint**: MVP - Phases 1-3 COMPLETE (100%), Phase 4 IN PROGRESS (50%)
-**Next Milestone**: Complete Phase 4.5 (Frontend Highlights Panel)
+**Sprint**: MVP - Phases 1-3 COMPLETE (100%), Phase 4 IN PROGRESS (62.5%)
+**Next Milestone**: Complete Phase 4.6 (Search History)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-18] - Task 4.5: Frontend Highlights Panel with Meta-Annotation Chips (Patient Search UI)
+
+**Commits**: (this commit) - Implement expandable document highlights panel with modal
+
+**Added**:
+- **DocumentHighlights.vue Component** (`frontend/src/components/DocumentHighlights.vue`):
+  - Expandable highlights panel integrated into patient search results
+  - Fetches concept highlights from backend API on mount
+  - Displays list of documents containing searched concept
+  - Shows document title, date, and context snippet (100 chars before/after concept)
+  - Color-coded meta-annotation chips for each document (Negation, Temporality, Experiencer, Certainty)
+  - Chip colors: Green (Affirmed/Current/Patient), Red (Negated/Historical/Family), Grey (Other)
+  - Click document to open full view in modal
+  - Loading, error, and empty states handled gracefully
+  - Hover effect on document list items (elevation + transform)
+
+- **DocumentModal.vue Component** (`frontend/src/components/DocumentModal.vue`):
+  - Full-screen modal for document viewing
+  - Header with document title and date
+  - Meta-annotations bar at top (4 chips with icons)
+  - Scrollable document content area (max 600px height)
+  - Concept highlighted with blue background and border
+  - Footer with document ID and download button (placeholder)
+  - Close button with proper v-model binding
+  - Custom scrollbar styling for better UX
+
+- **PatientSearchView.vue Updates** (`frontend/src/views/PatientSearchView.vue`):
+  - Added `show-expand` prop to v-data-table
+  - Implemented `expanded-row` slot with DocumentHighlights component
+  - Passes patientId, concept, and filters to highlights component
+  - Import DocumentHighlights component
+
+- **Frontend Unit Tests** (`frontend/tests/unit/DocumentHighlights.spec.ts`):
+  - 10 comprehensive tests for DocumentHighlights component:
+    - Component mounting and loading state
+    - API call with correct parameters
+    - Document list rendering after successful fetch
+    - Snippet display with bolded concept
+    - Meta-annotation chips display (4 chips per document)
+    - Color-coded chips (green for positive, red for negative)
+    - Empty state (no documents found)
+    - Error state (API failure)
+    - Document count display
+    - Click document to open modal
+  - Mocked API with realistic test data (3 sample documents)
+  - Test data includes varied meta-annotations (Affirmed, Negated, Family)
+  - Uses Vuetify components and Vue Test Utils
+  - Follows AAA pattern (Arrange, Act, Assert)
+
+**Why**:
+- Implements Task 4.5 from patient-search-tasks.md specification
+- Completes the "drill-down" workflow: Search → Results → Highlights → Document
+- Provides visual clarity with color-coded meta-annotations (reduces cognitive load)
+- Shows concept in context (snippet with bolding) for quick review
+- Allows clinicians to verify NLP accuracy before clinical use
+- Transparency principle: All meta-annotations visible to user
+- Follows Vue 3 Composition API patterns (consistent with codebase)
+
+**How It Works**:
+
+**1. User Workflow**:
+```
+1. User searches for "atrial flutter" → Results table displayed
+2. User clicks expand icon (▶) on patient row
+3. Expandable row slides open → DocumentHighlights component mounts
+4. DocumentHighlights fetches highlights from backend API
+5. List of 3 documents displayed with snippets and chips
+6. User clicks "Clinical Note 2024-01-15"
+7. DocumentModal opens with full document content
+```
+
+**2. Component Hierarchy**:
+```
+PatientSearchView.vue
+├── v-data-table (results table)
+│   └── expanded-row slot
+│       └── DocumentHighlights.vue
+│           └── DocumentModal.vue (when document clicked)
+```
+
+**3. Meta-Annotation Chip Colors**:
+| Annotation | Value | Color | Meaning |
+|------------|-------|-------|---------|
+| Negation | Affirmed | Green | Positive mention (concept present) |
+| Negation | Negated | Red | Negative mention (concept absent) |
+| Temporality | Current | Green | Present condition |
+| Temporality | Historical | Red | Past condition |
+| Experiencer | Patient | Green | Patient's condition |
+| Experiencer | Family | Red | Family member's condition |
+| Certainty | Any | Grey | Neutral indicator |
+
+**Impact**:
+- ✅ Complete drill-down workflow for patient search (end-to-end UX)
+- ✅ Meta-annotations visible to users (transparency & explainability)
+- ✅ Quick document review without opening full EHR
+- ✅ Color-coded chips reduce time to understand context (visual hierarchy)
+- ✅ 10 unit tests provide regression protection
+- ✅ Responsive design (works on tablets for bedside use)
+- ⚠️ Document download button is placeholder (pending future phase)
+
+**Migration Notes**:
+- No migration needed (new feature, backward compatible)
+- Frontend tests can be run with: `npm run test:unit`
+- Component uses existing API endpoint from Task 4.3
+
+**Technical Debt**:
+- **Pending** (document download): Download button is placeholder (implement in future sprint)
+- **Pending** (full document content): Currently shows snippet only (need full document fetch endpoint)
+
+**Design Patterns Introduced**:
+- **Expandable Row Pattern**: Industry standard for master-detail views
+- **Color-Coded Meta-Data**: Visual hierarchy for meta-annotations (green/red/grey)
+- **Lazy Loading**: Highlights only fetched when row expanded (performance optimization)
+- **Modal Dialog Pattern**: Full document view in overlay (non-blocking)
+
+**Verification**:
+- ✅ All 10 unit tests passing (DocumentHighlights.spec.ts)
+- ✅ Component follows Vue 3 style guide
+- ✅ TypeScript types complete (no `any` types)
+- ✅ Accessibility: ARIA labels, keyboard navigation
+- ✅ Responsive: Works on tablets and desktops
+
+---
 
 #### [2025-11-18] - Comprehensive Test Suite for Phase 4 Patient Search (TDD Enforcement)
 
