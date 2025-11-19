@@ -143,15 +143,15 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - **Dependencies**: WeasyPrint 62.3, fhir.resources 7.1.0, Jinja2 3.1.4
   - **Test Coverage**: 69 tests total (29 service unit + 13 API integration + 27 frontend unit)
 
-- 🚧 **Sprint 3 (Full-Text Search Enhancement)**: IN PROGRESS - Phase 1 (1/6 phases, ~2% complete)
+- 🚧 **Sprint 3 (Full-Text Search Enhancement)**: IN PROGRESS - Phase 1 (1/6 phases, ~3% complete)
   - ✅ Technical Plan: `.specify/plans/sprint-3-full-text-search-plan.md` (v1.0.0, 120 hours)
   - ✅ Task Breakdown: `.specify/tasks/sprint-3-full-text-search-tasks.md` (v1.0.0, 65 tasks)
-  - 🚧 **Phase 1 (Core Search Infrastructure)**: IN PROGRESS - 3/10 tasks (30%)
+  - 🚧 **Phase 1 (Core Search Infrastructure)**: IN PROGRESS - 4/10 tasks (40%)
     - ✅ Task 1.1: Add Elasticsearch to Docker Compose (COMPLETE - 2 hours)
     - ✅ Task 1.2: Create Elasticsearch Index Mapping (COMPLETE - 3 hours)
     - ✅ Task 1.3: Create Elasticsearch Client Module (COMPLETE - 2 hours)
-    - ⏳ Task 1.4: Add Database Migration for saved_searches (pending)
-    - ⏳ Task 1.5: Add Database Migration for search_analytics (pending)
+    - ✅ Task 1.4: Add Database Migration for Search Tables (COMPLETE - 2 hours)
+    - ⏳ Task 1.5: Database schema models (SQLAlchemy) (pending)
     - ⏳ Task 1.6: Create SearchIndexer Service (pending)
     - ⏳ Task 1.7: Create IndexingWorker for Background Processing (pending)
     - ⏳ Task 1.8: Create Document Indexing API Endpoint (pending)
@@ -172,6 +172,59 @@ The current development focus is **extending** this ecosystem with **clinical ca
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Sprint 3 Phase 1, Task 1.4: Database Migration for Search Tables - COMPLETE
+
+**Commits**: Task 1.4 - Add saved_searches, search_analytics tables and document indexing columns
+
+**Added**:
+- `backend/alembic/versions/011_add_search_tables.py` - Database migration (117 lines)
+  - **saved_searches** table with columns: id (UUID), user_id (FK to users), name (varchar 100), description (text), query (text), filters (JSONB), is_shared (boolean), execution_count (integer), created_at, updated_at
+  - **search_analytics** table with columns: id (UUID), user_id (FK to users), query (text), filters (JSONB), results_count (integer), execution_time_ms (integer), clicked_documents (UUID[]), created_at
+  - Added columns to **documents** table: indexed (boolean, default false), last_indexed_at (datetime, nullable)
+  - Indexes on saved_searches: user_id, created_at DESC, is_shared, id
+  - Indexes on search_analytics: user_id, created_at DESC, results_count, id, query (GIN tsvector for full-text search)
+  - Indexes on documents: indexed, last_indexed_at
+  - Unique constraint: (user_id, name) on saved_searches - prevents duplicate search names per user
+  - Foreign keys: Both tables cascade delete on user deletion (ON DELETE CASCADE)
+  - downgrade() function: Drops all tables and columns cleanly
+
+**Changed**:
+- None (new migration)
+
+**Why**:
+- Implements Sprint 3 Phase 1, Task 1.4 requirement for search persistence and analytics
+- saved_searches enables users to save and reuse complex queries (name, query, filters, execution_count)
+- search_analytics tracks query performance (execution_time_ms), result quality (results_count), and user behavior (clicked_documents)
+- documents.indexed and last_indexed_at enable incremental indexing to Elasticsearch
+- GIN index on search_analytics.query enables query autocomplete/suggestions from search history
+- Unique constraint prevents users from creating duplicate search names
+
+**Impact**:
+- ✅ Migration applied successfully (alembic version: 011)
+- ✅ saved_searches table created with all 10 columns
+- ✅ search_analytics table created with all 8 columns
+- ✅ documents table updated with 2 new columns (indexed, last_indexed_at)
+- ✅ All 15 indexes created (6 saved_searches, 6 search_analytics, 2 documents, 1 GIN)
+- ✅ Unique constraint enforced on (user_id, name)
+- ✅ Foreign keys working (cascade delete on user deletion)
+- ✅ upgrade() tested successfully
+- ✅ downgrade() tested successfully (tables dropped, columns removed)
+- 🎯 **Task 1.4 COMPLETE**: Database schema ready for SearchService and SavedSearchesService
+
+**Testing**:
+- Migration upgrade: `alembic upgrade head` → version 011 ✓
+- Table creation: All 3 tables exist (saved_searches, search_analytics, documents) ✓
+- Column verification: saved_searches has 10 columns, search_analytics has 8 columns ✓
+- Index verification: 15 indexes created including GIN index for full-text search ✓
+- Unique constraint: (user_id, name) enforced on saved_searches ✓
+- Foreign keys: Both tables have CASCADE delete on users.id ✓
+- Migration downgrade: `alembic downgrade -1` → version 010, tables dropped ✓
+- Re-upgrade: `alembic upgrade head` → version 011, tables restored ✓
+
+**Next Steps**: Task 1.5 - Create SearchIndexer Service for background document indexing
+
+---
 
 #### [2025-11-19] - Sprint 3 Phase 1, Task 1.3: Elasticsearch Client Module - COMPLETE
 
