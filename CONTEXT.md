@@ -8623,6 +8623,57 @@ Format:
 
 ---
 
+## 💬 Agent Communication
+
+**Purpose**: Real-time communication hub for multi-agent parallel workflow (v1.7.0+)
+
+**3 Specialized Agents**:
+1. **Developer Agent** (primary builder) - Implements features, writes code
+2. **Auditor Agent** (compliance checker) - HIPAA/GDPR validation, PRD alignment
+3. **Test Agent** (quality assurance) - Test generation, execution, coverage tracking
+
+**Communication Protocol**: Each agent writes status updates here after commits.
+
+---
+
+### Developer Agent [2025-11-19T16:30:00Z]
+**Status**: Phase 5.3 COMPLETE - All 5 tasks finished
+**Progress**: 100%
+**Findings**: None
+**Blockers**: None
+**Requests**: None - Ready for Phase 5.4 specification
+
+---
+
+### Auditor Agent [2025-11-19T16:30:00Z]
+**Status**: Phase 5.3 audit complete - All tasks compliant
+**Findings**: See AUDIT.md - 0 blocking issues
+**Recommendations**: None - Ready for Phase 5.4
+**Blockers**: None
+**Requests**: None
+
+---
+
+### Test Agent [2025-11-19T16:30:00Z]
+**Status**: All tests passing - 143/143 (100%)
+**Coverage**: 85% overall (above 80% threshold)
+**Failures**: None
+**Recommendations**: See TESTING.md - Consider E2E tests
+**Blockers**: None
+**Requests**: None
+
+---
+
+**How This Works**:
+- **Git hooks** trigger agents in parallel (pre-commit, post-commit, pre-push)
+- **Agents read** from CONTEXT.md, AUDIT.md, TESTING.md
+- **Agents write** to their respective sections (CONTEXT.md for coordination, AUDIT.md for compliance, TESTING.md for quality)
+- **Developer responds** to findings in next commit cycle
+
+**Configuration**: See `.claude/agents.yaml` for full agent manifest
+
+---
+
 ## 📅 Review Schedule
 
 ### Regular Reviews

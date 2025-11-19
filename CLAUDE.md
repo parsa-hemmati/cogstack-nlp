@@ -1,8 +1,10 @@
 # AI Assistant Guide for CogStack NLP
 
-**Version**: 1.6.0
-**Last Updated**: 2025-11-18
+**Version**: 1.7.0
+**Last Updated**: 2025-11-19
 **Purpose**: Guide AI assistants (Claude Code, GitHub Copilot, etc.) on project conventions and best practices
+
+**🆕 v1.7.0 Changes**: Multi-agent parallel workflow with 3 specialized agents (Developer, Auditor, Test) working simultaneously via shared documents (CONTEXT.md, AUDIT.md, TESTING.md). See "Multi-Agent Parallel Workflow" section below.
 
 ---
 
@@ -31,9 +33,12 @@
 
 **Why this matters**: Prevents context loss between sessions, ensures you have complete picture before coding.
 
-**Update requirement**: BOTH CONTEXT.md AND AUDIT.md MUST be updated with EVERY code commit (no exceptions).
-- **CONTEXT.md** = Technical memory (what changed, why, how)
-- **AUDIT.md** = Compliance audit (PRD alignment, drift detection)
+**Update requirement**: THREE shared documents MUST be updated with EVERY code commit (no exceptions):
+- **CONTEXT.md** = Technical memory (what changed, why, how) + Agent Communication
+- **AUDIT.md** = Compliance audit (PRD alignment, drift detection) + Auditor Findings
+- **TESTING.md** = Test results (coverage, failures, benchmarks) + Test Agent Findings
+
+**Why this matters**: These 3 documents enable parallel agent communication and continuous validation.
 
 **Read it now**: [CONTEXT.md](CONTEXT.md) (15-20 minutes)
 
@@ -82,6 +87,318 @@
 5. **Context at 80%+**: Must create session summary
 
 **Autonomous mode is about continuous delivery, not continuous status updates.**
+
+---
+
+## 🔀 Multi-Agent Parallel Workflow
+
+**⚠️ NEW PARADIGM**: As of v1.7.0, this project uses **parallel multi-agent collaboration** for continuous development, testing, and auditing.
+
+### Overview
+
+Instead of a single sequential agent, **3 specialized agents work in parallel**, communicating through shared documents:
+
+1. **Developer Agent** (you, primary builder)
+2. **Auditor Agent** (compliance & PRD checker)
+3. **Test Agent** (quality assurance)
+
+**Key Principle**: Agents work **simultaneously** and **communicate via shared documents** (CONTEXT.md, AUDIT.md, TESTING.md).
+
+### Agent Roles & Responsibilities
+
+#### 1. Developer Agent (Primary - Your Role)
+
+**What you do**:
+- Implement features according to specs/plans/tasks
+- Write production code (backend + frontend)
+- Update CONTEXT.md with technical changes
+- Respond to findings from Auditor and Test agents
+
+**Skills you use**:
+- spec-kit-enforcer, infrastructure-expert, vue3-component-reuse, modular-app-architect
+
+**Tools you have**:
+- Full access: Read, Write, Edit, Bash, Grep, Glob, Task
+
+**Communication protocol**:
+```markdown
+## Agent Communication
+
+### Developer Agent [2025-11-19T14:30:00Z]
+**Status**: Working on Task 5.4.1 - Filter UI component
+**Progress**: 60% complete
+**Findings**: None
+**Blockers**: None
+**Requests**: Auditor review of new API endpoint
+```
+
+**Where you write**: CONTEXT.md (Recent Changes, Agent Communication)
+**Where you read**: AUDIT.md (compliance feedback), TESTING.md (test results)
+
+#### 2. Auditor Agent (Compliance Checker)
+
+**What it does**:
+- Reviews all code changes for HIPAA/GDPR compliance
+- Checks API endpoints against PRD specifications (drift detection)
+- Validates meta-annotation usage (NLP accuracy)
+- Documents findings in AUDIT.md
+
+**Skills it uses**:
+- healthcare-compliance-checker, prd-compliance-checker, medcat-meta-annotations, fhir-r4-mapper
+
+**Tools it has**:
+- Read-only: Read, Grep, Glob (NO Write, Edit, Bash for safety)
+
+**Communication protocol**:
+```markdown
+### Auditor Agent [2025-11-19T14:35:00Z]
+**Status**: Reviewing Task 5.4.1 changes
+**Findings**: 2 warnings (see AUDIT.md)
+**Recommendations**: Add RBAC check to new endpoint
+**Blockers**: None
+**Requests**: Developer address findings in AUDIT.md
+```
+
+**Where it writes**: AUDIT.md (compliance status), CONTEXT.md (Agent Communication)
+**Where it reads**: CONTEXT.md (what was built), backend/**/*.py, frontend/**/*.{vue,ts}, .specify/sprints/*.md
+
+#### 3. Test Agent (Quality Assurance)
+
+**What it does**:
+- Generates tests from PRD requirements
+- Runs full test suite (unit + integration + E2E)
+- Tracks coverage metrics and performance benchmarks
+- Documents results in TESTING.md
+
+**Skills it uses**:
+- prd-test-generator, autonomous-developer (TDD loops)
+
+**Tools it has**:
+- Read, Bash (run tests), Grep, Glob, Write (update TESTING.md)
+
+**Communication protocol**:
+```markdown
+### Test Agent [2025-11-19T14:40:00Z]
+**Status**: Tests passing (85% coverage)
+**Failures**: 3 integration tests (see TESTING.md)
+**Recommendations**: Add edge case tests for empty input
+**Blockers**: None
+**Requests**: Developer fix failing integration tests
+```
+
+**Where it writes**: TESTING.md (test results), CONTEXT.md (Agent Communication)
+**Where it reads**: CONTEXT.md (what to test), AUDIT.md (compliance requirements), .specify/sprints/*.md, backend/tests/**, frontend/tests/**
+
+### Shared Document Protocol
+
+#### CONTEXT.md (Technical Memory)
+**Primary Owner**: Developer Agent
+**Sections**:
+- Recent Changes (Developer writes)
+- Architecture Decision Records (Developer writes)
+- Implementation Status (Developer writes)
+- **NEW**: Agent Communication (All agents write)
+
+**Format**:
+```markdown
+## Agent Communication
+
+### Developer Agent [timestamp]
+**Status**: [status]
+**Progress**: [percentage]
+**Findings**: [summary]
+**Blockers**: [list or "None"]
+**Requests**: [requests or "None"]
+
+### Auditor Agent [timestamp]
+... same format ...
+
+### Test Agent [timestamp]
+... same format ...
+```
+
+#### AUDIT.md (Compliance Memory)
+**Primary Owner**: Auditor Agent
+**Sections**:
+- Current Compliance Status (Auditor writes)
+- Compliance Review (Auditor writes)
+- Previous Commits (Auditor writes)
+- **NEW**: Auditor Findings (Auditor writes detailed findings)
+
+#### TESTING.md (Quality Memory)
+**Primary Owner**: Test Agent
+**Sections**:
+- Current Test Status (Test Agent writes)
+- Coverage Metrics (Test Agent writes)
+- Failed Tests (Test Agent writes)
+- Performance Benchmarks (Test Agent writes)
+- **NEW**: Test Agent Findings (Test Agent writes recommendations)
+
+### Git Hook Integration
+
+#### pre-commit (All 3 Agents in Parallel)
+**Trigger**: On every `git commit`
+**Agents**: Developer (validate), Auditor (quick check), Test (smoke tests)
+**Execution**: **PARALLEL** (all run simultaneously)
+**Blocking**: **YES** (commit proceeds only if all agents approve)
+**Timeout**: 5 minutes
+
+**What happens**:
+1. **Developer Agent**: Validates code syntax, checks for secrets, verifies CONTEXT.md updated
+2. **Auditor Agent**: Quick HIPAA check (no PHI in logs), quick PRD alignment (breaking changes?)
+3. **Test Agent**: Runs modified test files, smoke test critical paths
+
+**Success criteria**: All 3 agents report "PASS" in their respective sections
+
+#### post-commit (Auditor + Test Agents in Parallel)
+**Trigger**: After successful commit
+**Agents**: Auditor (full audit), Test (full suite)
+**Execution**: **PARALLEL** (both run simultaneously)
+**Blocking**: **NO** (background work, updates docs)
+**Timeout**: 10 minutes
+
+**What happens**:
+1. **Auditor Agent**: Full HIPAA/GDPR audit, full PRD compliance check, updates AUDIT.md
+2. **Test Agent**: Runs full test suite, updates coverage metrics, updates TESTING.md
+
+**Success criteria**: Both agents complete (warnings allowed, document findings)
+
+#### pre-push (All 3 Agents in Parallel)
+**Trigger**: Before `git push` to remote
+**Agents**: Developer (final check), Auditor (final validation), Test (full validation + benchmarks)
+**Execution**: **PARALLEL** (all run simultaneously)
+**Blocking**: **YES** (push proceeds only if all agents approve with 0 blocking issues)
+**Timeout**: 15 minutes
+
+**What happens**:
+1. **Developer Agent**: Verifies all commits have CONTEXT.md updates, checks for TODO/FIXME
+2. **Auditor Agent**: Final compliance validation, verifies 0 blocking issues in AUDIT.md
+3. **Test Agent**: Runs full suite + benchmarks, verifies coverage ≥85%, verifies all passing
+
+**Success criteria**: All 3 agents report "PASS" with 0 blocking issues
+
+### Workflow Example: Implementing a New Feature
+
+**Step 1: Developer Agent (you) implements Task 5.4.1**
+```bash
+# You write code for new filter UI component
+# You update CONTEXT.md with technical changes
+# You write to Agent Communication section:
+```
+```markdown
+### Developer Agent [2025-11-19T14:30:00Z]
+**Status**: Task 5.4.1 complete - Filter UI component
+**Progress**: 100%
+**Findings**: None
+**Blockers**: None
+**Requests**: Auditor review, Test run full suite
+```
+
+**Step 2: You commit**
+```bash
+git add .
+git commit -m "feat(timeline): Task 5.4.1 - Filter UI component"
+```
+
+**Step 3: pre-commit hook spawns 3 agents in parallel**
+```bash
+# Terminal output:
+🔀 Running parallel agent checks...
+  ✓ Developer Agent: Syntax valid, CONTEXT.md updated
+  ✓ Auditor Agent: No HIPAA violations, no breaking changes
+  ✓ Test Agent: Modified tests passing
+✅ All agents approve - commit proceeding
+```
+
+**Step 4: post-commit hook spawns Auditor + Test agents (background)**
+```bash
+# Background processes:
+Auditor Agent → Reading Task 5.4.1 changes...
+Test Agent → Running full test suite...
+
+# 2 minutes later:
+Auditor Agent → Updated AUDIT.md with compliance review
+Test Agent → Updated TESTING.md with test results
+```
+
+**Step 5: You read agent findings**
+```bash
+# Check AUDIT.md:
+## Auditor Findings
+- ⚠️  Warning: New endpoint missing RBAC check
+- ✅ No PHI exposure detected
+- ✅ API schema matches PRD
+
+# Check TESTING.md:
+## Test Agent Findings
+- ✅ All tests passing (143/143)
+- ✅ Coverage: 86% (above threshold)
+- 💡 Recommendation: Add edge case test for empty filter
+```
+
+**Step 6: You respond to findings**
+```bash
+# You fix the RBAC issue found by Auditor
+# You add the edge case test recommended by Test Agent
+# You commit again (cycle repeats)
+```
+
+### Autonomous Mode with Multi-Agent Workflow
+
+**When all agents agree** → Continue autonomously
+**When any agent blocks** → Pause for user review
+**When agents disagree** → Escalate to user via CONTEXT.md
+
+**Autonomous continuation criteria**:
+- ✅ All agents approve in pre-commit
+- ✅ No blocking issues in AUDIT.md
+- ✅ All tests passing in TESTING.md
+- ✅ No "Requests" pending in Agent Communication
+
+**Autonomous pause criteria**:
+- ❌ Auditor finds blocking HIPAA/GDPR violation
+- ❌ Test coverage drops below 80%
+- ❌ PRD drift detected with breaking changes
+- ❌ Any agent reports a blocker
+
+**Agent priority order** (conflict resolution):
+1. **Auditor** (compliance is non-negotiable)
+2. **Test** (quality gates must pass)
+3. **Developer** (implementation decisions)
+
+### Reading Agent Findings
+
+**As Developer Agent, you MUST**:
+1. **After every commit**: Read AUDIT.md and TESTING.md for agent findings
+2. **Before next commit**: Address all blocking issues
+3. **Update Agent Communication**: Acknowledge findings and describe fixes
+
+**Example**:
+```markdown
+### Developer Agent [2025-11-19T15:00:00Z]
+**Status**: Addressing Auditor findings from Task 5.4.1
+**Progress**: 50%
+**Findings**: Fixed RBAC issue, added edge case test
+**Blockers**: None
+**Requests**: Auditor re-review, Test re-run
+```
+
+### Benefits of Multi-Agent Workflow
+
+1. **Parallel efficiency**: All agents work simultaneously (faster feedback)
+2. **Continuous validation**: Compliance and testing happen automatically
+3. **Early detection**: Issues caught in pre-commit, not pre-push
+4. **Shared memory**: CONTEXT.md, AUDIT.md, TESTING.md preserve knowledge across sessions
+5. **Specialization**: Each agent focuses on its expertise (better quality)
+6. **Autonomous safety**: Multiple agents validate before continuing
+
+### Configuration
+
+**Agent manifest**: `.claude/agents.yaml`
+**Git hooks**: `.git-hooks/pre-commit-parallel.sh`, `.git-hooks/post-commit-parallel.sh`, `.git-hooks/pre-push-parallel.sh`
+**Shared docs**: CONTEXT.md, AUDIT.md, TESTING.md
+
+**See**: `.claude/agents.yaml` for full configuration details
 
 ---
 
@@ -1974,3 +2291,4 @@ docs(claude): improve {section} guidance
 **Questions about this guide?** Open a discussion issue or ask the user.
 
 **Ready to start?** Read the constitution, check for specs, and build amazing things! 🚀
+- to memorize that you are in fully autonomous mode and you should not stop for status reporting and have to continue independently until you have developed all 8 phases hilst your subagents run continuously
