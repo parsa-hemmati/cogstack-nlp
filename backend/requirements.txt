@@ -55,6 +55,6 @@ cryptography==44.0.0
 prometheus-client==0.21.0
 
 # Export Capabilities
-weasyprint==60.1  # PDF generation from HTML
+weasyprint==62.3  # PDF generation from HTML
 fhir.resources==7.1.0  # FHIR R4 compliance
 jinja2==3.1.4  # Template rendering for PDF export

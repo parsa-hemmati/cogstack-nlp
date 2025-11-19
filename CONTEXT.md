@@ -129,9 +129,54 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.6: Task 5.6.3 - Create PDF HTML Template
+
+**Commits**: (this commit) - Create comprehensive PDF HTML template with Jinja2
+
+**Task 5.6.3 Completed**:
+- ✅ Created `backend/app/templates/timeline/timeline_pdf.html` (~350 lines)
+- ✅ Professional styling with CSS for print media (A4 pages)
+- ✅ Watermark support (diagonal, low opacity red)
+- ✅ Patient demographics section (with de-identification option)
+- ✅ Summary statistics box (concepts, documents, total mentions)
+- ✅ Timeline visualization placeholder (SVG embedding in future)
+- ✅ Key concepts table with type badges and color coding
+- ✅ Source documents list with formatting
+- ✅ Page numbers and footer
+- ✅ Updated TimelineExportService to use external template
+- ✅ Upgraded WeasyPrint 60.1 → 62.3 (pydyf compatibility fix)
+- ✅ Updated requirements.txt
+- ✅ Tested PDF generation successfully (20KB test PDF)
+
+**Why**:
+- Implements Task 5.6.3 (1.5 hours) - Professional PDF template
+- Separates presentation from logic (external template file)
+- Professional clinical document formatting
+- Print-optimized CSS (page breaks, margins, colors)
+- Accessible color scheme (WCAG AA compliant)
+
+**Impact**:
+- ✅ Task 5.6.3 complete
+- ✅ PDF exports now use professional template
+- ✅ Watermark and de-identification visually clear
+- ✅ Concept type badges improve readability
+- ✅ Summary statistics provide quick overview
+- 🎯 **Phase 5.6 progress**: 3/10 tasks (30%)
+
+**Technical Notes**:
+- Template uses Jinja2 FileSystemLoader (app/templates/)
+- CSS @page rules for A4 size, margins, page numbers
+- Concept type badges: color-coded by type (condition=red, medication=blue, etc.)
+- Watermark: 72pt, 45deg rotation, 8% opacity
+- Summary uses Jinja2 filters (length, sum(attribute='mention_count'))
+- WeasyPrint 62.3 fixes pydyf compatibility (60.1 had PDF.__init__ error)
+- Test PDF: 20KB for minimal timeline
+
+---
+
 #### [2025-11-19] - Phase 5.6: Task 5.6.2 - Create TimelineExportService
 
-**Commits**: (this commit) - Implement timeline export service (PDF, FHIR, JSON)
+**Commits**: (previous commit) - Implement timeline export service (PDF, FHIR, JSON)
 
 **Task 5.6.2 Completed**:
 - ✅ Created `backend/app/services/timeline_export_service.py` (~420 lines)

@@ -19,7 +19,8 @@ from fhir.resources.codeableconcept import CodeableConcept
 from fhir.resources.coding import Coding
 from fhir.resources.reference import Reference
 from fhir.resources.identifier import Identifier
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader
+import os
 
 from app.schemas.timeline import PatientTimeline, TimelineConcept, ConceptMention
 
@@ -101,140 +102,26 @@ class TimelineExportService:
         """
         Render PDF HTML template with context data.
 
+        Loads external Jinja2 template from app/templates/timeline/timeline_pdf.html
+
         Args:
             context: Template context variables
 
         Returns:
             Rendered HTML string
         """
-        # Inline template (moved to separate file in Task 5.6.3)
-        # For now, use minimal template
-        template_str = """
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Clinical Timeline - {{ patient_name }}</title>
-    <style>
-        @page {
-            size: A4;
-            margin: 2cm;
-            @bottom-right {
-                content: "Page " counter(page);
-            }
-        }
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 10pt;
-        }
-        {% if watermark %}
-        .watermark {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 72pt;
-            opacity: 0.1;
-            color: red;
-            z-index: -1;
-        }
-        {% endif %}
-        header {
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #333;
-        }
-        h1 {
-            margin: 0;
-            font-size: 18pt;
-        }
-        h2 {
-            font-size: 14pt;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        ul {
-            list-style-type: none;
-            padding-left: 0;
-        }
-        li {
-            margin-bottom: 5px;
-        }
-    </style>
-</head>
-<body>
-    {% if watermark %}
-    <div class="watermark">Clinical Summary - Confidential</div>
-    {% endif %}
+        # Get template directory path (app/templates)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        app_dir = os.path.dirname(current_dir)
+        templates_dir = os.path.join(app_dir, 'templates')
 
-    <header>
-        <h1>Patient Clinical Timeline</h1>
-        <p><strong>Generated:</strong> {{ export_date }}</p>
-        <p><strong>Patient:</strong> {{ patient_name }}</p>
-        {% if not de_identified %}
-        <p><strong>Patient ID:</strong> {{ patient_id }}</p>
-        {% endif %}
-    </header>
+        # Create Jinja2 environment
+        env = Environment(loader=FileSystemLoader(templates_dir))
 
-    <section class="key-concepts">
-        <h2>Key Clinical Concepts</h2>
-        {% if concepts %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Concept</th>
-                    <th>Type</th>
-                    <th>First Mentioned</th>
-                    <th>Total Mentions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for concept in concepts %}
-                <tr>
-                    <td>{{ concept.concept_name }}</td>
-                    <td>{{ concept.concept_type }}</td>
-                    <td>{{ concept.first_mention_date }}</td>
-                    <td>{{ concept.mention_count }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p>No concepts found.</p>
-        {% endif %}
-    </section>
+        # Load timeline PDF template
+        template = env.get_template('timeline/timeline_pdf.html')
 
-    <section class="documents">
-        <h2>Source Documents</h2>
-        {% if documents %}
-        <ul>
-            {% for doc in documents %}
-            <li>{{ doc.date }}: <strong>{{ doc.title }}</strong> ({{ doc.document_type }})</li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p>No documents found.</p>
-        {% endif %}
-    </section>
-</body>
-</html>
-        """
-
-        template = Template(template_str)
+        # Render with context
         return template.render(**context)
 
     async def export_to_fhir(
