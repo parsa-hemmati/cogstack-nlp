@@ -137,6 +137,31 @@ import type { TimelineFilters } from '@/composables/useTimelineFilters'
  * Displays document and concept markers on a temporal axis.
  *
  * Route: /timeline/:patientId
+ *
+ * @phase5-4 Filtering & Search - COMPLETE
+ * - Concept filters (autocomplete, multi-select)
+ * - Date range filters (absolute and relative)
+ * - Meta-annotation filters (Negation, Experiencer, Temporality, Certainty)
+ * - Document type filters
+ * - Filter presets (save, load, manage)
+ * - URL sync (shareable links)
+ *
+ * @phase5-5 Zoom, Pan, and Temporal Analysis - PLANNED (Task 5.5.3)
+ * Zoom/Pan functionality will be added in Phase 5.5:
+ * - Zoom in/out controls (buttons + mouse wheel)
+ * - Pan controls (mouse drag)
+ * - Reset zoom button
+ * - Current zoom level display (e.g., "100%", "150%")
+ * - Keyboard shortcuts (+ for zoom in, - for zoom out, 0 for reset)
+ * - SVG transform applied to timeline group (scale + translate)
+ * - Performance target: 60fps for smooth animations
+ *
+ * Implementation notes for Phase 5.5:
+ * - Use useTimelineZoom composable for zoom/pan state management
+ * - Wrap TimelineAxis, TimelineDocuments, TimelineConcepts in <g> element
+ * - Apply transform attribute: translate(x, y) scale(s)
+ * - Initialize D3 zoom behavior on SVG mount
+ * - Cleanup zoom behavior on component unmount
  */
 
 const route = useRoute()
