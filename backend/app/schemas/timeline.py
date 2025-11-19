@@ -47,6 +47,21 @@ class ConceptMention(BaseModel):
     document at a specific date, with associated meta-annotations and confidence.
     """
 
+    concept_cui: str = Field(
+        ...,
+        description="SNOMED-CT Concept Unique Identifier",
+        example="C0011849"
+    )
+    concept_name: str = Field(
+        ...,
+        description="Human-readable concept name",
+        example="Diabetes Mellitus"
+    )
+    concept_type: str = Field(
+        ...,
+        description="Type of concept: 'condition', 'medication', 'procedure', 'symptom', 'lab_result'",
+        example="condition"
+    )
     document_id: str = Field(
         ...,
         description="UUID of the document containing this mention"

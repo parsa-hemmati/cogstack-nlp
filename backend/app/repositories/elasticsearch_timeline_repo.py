@@ -126,6 +126,9 @@ class ElasticsearchTimelineRepository:
 
             # Create ConceptMention
             mention = ConceptMention(
+                concept_cui=source["concept_cui"],
+                concept_name=source["concept_name"],
+                concept_type=source["concept_type"],
                 document_id=source["document_id"],
                 date=datetime.fromisoformat(source["date"].replace("Z", "+00:00")),
                 sentence=source["sentence"],

@@ -38,6 +38,9 @@ def sample_es_response():
                 {
                     "_id": "1",
                     "_source": {
+                        "concept_cui": "C0011849",
+                        "concept_name": "Diabetes Mellitus",
+                        "concept_type": "condition",
                         "document_id": "doc-123",
                         "date": "2023-01-15T10:30:00Z",
                         "sentence": "Patient diagnosed with Type 2 Diabetes.",
@@ -53,6 +56,9 @@ def sample_es_response():
                 {
                     "_id": "2",
                     "_source": {
+                        "concept_cui": "C0011849",
+                        "concept_name": "Diabetes Mellitus",
+                        "concept_type": "condition",
                         "document_id": "doc-124",
                         "date": "2023-02-20T14:15:00Z",
                         "sentence": "HbA1c 8.5%, diabetes management plan updated.",
@@ -117,6 +123,9 @@ async def test_query_concepts_by_patient_basic(repo, mock_es, sample_es_response
     # Assert
     assert len(mentions) == 2
     assert all(isinstance(m, ConceptMention) for m in mentions)
+    assert mentions[0].concept_cui == "C0011849"
+    assert mentions[0].concept_name == "Diabetes Mellitus"
+    assert mentions[0].concept_type == "condition"
     assert mentions[0].document_id == "doc-123"
     assert mentions[0].confidence == 0.95
     assert mentions[0].meta_annotations.Negation == "Affirmed"
