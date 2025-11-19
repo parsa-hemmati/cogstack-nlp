@@ -103,17 +103,125 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 5.2.5: TimelineDocuments component (document markers, 15 unit tests)
   - ✅ Task 5.2.6: TimelineView component (main view, router integration, 15 unit tests)
   - ✅ Task 5.2.7: Integration tests (full timeline rendering workflow, 7 tests)
-- 🔄 **Phase 5.3 (Concept Extraction & Display)**: IN PROGRESS - 1/8 tasks (13%)
+- 🔄 **Phase 5.3 (Concept Extraction & Display)**: IN PROGRESS - 3/8 tasks (38%)
   - ✅ Task 5.3.1: Populate clinical_concepts index script
+  - ✅ Task 5.3.2: Verify TimelineService includes concepts (already implemented in Task 5.1.6)
+  - ✅ Task 5.3.3: TimelineConcepts.vue component (concept markers rendering)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Task 5.3.1 - Populate clinical_concepts Elasticsearch index
+**Latest Commit**: Task 5.3.3 - Create TimelineConcepts component with unit tests
 **Sprint**: Sprint 2 - Timeline View (Phases 5.1-5.2 COMPLETE, Phase 5.3 IN PROGRESS)
-**Next Milestone**: Phase 5.3 (Concept Extraction & Display) - 7/8 tasks remaining
+**Next Milestone**: Phase 5.3 (Concept Extraction & Display) - 5/8 tasks remaining
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.3: Task 5.3.3 TimelineConcepts Component
+
+**Commits**: (this commit) - Create TimelineConcepts.vue with concept marker visualization
+
+**Added**:
+- Frontend component: `frontend/src/components/TimelineConcepts.vue` (~80 lines)
+  - **Purpose**: Render clinical concept markers on timeline visualization
+  - **Features**:
+    - SVG circle markers for concept mentions
+    - Color-coded by concept type (condition=red, medication=blue, procedure=green, symptom=yellow, lab_result=purple)
+    - Size distinction: First mention (r=8), recurring mentions (r=4)
+    - D3.js time scale for x-axis positioning
+    - Y-axis positioning by concept type (300-500 range)
+    - Click events emit concept-click with full mention metadata
+    - Hover effects (stroke-width increases)
+  - **Props**:
+    - concepts: TimelineConcept[] (aggregated concepts)
+    - dateRange: { start: Date; end: Date } (timeline bounds)
+    - width: number (SVG canvas width)
+  - **Emits**:
+    - conceptClick: [mention, event] (on marker click)
+  - **Computed Properties**:
+    - xScale: D3 time scale (maps dates to x-coordinates)
+    - allMentions: Flattened mentions from all concepts with metadata
+  - **Helper Functions**:
+    - conceptY(type): Maps concept type to y-coordinate
+    - conceptColor(type): Maps concept type to color hex code
+- Unit tests: `frontend/tests/unit/components/TimelineConcepts.spec.ts` (~290 lines)
+  - **Coverage**: 12 comprehensive test cases
+  - **Tests**:
+    1. Renders concept markers (verifies count)
+    2. First mention larger than recurring (radius verification)
+    3. Color-codes by type (hex color verification)
+    4. Emits concept-click on marker click
+    5. Positions markers on x-axis by date (range verification)
+    6. Positions markers on y-axis by type (y-coordinate verification)
+    7. Handles unknown types (default color/position)
+    8. Renders empty with no concepts
+    9. Flattens mentions from multiple concepts
+    10. Applies hover styles
+    11. Includes all metadata in emitted mention
+    12. Edge case: Unknown concept type defaults
+
+**Why**:
+- Implements Task 5.3.3 from Phase 5.3 task breakdown
+- Visualizes clinical concepts on timeline as interactive markers
+- Provides foundation for concept filtering and exploration
+- Supports temporal analysis of clinical events
+- Enables identification of concept trends and patterns
+
+**Impact**:
+- ✅ Concept markers render with proper positioning
+- ✅ Visual distinction between first and recurring mentions
+- ✅ Interactive markers emit events for detail views
+- ✅ Color scheme aligns with clinical concept types
+- ✅ D3.js integration for time-based positioning
+- ✅ 12 unit tests ensure reliability
+- 🎯 **Next**: Task 5.3.4 - Create ConceptPopover component for concept details
+
+**Technical Notes**:
+- Uses D3.js scaleTime() for date-to-pixel mapping
+- SVG <g> element groups all concept markers
+- Computed property flattens nested mentions structure
+- is_first_mention flag determines marker size
+- Default values for unknown concept types (gray, y=400)
+- Type-safe TypeScript with Record<string, T> for mappings
+
+---
+
+#### [2025-11-19] - Phase 5.3: Task 5.3.2 Verify TimelineService Includes Concepts
+
+**Commits**: (this commit) - Verify TimelineService already includes concepts in response
+
+**Verified**:
+- ✅ TimelineService.get_patient_timeline() already implemented in Task 5.1.6
+- ✅ Method includes concepts in PatientTimeline response
+- ✅ Implementation details verified:
+  - Line 87-92: Gets concepts from Elasticsearch using es_repo.query_concepts_by_patient()
+  - Line 95: Aggregates concepts using _aggregate_concepts() helper method
+  - Line 103: Includes concepts in PatientTimeline(concepts=concepts)
+  - Filters applied: concept_filter, date_range, meta_annotations
+  - Returns: List[TimelineConcept] with cui, name, type, first_mention_date, mentions
+  - Meta-annotations preserved: Negation, Temporality, Experiencer, Certainty
+
+**Why**:
+- Task 5.3.2 requirement: Verify concepts are included in timeline response
+- Implementation already complete from Phase 5.1 (Task 5.1.6)
+- No code changes needed - verification only
+- Confirms backend ready for frontend concept visualization
+
+**Impact**:
+- ✅ Confirmed concepts included in API response
+- ✅ Backend ready for Phase 5.3 frontend work
+- ✅ Meta-annotations preserved for filtering
+- ✅ Aggregation provides data for temporal visualizations
+- 🎯 **Next**: Task 5.3.3 - Create TimelineConcepts.vue component
+
+**Technical Notes**:
+- Uses ElasticsearchTimelineRepository.query_concepts_by_patient()
+- Aggregates mentions by concept CUI
+- Calculates first_mention_date from mentions
+- Returns TimelineConcept objects (Pydantic models)
+- All 14 TimelineService tests passing (from Task 5.1.6)
+
+---
 
 #### [2025-11-19] - Phase 5.3: Task 5.3.1 Populate clinical_concepts Index
 
