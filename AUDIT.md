@@ -18,13 +18,91 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Commit Status: ✅ CLEAR - Phase 5.4: Task 5.4.4
+### Commit Status: ✅ CLEAR - Phase 5.4: Task 5.4.5
 
-**Phase 5.4: Filtering & Search - TimelineView Filter Integration** (2025-11-19)
+**Phase 5.4: Filtering & Search - Filter Preset API** (2025-11-19)
 
-**This Commit** (Task 5.4.4):
-- ✅ **TimelineView filter integration complete**
-  - Modified `frontend/src/views/TimelineView.vue` (~428 lines total, ~100 lines added)
+**This Commit** (Task 5.4.5):
+- ✅ **Filter preset CRUD API complete**
+  - Database migration: `backend/alembic/versions/010_create_timeline_filter_presets.py`
+  - SQLAlchemy model: `backend/app/models/timeline_filter_preset.py`
+  - Pydantic schemas: `backend/app/schemas/timeline_filter_preset.py`
+  - API endpoints: `backend/app/api/v1/endpoints/timeline_filter_presets.py` (5 endpoints)
+  - Integration tests: `backend/tests/integration/test_timeline_filter_presets.py` (13 tests)
+  - Router registration: Updated `backend/app/main.py`
+  - User model relationship: Updated `backend/app/models/user.py`
+- ✅ Updated CONTEXT.md with implementation notes
+- ✅ Updated AUDIT.md with compliance review
+- ✅ Updated todo list (Task 5.4.5 complete)
+
+**Implementation Scope**:
+- Full CRUD API for timeline filter presets
+- User isolation (RBAC enforced - users only access own presets)
+- Default preset management (only one default per user)
+- Audit logging for all actions
+- Duplicate name validation
+- 13 comprehensive integration tests
+
+**Compliance Review**:
+- ✅ **PRD Alignment**: Filter preset API matches specification
+  - User Story US-C3: "Save filter presets" - Backend complete
+  - Create preset API ✅
+  - List presets API ✅
+  - Get preset by ID API ✅
+  - Update preset API ✅
+  - Delete preset API ✅
+  - Default preset logic ✅
+- ✅ **HIPAA Compliance**: PHI handling secure
+  - No PHI in preset names (user-controlled strings validated)
+  - No PHI in filters (only concept CUIs, dates, meta-annotation values)
+  - Audit logging for all preset actions ✅
+  - User isolation enforced (foreign key + query filters) ✅
+  - Cascade delete on user removal (no orphaned data) ✅
+- ✅ **Authentication/Authorization**: Secure
+  - All endpoints require authentication (Depends(get_current_user)) ✅
+  - RBAC enforced: Users can only access own presets ✅
+  - SQL injection prevented: Parameterized queries via SQLAlchemy ✅
+  - Input validation: Pydantic schemas validate all inputs ✅
+- ✅ **Data Integrity**: Robust constraints
+  - Unique constraint: (user_id, name) prevents duplicate names ✅
+  - Foreign key: user_id → users.id with CASCADE delete ✅
+  - Default preset enforcement: Only one is_default=True per user ✅
+  - Indexes for performance: user_id, (user_id + name), (user_id + is_default) ✅
+- ✅ **Test Coverage**: Comprehensive
+  - 13 integration tests covering all CRUD operations
+  - Test user isolation (users only see own presets)
+  - Test default preset logic (automatic un-setting)
+  - Test duplicate name validation
+  - Test 404 errors for non-existent presets
+  - Test authentication requirement
+  - Tests ready to run when services start
+
+**Technical Notes**:
+- Filters stored as JSONB (flexible, queryable)
+- Default preset logic: Setting new default un-sets all other defaults
+- Presets ordered: Default first, then newest first
+- Migration 010 ready (runs on backend start)
+- All endpoints have audit logging
+- No PHI exposure risk (only filter criteria, not patient data)
+
+**Action**: ✅ CLEAR - Ready to commit Task 5.4.5 and continue to Task 5.4.6
+
+---
+
+## Previous Commits
+
+### Phase 5.4 Task 5.4.4 - TimelineView Filter Integration (2025-11-19)
+
+**Commit** (Task 5.4.4: TimelineView Filter Integration):
+- ✅ Modified frontend/src/views/TimelineView.vue (~428 lines, ~100 lines added)
+- ✅ Features: Filter button with badge, active filter chips, sidebar integration, refetch logic
+- ✅ Compliance: No PHI in logs/URL, uses existing backend audit trail, safe defaults enforced
+
+**Compliance**: UI-only integration, no new PHI exposure, existing authentication/authorization applies, filter workflow complete
+
+---
+
+### Phase 5.4 Task 5.4.3 - ConceptFilterSidebar Component (2025-11-19)
   - Filter button in toolbar with active filter count badge
   - Active filter chips display (removable)
   - ConceptFilterSidebar component integrated (v-model)

@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import Boolean, Column, String, DateTime, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 from passlib.context import CryptContext
 from app.db.base_class import Base
 
@@ -53,6 +54,9 @@ class User(Base):
     # Audit timestamps
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    timeline_filter_presets = relationship("TimelineFilterPreset", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """String representation for debugging."""

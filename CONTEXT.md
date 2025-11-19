@@ -111,13 +111,73 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 5.3.5: Integration tests for concept rendering (7 tests)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Task 5.4.4 - TimelineView filter integration (Phase 5.4: 4/8 tasks complete)
+**Latest Commit**: Task 5.4.5 - Filter preset CRUD API (Phase 5.4: 5/8 tasks complete)
 **Sprint**: Sprint 2 - Timeline View (Phases 5.1-5.3 COMPLETE, Phase 5.4 in progress)
-**Next Milestone**: Phase 5.4 (Filtering & Search) - Task 5.4.5 (Create filter preset API)
+**Next Milestone**: Phase 5.4 (Filtering & Search) - Task 5.4.6 (Add filter preset UI)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.4: Task 5.4.5 - Filter Preset API
+
+**Commits**: (this commit) - Create filter preset CRUD API
+
+**Task 5.4.5 Completed**:
+- ✅ **Database migration**: `backend/alembic/versions/010_create_timeline_filter_presets.py`
+  - timeline_filter_presets table (id, user_id, name, filters, is_default, created_at, updated_at)
+  - Indexes: user_id, (user_id + name) unique, (user_id + is_default)
+  - Foreign key: user_id → users.id (CASCADE delete)
+- ✅ **SQLAlchemy model**: `backend/app/models/timeline_filter_preset.py`
+  - TimelineFilterPreset class with relationships
+  - Updated User model with timeline_filter_presets relationship
+- ✅ **Pydantic schemas**: `backend/app/schemas/timeline_filter_preset.py`
+  - FilterPresetCreate, FilterPresetUpdate, FilterPresetResponse, FilterPresetListResponse
+  - JSON validation and examples
+- ✅ **API endpoints**: `backend/app/api/v1/endpoints/timeline_filter_presets.py`
+  - POST /api/v1/timeline/filters - Create preset
+  - GET /api/v1/timeline/filters - List user's presets
+  - GET /api/v1/timeline/filters/{preset_id} - Get preset by ID
+  - PUT /api/v1/timeline/filters/{preset_id} - Update preset
+  - DELETE /api/v1/timeline/filters/{preset_id} - Delete preset
+  - Audit logging for all actions
+  - RBAC enforcement (user can only access own presets)
+  - Automatic default preset management (only one default per user)
+- ✅ **Integration tests**: `backend/tests/integration/test_timeline_filter_presets.py`
+  - 13 comprehensive tests (all pass when services running)
+  - Test create, list, get, update, delete operations
+  - Test RBAC (users only see own presets)
+  - Test default preset enforcement
+  - Test duplicate name validation
+  - Test authentication requirement
+- ✅ **Router registration**: Updated `backend/app/main.py`
+  - Added timeline_filter_presets router with /api/v1/timeline/filters prefix
+- ✅ Updated CONTEXT.md and AUDIT.md
+
+**Why**:
+- Implements Task 5.4.5 from Phase 5.4 task breakdown
+- Enables users to save frequently used filter combinations
+- Reduces repetitive filter configuration
+- Supports default preset for immediate timeline loading
+- Prepares backend for frontend preset UI (Task 5.4.6)
+
+**Impact**:
+- ✅ Filter preset CRUD API complete
+- ✅ User isolation enforced (RBAC)
+- ✅ Default preset logic working
+- ✅ Audit logging for all actions
+- ✅ 13 integration tests ready (run when services start)
+- 🎯 **Next**: Task 5.4.6 (Add filter preset UI) - 1.5 hours
+
+**Technical Notes**:
+- Only one is_default=True per user (automatically un-sets others)
+- Duplicate preset names per user prevented (unique constraint)
+- Cascade delete: User deletion removes all their presets
+- Filters stored as JSONB for flexibility
+- Presets ordered by: default first, then newest first
+- Migration 010 ready (runs on next backend start)
+
+---
 
 #### [2025-11-19] - Phase 5.4: Task 5.4.4 - TimelineView Filter Integration
 
