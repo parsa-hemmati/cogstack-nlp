@@ -103,20 +103,63 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 5.2.5: TimelineDocuments component (document markers, 15 unit tests)
   - ✅ Task 5.2.6: TimelineView component (main view, router integration, 15 unit tests)
   - ✅ Task 5.2.7: Integration tests (full timeline rendering workflow, 7 tests)
-- 🔄 **Phase 5.3 (Concept Extraction & Display)**: IN PROGRESS - 4/8 tasks (50%)
+- 🔄 **Phase 5.3 (Concept Extraction & Display)**: IN PROGRESS - 4/5 tasks (80%)
   - ✅ Task 5.3.1: Populate clinical_concepts index script
   - ✅ Task 5.3.2: Verify TimelineService includes concepts (already implemented in Task 5.1.6)
   - ✅ Task 5.3.3: TimelineConcepts.vue component (concept markers rendering)
-  - ✅ Task 5.3.4: ConceptPopover.vue component (concept details on click)
+  - ✅ Task 5.3.4: ConceptPopover.vue component + TimelineView integration
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Task 5.3.4 - Create ConceptPopover component with unit tests
+**Latest Commit**: Task 5.3.4 (continued) - Integrate concepts into TimelineView
 **Sprint**: Sprint 2 - Timeline View (Phases 5.1-5.2 COMPLETE, Phase 5.3 IN PROGRESS)
-**Next Milestone**: Phase 5.3 (Concept Extraction & Display) - 4/8 tasks remaining
+**Next Milestone**: Phase 5.3 (Concept Extraction & Display) - 1/5 tasks remaining (Task 5.3.5 integration test)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.3: Task 5.3.4 (Continued) TimelineView Integration
+
+**Commits**: (this commit) - Integrate TimelineConcepts and ConceptPopover into TimelineView
+
+**Modified**:
+- View component: `frontend/src/views/TimelineView.vue` (~35 lines added)
+  - **Integration**: Added TimelineConcepts and ConceptPopover to timeline visualization
+  - **Changes**:
+    - Imported TimelineConcepts and ConceptPopover components
+    - Added TimelineConcepts to SVG rendering (conditional on timeline.concepts)
+    - Added ConceptPopover below SVG for popover display
+    - Added state variables: selectedConcept, showConceptPopover, conceptPopoverPosition
+    - Added handleConceptClick() handler: Opens popover at click coordinates
+    - Added handleViewDocument() handler: Links concept to document view
+  - **Behavior**:
+    - Concept markers render on timeline when concepts available
+    - Click on concept marker opens popover with details
+    - "View Document" in popover shows document details card
+    - Popover closes when viewing document
+
+**Why**:
+- Completes Task 5.3.4 step 2: "Update TimelineView to show popover on concept click"
+- Integrates TimelineConcepts component created in Task 5.3.3
+- Integrates ConceptPopover component created in Task 5.3.4
+- Provides end-to-end concept visualization workflow
+- Prepares for Task 5.3.5 integration testing
+
+**Impact**:
+- ✅ Concept markers now visible on timeline
+- ✅ Concept details accessible via interactive popover
+- ✅ Document navigation from concept popover
+- ✅ Complete timeline visualization (documents + concepts)
+- 🎯 **Next**: Task 5.3.5 - Create integration tests for concept rendering
+
+**Technical Notes**:
+- Conditional rendering: v-if="timeline.concepts" (graceful handling when no concepts)
+- Event handling: @concept-click passes mention and MouseEvent
+- Popover positioning: clientX/clientY for absolute positioning
+- Document lookup: Finds document by documentId in timeline.documents array
+- State management: Separate state for document vs concept selection
+
+---
 
 #### [2025-11-19] - Phase 5.3: Task 5.3.4 ConceptPopover Component
 

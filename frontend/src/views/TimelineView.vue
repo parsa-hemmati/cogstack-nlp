@@ -26,8 +26,23 @@
                 @document-click="handleDocumentClick"
                 @document-hover="handleDocumentHover"
               />
+              <TimelineConcepts
+                v-if="timeline.concepts"
+                :concepts="timeline.concepts"
+                :date-range="dateRange"
+                :width="svgWidth"
+                @concept-click="handleConceptClick"
+              />
             </g>
           </svg>
+
+          <!-- Concept popover (shown when concept marker is clicked) -->
+          <ConceptPopover
+            v-model="showConceptPopover"
+            :concept="selectedConcept"
+            :position="conceptPopoverPosition"
+            @view-document="handleViewDocument"
+          />
 
           <!-- Document details (shown when document is clicked) -->
           <v-card v-if="selectedDocument" class="mt-4">
@@ -69,6 +84,8 @@ import { useRoute } from 'vue-router'
 import { useTimeline } from '@/composables/useTimeline'
 import TimelineAxis from '@/components/timeline/TimelineAxis.vue'
 import TimelineDocuments from '@/components/timeline/TimelineDocuments.vue'
+import TimelineConcepts from '@/components/TimelineConcepts.vue'
+import ConceptPopover from '@/components/ConceptPopover.vue'
 import type { TimelineDocument } from '@/types/timeline'
 
 /**
@@ -105,6 +122,11 @@ const selectedDocument = ref<TimelineDocument | null>(null)
 const hoveredDocument = ref<TimelineDocument | null>(null)
 const tooltipX = ref(0)
 const tooltipY = ref(0)
+
+// Selected concept (for popover)
+const selectedConcept = ref<any>(null)
+const showConceptPopover = ref(false)
+const conceptPopoverPosition = ref({ x: 0, y: 0 })
 
 /**
  * Date range computed from timeline data.
@@ -152,6 +174,34 @@ const formatDate = (dateStr: string): string => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+/**
+ * Handle concept marker click.
+ * Shows popover with concept details.
+ */
+const handleConceptClick = (mention: any, event: MouseEvent) => {
+  selectedConcept.value = mention
+  conceptPopoverPosition.value = {
+    x: event.clientX,
+    y: event.clientY
+  }
+  showConceptPopover.value = true
+}
+
+/**
+ * Handle view document request from concept popover.
+ * Shows document details in card below timeline.
+ */
+const handleViewDocument = (documentId: string) => {
+  // Find the document in timeline.documents
+  if (timeline.value) {
+    const doc = timeline.value.documents.find(d => d.documentId === documentId)
+    if (doc) {
+      selectedDocument.value = doc
+      showConceptPopover.value = false
+    }
+  }
 }
 
 /**

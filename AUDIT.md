@@ -18,74 +18,85 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Commit Status: ✅ CLEAR - Phase 5.3 Task 5.3.4 Complete
+### Commit Status: ✅ CLEAR - Phase 5.3 Task 5.3.4 Complete (with TimelineView Integration)
 
 **Phase 5.3: Concept Extraction & Display - IN PROGRESS** (2025-11-19)
 
-**This Commit** (Task 5.3.4: ConceptPopover Component):
-- ✅ Frontend component: frontend/src/components/ConceptPopover.vue (~90 lines)
-- ✅ Unit tests: frontend/tests/unit/components/ConceptPopover.spec.ts (~400 lines, 23 tests)
-- ✅ Features:
-  - Vuetify v-menu with absolute positioning at click coordinates
-  - Displays concept name, CUI, date, sentence, meta-annotations, confidence
-  - Color-coded meta-annotation chips (green=affirmed/current/patient, red=negated/historical/family, grey=other)
-  - Confidence score as percentage
-  - "View Document" button (emits view-document event)
-  - "Close" button (updates v-model)
-  - Two-way binding with v-model for visibility state
-- ✅ CONTEXT.md updated: Phase 5.3 IN PROGRESS (4/8 tasks, 50%)
+**This Commit** (Task 5.3.4 Continued: TimelineView Integration):
+- ✅ Modified component: frontend/src/views/TimelineView.vue (~35 lines added)
+- ✅ Integration:
+  - Added TimelineConcepts to SVG rendering (conditional on timeline.concepts)
+  - Added ConceptPopover for popover display
+  - Imported both components and integrated event handling
+- ✅ New handlers:
+  - handleConceptClick(mention, event): Opens popover at click coordinates
+  - handleViewDocument(documentId): Links concept to document view
+- ✅ State management:
+  - selectedConcept: Stores clicked concept mention
+  - showConceptPopover: Controls popover visibility
+  - conceptPopoverPosition: Stores click coordinates
+- ✅ CONTEXT.md updated: Phase 5.3 IN PROGRESS (4/5 tasks, 80%) - FIXED TASK COUNT
 
 **Compliance Review**:
-- ✅ **Frontend Code Quality**: Clean implementation
-  - TypeScript type safety: Props/emits properly typed
-  - Composition API: ref, watch for reactivity
-  - Two-way binding pattern (v-model)
-  - Graceful handling of missing/null data
-  - Date formatting using browser locale
-- ✅ **Test Coverage**: 23 comprehensive tests
-  - Popover rendering (visible/hidden states)
-  - Content display (name, CUI, date, sentence, meta-annotations, confidence)
-  - Color-coding verification (green/red/grey)
-  - Event emission (view-document, update:modelValue)
-  - Two-way binding (modelValue sync)
-  - Positioning (x, y coordinates)
-  - Edge cases (null concept, missing data, empty meta_annotations)
-  - All tests passing
-- ✅ **No HIPAA Impact**: No PHI handling
-  - Component displays data from props (already filtered by backend)
-  - No direct PHI access
-  - No logging of patient data
-  - Parent component controls data access
-- ✅ **No Security Impact**: Frontend component only
-  - No API calls
-  - No authentication/authorization
-  - Vuetify v-menu handles XSS (text escaping)
-  - Emit events for parent handling
-- ✅ **Accessibility**: Good support
-  - Vuetify v-card provides semantic HTML
-  - Color-coded chips with text labels (not color-only)
-  - Buttons for keyboard navigation
-  - ARIA labels via Vuetify components
-  - Sufficient color contrast (WCAG AA)
-- ✅ **Meta-Annotation Best Practices**: Aligned
-  - Green chips for valid concepts (Affirmed, Current, Patient)
-  - Red chips for invalid concepts (Negated, Historical, Family)
-  - Follows medcat-meta-annotations skill guidance
-  - Visual representation matches filtering logic
+- ✅ **Frontend Code Quality**: Clean integration
+  - Component imports properly organized
+  - Conditional rendering (v-if="timeline.concepts")
+  - Event handling with proper type signatures
+  - State management for concept selection
+  - Document lookup by documentId
+  - Graceful handling when concepts not available
+- ✅ **Integration Correctness**: Proper component usage
+  - TimelineConcepts receives correct props (concepts, dateRange, width)
+  - ConceptPopover receives correct props (modelValue, concept, position)
+  - Event handlers pass correct data (@concept-click, @view-document)
+  - Two-way binding for popover visibility (v-model)
+  - Coordinate-based positioning for popover
+- ✅ **No Test Coverage Required**: Integration only
+  - Unit tests for TimelineConcepts already exist (12 tests)
+  - Unit tests for ConceptPopover already exist (23 tests)
+  - Integration tests will be Task 5.3.5
+  - No new logic, just wiring existing components
+- ✅ **No HIPAA Impact**: No PHI handling changes
+  - Uses existing timeline.concepts data from API
+  - No new PHI access or logging
+  - Event handlers only manage UI state
+  - Backend controls data filtering
+- ✅ **No Security Impact**: Frontend integration only
+  - No new API calls
+  - No new authentication/authorization
+  - Uses existing components (already reviewed)
+  - Event emissions properly scoped
+- ✅ **End-to-End Workflow**: Complete
+  - User clicks concept marker → popover opens
+  - User views concept details → meta-annotations visible
+  - User clicks "View Document" → document details shown
+  - Popover closes → document card displayed
+  - Complete user journey implemented
 
 **Technical Notes**:
-- Vuetify v-menu with absolute positioning (position-x, position-y)
-- Two-way binding via v-model pattern (watch props, emit updates)
-- Color mapping follows medcat-meta-annotations best practices
-- Date formatting uses browser locale (toLocaleDateString)
-- Graceful handling of missing/null data (v-if guards)
-- Emits custom event for document navigation (future integration)
+- Conditional rendering prevents errors when concepts undefined
+- Event coordinates (clientX, clientY) passed for popover positioning
+- Document lookup by ID enables navigation from concept to source
+- Separate state for document vs concept selection (no conflicts)
+- Popover visibility controlled by v-model (two-way binding)
 
-**Action**: ✅ CLEAR - Ready to commit Task 5.3.4
+**Action**: ✅ CLEAR - Ready to commit Task 5.3.4 integration
 
 ---
 
 ## Previous Commits
+
+### Phase 5.3 Task 5.3.4 - ConceptPopover Component (2025-11-19)
+
+**Commit** (Task 5.3.4: ConceptPopover Component):
+- ✅ Frontend component: frontend/src/components/ConceptPopover.vue (~90 lines)
+- ✅ Unit tests: frontend/tests/unit/components/ConceptPopover.spec.ts (~400 lines, 23 tests)
+- ✅ Features: Vuetify v-menu, color-coded chips, confidence score, view document button
+- ✅ All tests passing
+
+**Compliance**: Clean code quality, 23 comprehensive tests, no HIPAA/security impact, good accessibility, aligned with medcat-meta-annotations best practices
+
+---
 
 ### Phase 5.3 Task 5.3.3 - TimelineConcepts Component (2025-11-19)
 
