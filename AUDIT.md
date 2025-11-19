@@ -18,6 +18,73 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
+### Commit Status: ✅ CLEAR - Phase 5.6 Task 5.6.8
+
+**Phase 5.6: Export Capabilities - Unit Tests for TimelineExportToolbar (Frontend)** (2025-11-19)
+
+**This Commit** (Task 5.6.8):
+- ✅ Created `frontend/tests/unit/composables/useTimelineExport.spec.ts` (~360 lines, 12 tests)
+- ✅ Created `frontend/tests/unit/components/TimelineExportToolbar.spec.ts` (~450 lines, 15 tests)
+- ✅ Updated CONTEXT.md and AUDIT.md
+
+**Implementation Scope**:
+- Unit tests for useTimelineExport composable (API calls, file downloads, error handling)
+- Unit tests for TimelineExportToolbar component (UI rendering, interactions, options)
+- Composable Tests (12 tests): API calls (3 formats), filters, loading state, error handling, file downloads, default filenames
+- Component Tests (15 tests): Button rendering, enable/disable states, dialog opening, export options, watermark conditional, export execution, success/error snackbars, cancel button, loading state, filter passing, no patient error
+
+**Compliance Review**:
+- ✅ **PRD Alignment**: Frontend unit tests validate export UI requirements
+  - User Story US-E1: "Export timeline to PDF" - UI tested ✅
+  - User Story US-E2: "Export to FHIR" - UI tested ✅
+  - User Story US-E3: "Export to JSON" - UI tested ✅
+  - Export options (watermark, de_identified, apply_filters) - UI tested ✅
+  - Button states (enabled/disabled) - Tested ✅
+  - Error messaging - Tested ✅
+- ✅ **UI/UX**: Component behavior validated
+  - Buttons render for all 3 formats (PDF, FHIR, JSON) ✅
+  - Buttons disabled when no patientId ✅
+  - Dialog opens on button click ✅
+  - Export options displayed in dialog ✅
+  - Watermark checkbox only for PDF ✅
+  - Success snackbar after export ✅
+  - Error snackbar on failure ✅
+- ✅ **Composable Logic**: API integration validated
+  - exportTimeline() calls API with correct parameters ✅
+  - downloadPDF() decodes base64 → Uint8Array → Blob ✅
+  - downloadJSON() creates Blob from JSON ✅
+  - Loading state set during export ✅
+  - Error state set on failure ✅
+  - Filters passed to API when provided ✅
+- ✅ **Test Coverage**: Comprehensive frontend tests
+  - 27 tests total (12 composable + 15 component)
+  - All export formats tested (PDF, FHIR, JSON)
+  - All export options tested (watermark, de_identified, apply_filters)
+  - All UI interactions tested (button clicks, dialog, checkboxes, cancel)
+  - All error paths tested (API failure, no patient)
+  - File download logic tested (Blob creation, URL.createObjectURL)
+- ✅ **Quality Assurance**: Test structure
+  - Vitest best practices (describe, it, expect, vi.mock)
+  - Vue Test Utils with Vuetify plugin
+  - Component mounting with stubs (v-dialog-stub, v-btn-stub, etc.)
+  - Composable mocking (vi.mock for useTimelineExport)
+  - Clear assertions with descriptive test names
+
+**Technical Notes**:
+- Test files: useTimelineExport.spec.ts (~360 lines), TimelineExportToolbar.spec.ts (~450 lines)
+- Framework: Vitest + Vue Test Utils + Vuetify
+- Composable mocking: vi.mock('@/composables/useTimelineExport')
+- API mocking: vi.mock('@/api/client') with mockPost function
+- File download mocking: Mock URL.createObjectURL, document.createElement
+- Component mounting: mount(TimelineExportToolbar, { props, global: { plugins: [vuetify] } })
+- Stub validation: Find v-dialog-stub, v-btn-stub, v-checkbox-stub, v-snackbar-stub
+- Async testing: async/await with nextTick() for Vue reactivity
+- Loading state testing: Mock promise resolution with resolvePromise
+
+**Action**: ✅ CLEAR - Ready for Task 5.6.9 (Integration Test for Full Export Workflow)
+
+---
+
 ### Commit Status: ✅ CLEAR - Phase 5.6 Task 5.6.7
 
 **Phase 5.6: Export Capabilities - Integration Tests for Export API** (2025-11-19)
