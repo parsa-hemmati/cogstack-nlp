@@ -83,31 +83,90 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 4.6: Search History (COMPLETE - Redis cache with 7-day retention)
   - ✅ Task 4.7: Integration Tests (COMPLETE - 43 tests created during TDD implementation)
   - ✅ Task 4.8: Documentation & Deployment (COMPLETE - API docs in DEVELOPMENT.md)
-- 🔄 **Phase 5 (Timeline View)**: IN PROGRESS - Phase 5.1 (Backend Timeline Data API) started (4/7 tasks)
+- 🔄 **Phase 5 (Timeline View)**: IN PROGRESS - Phase 5.1 (Backend Timeline Data API) started (5/7 tasks)
   - ✅ Specification: `.specify/specifications/sprint-2-timeline-view.md` (v1.0.0)
   - ✅ Technical Plan: `.specify/plans/timeline-view-plan.md` (v1.0.0)
   - ✅ Task Breakdown: `.specify/tasks/timeline-view-tasks.md` (v1.0.0, 60 tasks)
-  - 🔄 Implementation: Phase 5.1 started (4/7 tasks complete)
+  - 🔄 Implementation: Phase 5.1 started (5/7 tasks complete, 71.4%)
     - ✅ Task 5.1.1: Database schema - timeline_filters table (migration 008)
     - ✅ Task 5.1.2: Database schema - timeline_exports table (migration 009)
     - ✅ Task 5.1.3: Elasticsearch - clinical_concepts index (mapping + script)
     - ✅ Task 5.1.4: Pydantic models - timeline schemas (10 models defined)
-    - ⏸️ Task 5.1.5: Repository - ElasticsearchTimelineRepository (next)
-    - ⏸️ Task 5.1.6: Service - TimelineService
+    - ✅ Task 5.1.5: Repository - ElasticsearchTimelineRepository (2 methods, 29 tests)
+    - ⏸️ Task 5.1.6: Service - TimelineService (next)
     - ⏸️ Task 5.1.7: API endpoint - GET /timeline/{patient_id}
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: (this commit) - Phase 5.1: Task 5.1.4 complete (Pydantic schemas)
+**Latest Commit**: (this commit) - Phase 5.1: Task 5.1.5 complete (Elasticsearch repository)
 **Sprint**: Sprint 2 - Timeline View (Phase 5) - Implementation Phase
-**Next Milestone**: Complete Phase 5.1 (Backend Timeline Data API) - 3/7 tasks remaining
+**Next Milestone**: Complete Phase 5.1 (Backend Timeline Data API) - 2/7 tasks remaining
 
 ---
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.1: Task 5.1.5 Elasticsearch Repository for Timeline Queries
+
+**Commits**: (this commit) - Implement ElasticsearchTimelineRepository with comprehensive tests
+
+**Added**:
+- Elasticsearch repository: `backend/app/repositories/elasticsearch_timeline_repo.py` (260 lines)
+  - **query_concepts_by_patient()**: Query concepts with temporal and meta-annotation filters
+    - Patient ID filter (required)
+    - Concept CUI filter (optional, AND logic)
+    - Date range filter (optional, ISO 8601 dates)
+    - Meta-annotation filters (optional, single value OR list for OR logic)
+    - Returns ConceptMention objects sorted by date (ascending)
+    - Configurable result size (default 1000)
+  - **aggregate_concepts_by_date()**: Aggregate concept frequency by time buckets
+    - Date histogram aggregation (day/week/month/quarter/year granularity)
+    - Concept counts per time bucket (top 50 concepts)
+    - Optional concept filter
+    - Returns aggregation buckets with concept frequency data
+  - **Async context manager support** (`async with` pattern)
+  - **close() method** for cleanup
+- Unit tests: `backend/tests/unit/repositories/test_elasticsearch_timeline_repo.py` (16 tests)
+  - Mocked AsyncElasticsearch client (no external dependencies)
+  - Tests for all filter combinations (concept, date, meta-annotations)
+  - Tests for single-value and list-value meta-annotation filters
+  - Tests for aggregation with different granularities
+  - Tests for empty results
+  - Tests for context manager and close() method
+- Integration tests: `backend/tests/integration/repositories/test_elasticsearch_timeline_repo_integration.py` (13 tests)
+  - Real Elasticsearch with test index
+  - Test data setup/teardown
+  - Tests for combined filters
+  - Tests for meta-annotation filtering (Negation, Experiencer, Temporality)
+  - Tests for aggregation accuracy
+  - Skippable via SKIP_INTEGRATION_TESTS=true
+- Created `backend/app/repositories/` directory with `__init__.py`
+
+**Why**:
+- Implements Task 5.1.5 from Phase 5.1 task breakdown
+- Enables temporal concept queries for timeline visualization
+- Supports all filtering requirements from specification (concepts, dates, meta-annotations)
+- Meta-annotation filtering critical for accuracy (95% vs 60% without filtering)
+- Aggregation enables frequency charts and trend analysis
+- Async methods support FastAPI async endpoints
+- Comprehensive test coverage (29 tests total)
+
+**Impact**:
+- ✅ Backend can now query Elasticsearch for timeline data
+- ✅ All filter types supported (concept CUI, date range, meta-annotations)
+- ✅ Meta-annotation list values use OR logic (e.g., Temporality: ["Current", "Recent"])
+- ✅ Aggregation provides data for temporal visualizations
+- ⚠️ Requires clinical_concepts Elasticsearch index (Task 5.1.3)
+- ⚠️ Integration tests require running Elasticsearch instance
+
+**Technical Debt**: None
+
+**Next**: Task 5.1.6 - TimelineService (orchestrates PostgreSQL + Elasticsearch queries)
+
+---
+
 #### [2025-11-19] - Phase 5.1: Task 5.1.4 Pydantic Schemas for Timeline API
 
-**Commits**: (this commit) - Define Pydantic models for timeline schemas
+**Commits**: 5124053f - Define Pydantic models for timeline schemas
 
 **Added**:
 - Timeline API schemas: `backend/app/schemas/timeline.py` (10 models, 400+ lines)
