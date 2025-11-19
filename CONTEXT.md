@@ -103,20 +103,73 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 5.2.5: TimelineDocuments component (document markers, 15 unit tests)
   - ✅ Task 5.2.6: TimelineView component (main view, router integration, 15 unit tests)
   - ✅ Task 5.2.7: Integration tests (full timeline rendering workflow, 7 tests)
-- 🔄 **Phase 5.3 (Concept Extraction & Display)**: IN PROGRESS - 4/5 tasks (80%)
+- ✅ **Phase 5.3 (Concept Extraction & Display)**: COMPLETE - 5/5 tasks (100%)
   - ✅ Task 5.3.1: Populate clinical_concepts index script
   - ✅ Task 5.3.2: Verify TimelineService includes concepts (already implemented in Task 5.1.6)
   - ✅ Task 5.3.3: TimelineConcepts.vue component (concept markers rendering)
   - ✅ Task 5.3.4: ConceptPopover.vue component + TimelineView integration
+  - ✅ Task 5.3.5: Integration tests for concept rendering (7 tests)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Task 5.3.4 (continued) - Integrate concepts into TimelineView
-**Sprint**: Sprint 2 - Timeline View (Phases 5.1-5.2 COMPLETE, Phase 5.3 IN PROGRESS)
-**Next Milestone**: Phase 5.3 (Concept Extraction & Display) - 1/5 tasks remaining (Task 5.3.5 integration test)
+**Latest Commit**: Task 5.3.5 - Integration tests for concept rendering (Phase 5.3 COMPLETE)
+**Sprint**: Sprint 2 - Timeline View (Phases 5.1-5.3 COMPLETE)
+**Next Milestone**: Phase 5.4 (Filtering & Search) - 8 tasks (15 hours estimated)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.3: Task 5.3.5 Integration Tests (Phase 5.3 COMPLETE)
+
+**Commits**: (this commit) - Create integration tests for concept rendering
+
+**Added**:
+- Integration tests: `frontend/tests/integration/TimelineConcepts.integration.spec.ts` (~470 lines)
+  - **Purpose**: Test full concept visualization workflow with TimelineConcepts and ConceptPopover
+  - **Coverage**: 7 comprehensive test cases
+  - **Tests**:
+    1. Renders concept markers and shows popover on click
+    2. Renders correct number of markers for each concept
+    3. Passes concept data correctly to popover on click
+    4. Handles API errors gracefully
+    5. Handles timeline with no concepts
+    6. Distinguishes first mention from recurring by size
+    7. Color-codes markers by concept type
+  - **Mock Data**: mockTimelineWithConcepts with 2 concepts, 5 mentions
+  - **Setup**: Vuetify + vue-router + axios-mock-adapter
+  - **Verification**:
+    - Concept markers render (5 markers for 2 concepts)
+    - Click events trigger popover with correct data
+    - Meta-annotations passed correctly
+    - First mention larger (r=8) vs recurring (r=4)
+    - Color-coding by type (red=condition, blue=medication)
+    - Graceful error handling (no crash on API error)
+    - Document markers still render when concepts absent
+
+**Why**:
+- Implements Task 5.3.5 from Phase 5.3 task breakdown
+- Validates end-to-end concept visualization workflow
+- Ensures TimelineConcepts and ConceptPopover integration works correctly
+- Provides regression testing for concept rendering
+- Completes Phase 5.3 (Concept Extraction & Display)
+
+**Impact**:
+- ✅ Phase 5.3 COMPLETE (5/5 tasks, 100%)
+- ✅ Integration tests ensure concept rendering workflow works
+- ✅ Test coverage for marker rendering, sizing, color-coding, events
+- ✅ Edge cases covered (API errors, no concepts)
+- ✅ Regression protection for future changes
+- 🎯 **Next**: Phase 5.4 (Filtering & Search) - 8 tasks remaining
+
+**Technical Notes**:
+- Uses Vuetify plugin for v-menu component testing
+- Uses vue-router for route params (patientId)
+- Uses axios-mock-adapter for API mocking
+- flushPromises() for async API call completion
+- $nextTick() for Vue reactivity updates
+- Tests selectedConcept state rather than popover visibility (v-menu renders outside wrapper)
+
+---
 
 #### [2025-11-19] - Phase 5.3: Task 5.3.4 (Continued) TimelineView Integration
 
