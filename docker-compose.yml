@@ -49,8 +49,9 @@ services:
 
   # ===========================================================================
   # Redis Cache & Session Store
-  # Purpose: Session management, caching layer, document deduplication
+  # Purpose: Session management, caching layer, document deduplication, search result cache
   # Persistence: RDB + AOF for durability
+  # Sprint 3: Used for search result caching, autocomplete caching, rate limiting
   # ===========================================================================
   redis:
     image: redis:7.2-alpine
@@ -80,6 +81,60 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # ===========================================================================
+  # Elasticsearch (Full-Text Search Engine)
+  # Purpose: Full-text search, relevance ranking (BM25), faceted search, highlighting
+  # Index: documents (clinical documents with MedCAT concept annotations)
+  # Sprint 3: Core search infrastructure for clinical document search
+  # ===========================================================================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: clinical_care_elasticsearch
+    restart: unless-stopped
+    environment:
+      # Single-node cluster (no cluster formation)
+      - discovery.type=single-node
+      # Disable X-Pack Security (auth handled by backend)
+      - xpack.security.enabled=false
+      # Java heap size (1GB for development, scale up in production)
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      # Cluster settings
+      - cluster.name=clinical-care-cluster
+      - node.name=clinical-care-node-1
+      # Index settings
+      - action.auto_create_index=false
+      # Logging
+      - logger.level=INFO
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - clinical_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s  # ES takes ~45-60 seconds to start
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
 
   # ===========================================================================
   # MedCAT Service (NLP Model Serving)
@@ -322,3 +377,10 @@ volumes:
   backend_logs:
     driver: local
     name: clinical_care_backend_logs
+
+  # Elasticsearch data (full-text search index for clinical documents)
+  # Sprint 3: documents index with clinical_analyzer and BM25 relevance ranking
+  # Backup: Include in daily backup strategy (see backend/scripts/backup-elasticsearch.sh)
+  es_data:
+    driver: local
+    name: clinical_care_es_data

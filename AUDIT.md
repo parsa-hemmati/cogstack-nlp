@@ -18,7 +18,12 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Sprint Status: ✅ CLEAR - Sprint 2 COMPLETE (ALL 6 Phases)
+### Sprint Status: 🚧 IN PROGRESS - Sprint 3 Phase 1 (Task 1.1 COMPLETE)
+
+**Sprint 3: Full-Text Search Enhancement** - IN PROGRESS (Started 2025-11-19)
+- 🚧 Phase 1: Core Search Infrastructure (1/10 tasks, 10% complete)
+  - ✅ Task 1.1: Add Elasticsearch to Docker Compose - COMPLETE
+  - ⏳ Tasks 1.2-1.10: Pending
 
 **Sprint 2: Timeline View** - COMPLETE (2025-11-19)
 - ✅ Phase 5.1: Backend Timeline Data API
@@ -27,6 +32,77 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 - ✅ Phase 5.4: Filtering & Search
 - ✅ Phase 5.5: Zoom, Pan, and Temporal Analysis
 - ✅ Phase 5.6: Export Capabilities (PDF, FHIR R4, JSON)
+
+---
+
+**Task 1.1: Add Elasticsearch to Docker Compose** - COMPLETE (2025-11-19)
+
+**Task Summary**:
+- ✅ Elasticsearch 8.11.0 service added to docker-compose.yml
+- ✅ Redis service verified operational (already present)
+- ✅ Environment variables added (.env.template)
+- ✅ Health checks configured (60s start period, 5 retries)
+- ✅ Data volume configured (es_data for persistence)
+- ✅ Services tested successfully (cluster status: green, Redis: PONG)
+
+**Compliance Review - Task 1.1**:
+
+**✅ PRD Alignment: 100% COMPLIANT**
+
+Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:37-96`:
+- ✅ Elasticsearch service added with correct image (docker.elastic.co/elasticsearch/elasticsearch:8.11.0)
+- ✅ Single-node configuration (discovery.type=single-node)
+- ✅ X-Pack security disabled (xpack.security.enabled=false, auth handled by backend)
+- ✅ Java heap size configured (ES_JAVA_OPTS=-Xms1g -Xmx1g, optimized for development)
+- ✅ Volume configured (es_data:/usr/share/elasticsearch/data)
+- ✅ Port exposed (9200)
+- ✅ Health check defined (curl cluster health)
+- ✅ Redis service already present with appendonly persistence
+- ✅ Redis port exposed (6379)
+- ✅ Redis volume configured (redis_data:/data)
+- ✅ Services start successfully: docker-compose up -d elasticsearch redis ✓
+- ✅ Elasticsearch health returns "green" status ✓
+- ✅ Redis responds to PING with PONG ✓
+- ✅ Services stop cleanly: docker-compose down ✓
+- ✅ .env.template updated with ELASTICSEARCH_URL, ELASTICSEARCH_PORT ✓
+
+**Acceptance Criteria: 9/9 PASSED**
+- [✓] Elasticsearch service added to docker-compose.yml
+- [✓] Redis service added to docker-compose.yml (already present, verified)
+- [✓] Environment variables configured correctly
+- [✓] Health checks defined for both services
+- [✓] Volumes configured for data persistence
+- [✓] Services start successfully
+- [✓] Elasticsearch health check returns "green" or "yellow" (returned "green")
+- [✓] Redis responds to PING command (returned "PONG")
+- [✓] Services stop cleanly
+
+**✅ HIPAA Compliance: NOT APPLICABLE**
+- Infrastructure task only (no PHI handling)
+- Authentication not required at this stage (service configuration)
+- No data access or processing in this task
+- Security handled by backend API layer (Task 1.10+)
+
+**✅ Configuration Decisions: DOCUMENTED**
+- Memory configuration: 1GB heap (development) vs 2GB (production target)
+  - Rationale: Docker environment resource constraints, prevents OOM kills
+- Removed bootstrap.memory_lock setting
+  - Rationale: Incompatible with containerized environments, caused exit code 143
+- Single-node cluster
+  - Rationale: Workstation deployment model per project constitution
+- X-Pack security disabled
+  - Rationale: Authentication/authorization handled by FastAPI backend
+- Auto-index creation disabled
+  - Rationale: Explicit control over index schema (Task 1.2)
+
+**✅ PRD Drift: NONE DETECTED**
+- All task requirements met exactly as specified
+- No breaking changes to existing services
+- No deviations from technical plan
+
+**Next Task PRD Reference**: Task 1.2 - `.specify/tasks/sprint-3-full-text-search-tasks.md:100-161`
+
+---
 
 **Phase 5.5: Zoom, Pan, and Temporal Analysis** - COMPLETE (Previously Implemented, Discovered 2025-11-19)
 

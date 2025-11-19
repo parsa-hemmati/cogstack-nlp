@@ -143,15 +143,89 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - **Dependencies**: WeasyPrint 62.3, fhir.resources 7.1.0, Jinja2 3.1.4
   - **Test Coverage**: 69 tests total (29 service unit + 13 API integration + 27 frontend unit)
 
+- 🚧 **Sprint 3 (Full-Text Search Enhancement)**: IN PROGRESS - Phase 1 (1/6 phases, ~2% complete)
+  - ✅ Technical Plan: `.specify/plans/sprint-3-full-text-search-plan.md` (v1.0.0, 120 hours)
+  - ✅ Task Breakdown: `.specify/tasks/sprint-3-full-text-search-tasks.md` (v1.0.0, 65 tasks)
+  - 🚧 **Phase 1 (Core Search Infrastructure)**: IN PROGRESS - 1/10 tasks (10%)
+    - ✅ Task 1.1: Add Elasticsearch to Docker Compose (COMPLETE - 2 hours)
+    - ⏳ Task 1.2: Create Elasticsearch Index Mapping (pending)
+    - ⏳ Task 1.3: Create Elasticsearch Client Module (pending)
+    - ⏳ Task 1.4: Add Database Migration for saved_searches (pending)
+    - ⏳ Task 1.5: Add Database Migration for search_analytics (pending)
+    - ⏳ Task 1.6: Create SearchIndexer Service (pending)
+    - ⏳ Task 1.7: Create IndexingWorker for Background Processing (pending)
+    - ⏳ Task 1.8: Create Document Indexing API Endpoint (pending)
+    - ⏳ Task 1.9: Create SearchService with Basic Search (pending)
+    - ⏳ Task 1.10: Create Basic Search API Endpoint (pending)
+  - ⏳ Phase 2 (Advanced Query Parsing): Not started
+  - ⏳ Phase 3 (Frontend Search UI): Not started
+  - ⏳ Phase 4 (Saved Searches & Export): Not started
+  - ⏳ Phase 5 (Analytics & Admin Dashboard): Not started
+  - ⏳ Phase 6 (Testing & Hardening): Not started
+
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Phase 5.5 and 5.6 documentation update - Sprint 2 COMPLETE
-**Sprint**: Sprint 2 - Timeline View (ALL 6 Phases COMPLETE - 100%)
-**Current Status**: Sprint 2 COMPLETE ✅ - All timeline features implemented and tested
-**Next Milestone**: Sprint 3 or next feature set (check .specify/sprints/ for available tasks)
+**Latest Commit**: Sprint 3 Phase 1, Task 1.1 - Add Elasticsearch to Docker Compose
+**Sprint**: Sprint 3 - Full-Text Search Enhancement (Phase 1 in progress)
+**Current Status**: Sprint 2 COMPLETE ✅, Sprint 3 Phase 1 started (Task 1.1 COMPLETE)
+**Next Task**: Task 1.2 - Create Elasticsearch Index Mapping (3 hours)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Sprint 3 Phase 1, Task 1.1: Elasticsearch Infrastructure Setup - COMPLETE
+
+**Commits**: Task 1.1 - Add Elasticsearch 8.11 to Docker Compose
+
+**Added**:
+- Elasticsearch 8.11.0 service to docker-compose.yml (single-node cluster)
+- es_data Docker volume for persistent search index storage
+- ELASTICSEARCH_URL and ELASTICSEARCH_PORT environment variables to .env.template
+- Health check for Elasticsearch cluster (60s start period, 30s interval)
+
+**Changed**:
+- Redis service purpose documentation (added search result caching use case)
+- Elasticsearch memory configuration (1GB heap for development, optimized for Docker environment)
+- Removed bootstrap.memory_lock to prevent Docker crashes (incompatible with containerized environments)
+
+**Removed**:
+- None
+
+**Why**:
+- Sprint 3 Full-Text Search Enhancement requires Elasticsearch as core search engine
+- BM25 relevance ranking, faceted search, and highlighting need dedicated search infrastructure
+- Elasticsearch provides clinical text analysis with custom analyzers and synonym mapping
+- Foundation for 65 Sprint 3 tasks (120 hours total implementation)
+
+**Impact**:
+- ✅ Elasticsearch 8.11.0 running successfully in Docker (cluster status: green)
+- ✅ Redis confirmed operational (PONG response)
+- ✅ Services start/stop cleanly via docker-compose
+- ✅ Volume persistence configured (es_data mapped to clinical_care_es_data)
+- ⚠️ Memory optimized for development (1GB heap vs 2GB production target)
+- 🎯 **Task 1.1 COMPLETE**: Infrastructure ready for index mapping creation (Task 1.2)
+
+**Migration Notes**:
+- Start Elasticsearch: `docker-compose up -d elasticsearch`
+- Check cluster health: `curl http://localhost:9200/_cluster/health`
+- Expected response: `{"status":"green",...}`
+- Production deployment: Increase ES_JAVA_OPTS from `-Xms1g -Xmx1g` to `-Xms2g -Xmx2g`
+
+**Technical Decisions**:
+- Single-node discovery (discovery.type=single-node) suitable for workstation deployment
+- X-Pack security disabled (authentication handled by FastAPI backend)
+- Auto-index creation disabled (action.auto_create_index=false) for explicit control
+- 2GB memory limit with 1GB reservation (Docker resource constraints)
+
+**Design Pattern**:
+- Infrastructure-as-Code via Docker Compose
+- Health checks with graduated retry policy (5 retries, 60s start period)
+- Separate data volume for backup and migration strategies
+- Environment variable configuration for multi-environment support
+
+**Next Steps**: Task 1.2 - Create Elasticsearch Index Mapping (documents index with clinical_analyzer)
+
+---
 
 #### [2025-11-19] - Phase 5.5: Zoom, Pan, and Temporal Analysis - COMPLETE (Discovery)
 
