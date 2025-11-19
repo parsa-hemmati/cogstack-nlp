@@ -2,10 +2,44 @@
   <v-container fluid class="timeline-view">
     <v-row>
       <v-col cols="12">
-        <!-- Toolbar with title and filter button -->
+        <!-- Toolbar with title, zoom controls, and filter button -->
         <div class="d-flex align-center mb-4">
           <h1 class="flex-grow-1">Patient Timeline</h1>
 
+          <!-- Zoom controls -->
+          <div class="d-flex align-center mr-4">
+            <v-btn
+              icon
+              size="small"
+              @click="zoomOut"
+              title="Zoom out (-)"
+            >
+              <v-icon>mdi-magnify-minus</v-icon>
+            </v-btn>
+
+            <span class="zoom-level mx-2">{{ currentZoomLevel }}</span>
+
+            <v-btn
+              icon
+              size="small"
+              @click="zoomIn"
+              title="Zoom in (+)"
+            >
+              <v-icon>mdi-magnify-plus</v-icon>
+            </v-btn>
+
+            <v-btn
+              icon
+              size="small"
+              @click="resetZoom"
+              class="ml-1"
+              title="Reset zoom (0)"
+            >
+              <v-icon>mdi-magnify-remove-outline</v-icon>
+            </v-btn>
+          </div>
+
+          <!-- Filter button -->
           <v-btn
             icon
             color="primary"
@@ -43,28 +77,35 @@
         </v-alert>
 
         <div v-if="timeline && !isLoading" class="timeline-container">
-          <svg :width="svgWidth" :height="svgHeight" class="timeline-svg">
-            <TimelineAxis
-              :date-range="dateRange"
-              :width="svgWidth"
-              :height="axisHeight"
-            />
-            <g :transform="`translate(0, ${axisHeight})`">
-              <TimelineDocuments
-                :documents="timeline.documents"
+          <svg ref="timelineSvg" :width="svgWidth" :height="svgHeight" class="timeline-svg">
+            <!-- Zoomable/pannable group wrapping all timeline content -->
+            <g
+              class="zoom-group"
+              :transform="`translate(${zoomState.translateX}, ${zoomState.translateY}) scale(${zoomState.scale})`"
+            >
+              <TimelineAxis
                 :date-range="dateRange"
                 :width="svgWidth"
-                :document-y="documentY"
-                @document-click="handleDocumentClick"
-                @document-hover="handleDocumentHover"
+                :height="axisHeight"
+                :zoom-scale="zoomState.scale"
               />
-              <TimelineConcepts
-                v-if="timeline.concepts"
-                :concepts="timeline.concepts"
-                :date-range="dateRange"
-                :width="svgWidth"
-                @concept-click="handleConceptClick"
-              />
+              <g :transform="`translate(0, ${axisHeight})`">
+                <TimelineDocuments
+                  :documents="timeline.documents"
+                  :date-range="dateRange"
+                  :width="svgWidth"
+                  :document-y="documentY"
+                  @document-click="handleDocumentClick"
+                  @document-hover="handleDocumentHover"
+                />
+                <TimelineConcepts
+                  v-if="timeline.concepts"
+                  :concepts="timeline.concepts"
+                  :date-range="dateRange"
+                  :width="svgWidth"
+                  @concept-click="handleConceptClick"
+                />
+              </g>
             </g>
           </svg>
 
@@ -118,10 +159,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTimeline } from '@/composables/useTimeline'
 import { useTimelineFilters } from '@/composables/useTimelineFilters'
+import { useTimelineZoom } from '@/composables/useTimelineZoom'
 import TimelineAxis from '@/components/timeline/TimelineAxis.vue'
 import TimelineDocuments from '@/components/timeline/TimelineDocuments.vue'
 import TimelineConcepts from '@/components/TimelineConcepts.vue'
@@ -192,11 +234,25 @@ const {
   setDocumentTypeFilter
 } = useTimelineFilters(patientIdRef)
 
+// Zoom composable (for zoom/pan state management)
+const {
+  zoomState,
+  initZoom: initZoomBehavior,
+  zoomIn: zoomInAction,
+  zoomOut: zoomOutAction,
+  resetZoom: resetZoomAction,
+  zoomPercentage,
+  destroy: destroyZoom
+} = useTimelineZoom()
+
 // SVG dimensions
 const svgWidth = 1200
 const svgHeight = 600
 const axisHeight = 100
 const documentY = 50
+
+// SVG element ref (for zoom behavior initialization)
+const timelineSvg = ref<SVGSVGElement | null>(null)
 
 // Selected document (for detail view)
 const selectedDocument = ref<TimelineDocument | null>(null)
@@ -414,12 +470,95 @@ const handleViewDocument = (documentId: string) => {
 }
 
 /**
- * Fetch timeline data on mount.
+ * Current zoom level as percentage string.
+ */
+const currentZoomLevel = computed(() => zoomPercentage())
+
+/**
+ * Zoom in button handler.
+ */
+function zoomIn() {
+  zoomInAction()
+}
+
+/**
+ * Zoom out button handler.
+ */
+function zoomOut() {
+  zoomOutAction()
+}
+
+/**
+ * Reset zoom button handler.
+ */
+function resetZoom() {
+  resetZoomAction()
+}
+
+/**
+ * Keyboard event handler for zoom shortcuts.
+ * + or = for zoom in
+ * - or _ for zoom out
+ * 0 for reset zoom
+ */
+function handleKeydown(event: KeyboardEvent) {
+  // Check if user is typing in an input field
+  const target = event.target as HTMLElement
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+    return
+  }
+
+  if (event.key === '+' || event.key === '=') {
+    event.preventDefault()
+    zoomIn()
+  } else if (event.key === '-' || event.key === '_') {
+    event.preventDefault()
+    zoomOut()
+  } else if (event.key === '0') {
+    event.preventDefault()
+    resetZoom()
+  }
+}
+
+/**
+ * Initialize zoom behavior when SVG element is available.
+ */
+async function initializeZoom() {
+  await nextTick()
+  if (timelineSvg.value) {
+    initZoomBehavior(timelineSvg.value, svgWidth, svgHeight)
+  }
+}
+
+/**
+ * Fetch timeline data on mount and initialize zoom.
  */
 onMounted(async () => {
   if (patientId.value) {
     await fetchTimeline(patientId.value)
+    // Initialize zoom after timeline is loaded
+    await initializeZoom()
   }
+
+  // Add keyboard event listener for zoom shortcuts
+  window.addEventListener('keydown', handleKeydown)
+})
+
+/**
+ * Watch for timeline changes and re-initialize zoom.
+ */
+watch(timeline, async (newTimeline) => {
+  if (newTimeline) {
+    await initializeZoom()
+  }
+})
+
+/**
+ * Cleanup on component unmount.
+ */
+onBeforeUnmount(() => {
+  destroyZoom()
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -437,6 +576,19 @@ onMounted(async () => {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   background: #fafafa;
+  cursor: grab;
+}
+
+.timeline-svg:active {
+  cursor: grabbing;
+}
+
+.zoom-level {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  min-width: 50px;
+  text-align: center;
 }
 
 .document-tooltip {

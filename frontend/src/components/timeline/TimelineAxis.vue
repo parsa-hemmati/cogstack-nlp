@@ -26,11 +26,13 @@ interface Props {
   dateRange: { start: Date; end: Date }
   width: number
   height: number
+  zoomScale?: number // Zoom scale for adjusting tick density
 }
 
 const props = withDefaults(defineProps<Props>(), {
   width: 800,
-  height: 60
+  height: 60,
+  zoomScale: 1
 })
 
 const axisSvg = ref<SVGSVGElement | null>(null)
@@ -41,6 +43,7 @@ const axisGroup = ref<SVGGElement | null>(null)
  *
  * Creates a time scale from dateRange and renders axis with month/year labels.
  * Updates existing axis if already rendered.
+ * Adjusts tick density based on zoom scale (more ticks when zoomed in).
  */
 const renderAxis = () => {
   if (!axisGroup.value) return
@@ -50,9 +53,16 @@ const renderAxis = () => {
     .domain([props.dateRange.start, props.dateRange.end])
     .range([50, props.width - 50]) // 50px padding on each side
 
+  // Adjust tick count based on zoom scale
+  // Base tick count is 10
+  // When zoomed in (scale > 1), increase ticks proportionally
+  // When zoomed out (scale < 1), decrease ticks proportionally
+  const baseTickCount = 10
+  const adjustedTickCount = Math.max(5, Math.min(30, Math.round(baseTickCount * props.zoomScale)))
+
   // Create axis with month/year format
   const xAxis = d3.axisBottom(xScale)
-    .ticks(10)
+    .ticks(adjustedTickCount)
     .tickFormat(d3.timeFormat('%b %Y') as any)
 
   // Clear previous axis and render new one
@@ -71,6 +81,9 @@ watch(() => props.dateRange, renderAxis, { deep: true })
 
 // Re-render axis when width changes
 watch(() => props.width, renderAxis)
+
+// Re-render axis when zoom scale changes (adjust tick density)
+watch(() => props.zoomScale, renderAxis)
 </script>
 
 <style scoped>

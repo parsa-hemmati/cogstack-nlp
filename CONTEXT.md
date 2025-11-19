@@ -129,9 +129,55 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.5: Task 5.5.3 - Integrate Zoom/Pan into TimelineView
+
+**Commits**: (this commit) - Integrate zoom/pan controls into TimelineView component
+
+**Task 5.5.3 Completed**:
+- ✅ Modified `frontend/src/views/TimelineView.vue` (~150 lines added)
+  - Added zoom control buttons to toolbar (zoom in, zoom out, reset, current level display)
+  - Added SVG ref (timelineSvg) for D3 zoom behavior attachment
+  - Wrapped timeline content in zoomable <g> transform group
+  - Integrated useTimelineZoom composable
+  - Added keyboard shortcuts (+ for zoom in, - for zoom out, 0 for reset)
+  - Initialized zoom behavior on mount and timeline load
+  - Added cleanup on unmount (destroy zoom, remove event listeners)
+  - Added cursor styles (grab/grabbing) for better UX
+- ✅ Modified `frontend/src/components/timeline/TimelineAxis.vue` (~20 lines added)
+  - Added zoomScale prop to adjust tick density based on zoom level
+  - Updated renderAxis to calculate adjusted tick count (5-30 ticks based on scale)
+  - Added watch for zoomScale changes to re-render axis
+  - Base tick count: 10, scales proportionally with zoom (more ticks when zoomed in)
+
+**Why**:
+- Implements Task 5.5.3 (2.5 hours)
+- Enables users to zoom in/out and pan across long patient histories
+- Provides intuitive UI controls (buttons + keyboard shortcuts + mouse interactions)
+- Dynamically adjusts axis detail based on zoom level
+- Smooth 300ms transitions for better UX
+
+**Impact**:
+- ✅ Task 5.5.3 complete
+- ✅ Zoom/pan fully functional in timeline view
+- ✅ Keyboard shortcuts working (+ - 0)
+- ✅ Mouse wheel zoom and drag pan enabled (via D3 zoom behavior)
+- ✅ Current zoom level displayed in toolbar (e.g., "100%", "150%")
+- ✅ Axis tick density adjusts with zoom level
+- 🎯 **Next**: Task 5.5.4 (Differentiate first vs recurring mentions)
+
+**Technical Notes**:
+- Transform group applies scale and translate to all timeline content
+- D3 zoom behavior handles mouse wheel and drag automatically
+- Keyboard event listener filters out inputs/textareas to avoid conflicts
+- initializeZoom called after timeline load and on timeline changes (watch)
+- Cursor: grab when hovering SVG, grabbing when dragging
+- Zoom state reactive - updates trigger transform re-render
+
+---
+
 #### [2025-11-19] - Phase 5.5: Task 5.5.2 - useTimelineZoom Composable
 
-**Commits**: (this commit) - Create useTimelineZoom composable for zoom/pan state management
+**Commits**: (previous commit) - Create useTimelineZoom composable for zoom/pan state management
 
 **Task 5.5.2 Completed**:
 - ✅ Created `frontend/src/composables/useTimelineZoom.ts` (~230 lines)
