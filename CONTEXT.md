@@ -83,31 +83,93 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 4.6: Search History (COMPLETE - Redis cache with 7-day retention)
   - ✅ Task 4.7: Integration Tests (COMPLETE - 43 tests created during TDD implementation)
   - ✅ Task 4.8: Documentation & Deployment (COMPLETE - API docs in DEVELOPMENT.md)
-- 🔄 **Phase 5 (Timeline View)**: IN PROGRESS - Phase 5.1 (Backend Timeline Data API) started (5/7 tasks)
+- ✅ **Phase 5.1 (Backend Timeline Data API)**: COMPLETE - 7/7 tasks (100%)
   - ✅ Specification: `.specify/specifications/sprint-2-timeline-view.md` (v1.0.0)
   - ✅ Technical Plan: `.specify/plans/timeline-view-plan.md` (v1.0.0)
   - ✅ Task Breakdown: `.specify/tasks/timeline-view-tasks.md` (v1.0.0, 60 tasks)
-  - 🔄 Implementation: Phase 5.1 started (6/7 tasks complete, 85.7%)
+  - ✅ Implementation: Phase 5.1 COMPLETE (7/7 tasks, 100%)
     - ✅ Task 5.1.1: Database schema - timeline_filters table (migration 008)
     - ✅ Task 5.1.2: Database schema - timeline_exports table (migration 009)
     - ✅ Task 5.1.3: Elasticsearch - clinical_concepts index (mapping + script)
     - ✅ Task 5.1.4: Pydantic models - timeline schemas (10 models defined)
     - ✅ Task 5.1.5: Repository - ElasticsearchTimelineRepository (2 methods, 29 tests)
     - ✅ Task 5.1.6: Service - TimelineService (orchestrates PostgreSQL + Elasticsearch, 14 tests)
-    - ⏸️ Task 5.1.7: API endpoint - GET /timeline/{patient_id} (next)
+    - ✅ Task 5.1.7: API endpoint - GET /api/v1/timeline/{patient_id} (auth + audit logging)
+- 🔄 **Phase 5 (Timeline View)**: IN PROGRESS - Ready for Phase 5.2 (Frontend)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: (this commit) - Phase 5.1: Task 5.1.6 complete (TimelineService)
-**Sprint**: Sprint 2 - Timeline View (Phase 5) - Implementation Phase
-**Next Milestone**: Complete Phase 5.1 (Backend Timeline Data API) - 1/7 tasks remaining
+**Latest Commit**: (this commit) - Phase 5.1 COMPLETE - Timeline API endpoint
+**Sprint**: Sprint 2 - Timeline View (Phase 5) - Backend Complete
+**Next Milestone**: Phase 5.2 (Frontend Timeline Component) - 12/60 tasks remaining
 
 ---
 
 ### Recent Changes
 
+#### [2025-11-19] - 🎉 Phase 5.1 COMPLETE: Backend Timeline Data API
+
+**Commits**: (this commit) - Task 5.1.7 API endpoint, 3317bd86 (TimelineService), 3fdbcefb (Repository), 5124053f (Schemas), b1664517 (schema fix), 90e3ed8b, b41099eb (migrations)
+
+**Phase 5.1 Summary** (7/7 tasks, 100% complete):
+1. ✅ Database schema: timeline_filters, timeline_exports tables (migrations 008, 009)
+2. ✅ Elasticsearch: clinical_concepts index with mapping + creation script
+3. ✅ API schemas: 10 Pydantic models (MetaAnnotations, ConceptMention, TimelineConcept, etc.)
+4. ✅ Repository: ElasticsearchTimelineRepository (2 methods, 29 tests: 16 unit + 13 integration)
+5. ✅ Service: TimelineService (orchestrates PostgreSQL + Elasticsearch, 14 tests)
+6. ✅ API endpoint: GET /api/v1/timeline/{patient_id} (auth + audit logging)
+7. ✅ Router registration: Endpoint registered in main.py
+
+**Task 5.1.7: Timeline API Endpoint** (this commit):
+- Added API endpoint: `backend/app/api/v1/endpoints/timeline.py` (250 lines)
+  - **GET /api/v1/timeline/{patient_id}**: Retrieve patient timeline
+    - Query parameters: concepts, date_start, date_end, meta_negation, meta_experiencer, meta_temporality, meta_certainty, document_types
+    - Default meta-annotation filters (safe for clinical use):
+      - Negation="Affirmed" (excludes denials)
+      - Experiencer="Patient" (excludes family history)
+      - Temporality="Current,Recent" (excludes historical)
+    - Authentication: require_role("clinician", "researcher", "admin")
+    - Audit logging: Logs every access with user, patient, filters, IP, user agent
+    - Error handling: HTTP 500 with user-friendly message
+  - **_parse_timeline_filters()**: Helper to parse query params into TimelineFilters
+    - Validates date ranges (both start and end required)
+    - Parses comma-separated lists (concepts, temporality, document_types)
+    - Builds meta_annotations dict
+- Updated main.py: Added timeline router registration
+  - Import: `from app.api.v1.endpoints import ... timeline`
+  - Router: `app.include_router(timeline.router, prefix="/api/v1", tags=["timeline"])`
+- Comprehensive API documentation in endpoint docstring
+  - Default filters explained
+  - Example requests (basic, filtered, historical)
+  - Security notes (HIPAA audit logging)
+
+**Why**:
+- Completes Phase 5.1 (Backend Timeline Data API)
+- Provides REST API for frontend timeline component (Phase 5.2)
+- HIPAA compliant with authentication, RBAC, audit logging
+- Safe defaults for meta-annotation filtering (95% precision)
+- Comprehensive error handling and logging
+
+**Impact**:
+- ✅ **Phase 5.1 COMPLETE**: Full backend stack for timeline view
+- ✅ Timeline API ready for frontend integration
+- ✅ All 7 tasks complete: DB schema → ES index → Schemas → Repository → Service → API → Registration
+- ✅ 43 total tests (29 repository + 14 service)
+- ✅ HIPAA compliant with audit logging for every access
+- ✅ Meta-annotation filtering ensures clinical accuracy (95% vs 60%)
+- 🎯 **Ready for Phase 5.2**: Frontend timeline component (D3.js visualization)
+
+**Technical Debt** (carried from Task 5.1.6):
+- Document model lacks clinical metadata (patient_id, document_date, document_type, title, author)
+- Current workaround uses extracted_entities linkage
+- Future: Migration to add proper document metadata
+
+**Next Phase**: Phase 5.2 - Frontend Timeline Component (12 tasks, D3.js + Vue 3)
+
+---
+
 #### [2025-11-19] - Phase 5.1: Task 5.1.6 TimelineService for Timeline Aggregation
 
-**Commits**: (this commit) - Implement TimelineService with comprehensive tests, b1664517 (schema fix)
+**Commits**: 3317bd86 - Implement TimelineService with comprehensive tests, b1664517 (schema fix)
 
 **Added**:
 - Timeline service: `backend/app/services/timeline_service.py` (320 lines)
