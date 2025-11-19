@@ -95,21 +95,109 @@ The current development focus is **extending** this ecosystem with **clinical ca
     - ✅ Task 5.1.5: Repository - ElasticsearchTimelineRepository (2 methods, 29 tests)
     - ✅ Task 5.1.6: Service - TimelineService (orchestrates PostgreSQL + Elasticsearch, 14 tests)
     - ✅ Task 5.1.7: API endpoint - GET /api/v1/timeline/{patient_id} (auth + audit logging)
-- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 5/12 tasks (42%)
+- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 6/12 tasks (50%)
   - ✅ Task 5.2.1: Install D3.js dependencies (d3@7.9.0, @types/d3@7.4.3)
   - ✅ Task 5.2.2: Timeline API client (getPatientTimeline method, 10 unit tests)
   - ✅ Task 5.2.3: useTimeline composable (fetchTimeline, refreshTimeline, 13 unit tests)
   - ✅ Task 5.2.4: TimelineAxis component (D3.js time axis, 9 unit tests)
   - ✅ Task 5.2.5: TimelineDocuments component (document markers, 15 unit tests)
+  - ✅ Task 5.2.6: TimelineView component (main view, router integration, 15 unit tests)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Task 5.2.5 - TimelineDocuments component with document markers
-**Sprint**: Sprint 2 - Timeline View (Phase 5.2 Frontend - 5/12 tasks complete)
-**Next Milestone**: Phase 5.2 (Frontend Timeline Component) - 7/12 tasks remaining
+**Latest Commit**: Task 5.2.6 - TimelineView main component with router integration
+**Sprint**: Sprint 2 - Timeline View (Phase 5.2 Frontend - 6/12 tasks complete)
+**Next Milestone**: Phase 5.2 (Frontend Timeline Component) - 6/12 tasks remaining
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.2: Task 5.2.6 TimelineView Component
+
+**Commits**: (this commit) - Create TimelineView main component with router integration
+
+**Added**:
+- TimelineView component: `frontend/src/views/TimelineView.vue` (~180 lines)
+  - **Main Timeline View**: Integrates TimelineAxis and TimelineDocuments
+    - SVG canvas (1200x600px) with axis and document markers
+    - Fetches timeline data on mount using useTimeline composable
+    - Patient ID from route params (/timeline/:patientId)
+    - Loading state with v-progress-linear
+    - Error state with v-alert (closable)
+    - Empty state with info alert
+  - **Document Interaction**:
+    - Click: Shows document details in v-card below timeline
+    - Hover: Shows tooltip with document title and date
+    - Selected document: Displays title, type, date, author, concept count
+    - Tooltip: Fixed position following mouse cursor
+  - **Date Handling**:
+    - Converts API date strings to Date objects for components
+    - formatDate helper for user-friendly display
+    - Computed dateRange property (reactive)
+  - **Layout**: Vuetify v-container/v-row/v-col grid system
+  - **Styling**: Timeline container, SVG styling, tooltip styling
+- Router update: `frontend/src/router/index.ts` (+6 lines)
+  - Added /timeline/:patientId route
+  - name: 'timeline'
+  - meta: { requiresAuth: true }
+  - Lazy-loaded component (import on demand)
+- Unit tests: `frontend/tests/unit/views/TimelineView.spec.ts` (15 tests, ~550 lines)
+  - Component mounting and rendering
+  - Timeline data fetch on mount
+  - Loading state display
+  - Error state display
+  - Clear error on alert close
+  - Timeline SVG rendering (width, height)
+  - TimelineAxis component rendering
+  - TimelineDocuments component rendering
+  - Empty timeline state
+  - Date range conversion (string to Date)
+  - Document click handler (show details card)
+  - Close document details
+  - Document hover handler (show tooltip with position)
+  - Document hover leave (hide tooltip)
+  - formatDate function
+- Vuetify test setup: `frontend/tests/setup.ts` (~60 lines)
+  - Vuetify instance creation for tests
+  - Global plugin configuration
+  - window.matchMedia mock
+  - IntersectionObserver mock
+  - ResizeObserver mock
+- Vitest config update: `frontend/vitest.config.ts`
+  - Added vite-plugin-vuetify for component auto-import
+  - Added setupFiles: ['./tests/setup.ts']
+  - Configured Vuetify for test environment
+
+**Why**:
+- Implements Task 5.2.6 from Phase 5.2 task breakdown
+- Creates main entry point for timeline visualization
+- Integrates all timeline components (axis + documents)
+- Provides user interaction (click for details, hover for tooltip)
+- Establishes Vue Router integration pattern
+- Demonstrates composable usage (useTimeline)
+- Completes 50% of Phase 5.2 (6/12 tasks)
+
+**Impact**:
+- ✅ Main timeline view ready for user access
+- ✅ Router integration complete (/timeline/:patientId)
+- ✅ Document interaction implemented (click, hover)
+- ✅ Vuetify components working in tests
+- ✅ 15 unit tests passing (100% view coverage)
+- ✅ 62 total tests across 6 components
+- ✅ Phase 5.2 now 50% complete
+- 🎯 **Next**: Task 5.2.7 - Continue with remaining Phase 5.2 tasks
+
+**Technical Notes**:
+- Uses useTimeline composable for state management
+- Route params accessed via useRoute() composable
+- Date conversion: API strings → Date objects → component props
+- Tooltip positioning: clientX/clientY + 10px offset
+- Vuetify v3 with Composition API
+- Lazy route loading for code splitting
+- Test setup uses createMemoryHistory for router
+- Mocked child components in tests (TimelineAxis, TimelineDocuments)
+
+---
 
 #### [2025-11-19] - Phase 5.2: Task 5.2.5 TimelineDocuments Component
 

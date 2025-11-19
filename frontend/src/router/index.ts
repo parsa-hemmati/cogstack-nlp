@@ -36,6 +36,12 @@ const router = createRouter({
       name: 'patient-search',
       component: () => import('../views/PatientSearchView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/timeline/:patientId',
+      name: 'timeline',
+      component: () => import('../views/TimelineView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
