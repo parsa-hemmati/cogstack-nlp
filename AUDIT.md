@@ -18,67 +18,86 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Commit Status: ✅ CLEAR - Phase 5.3 Task 5.3.3 Complete
+### Commit Status: ✅ CLEAR - Phase 5.3 Task 5.3.4 Complete
 
 **Phase 5.3: Concept Extraction & Display - IN PROGRESS** (2025-11-19)
 
-**This Commit** (Task 5.3.3: TimelineConcepts Component):
-- ✅ Frontend component: frontend/src/components/TimelineConcepts.vue (~80 lines)
-- ✅ Unit tests: frontend/tests/unit/components/TimelineConcepts.spec.ts (~290 lines, 12 tests)
+**This Commit** (Task 5.3.4: ConceptPopover Component):
+- ✅ Frontend component: frontend/src/components/ConceptPopover.vue (~90 lines)
+- ✅ Unit tests: frontend/tests/unit/components/ConceptPopover.spec.ts (~400 lines, 23 tests)
 - ✅ Features:
-  - SVG circle markers for concept mentions
-  - Color-coded by concept type (condition=red, medication=blue, procedure=green, symptom=yellow, lab_result=purple)
-  - Size distinction: First mention (r=8), recurring mentions (r=4)
-  - D3.js time scale for x-axis positioning
-  - Y-axis positioning by concept type (300-500 range)
-  - Click events emit concept-click with full mention metadata
-  - Hover effects (stroke-width increases)
-- ✅ CONTEXT.md updated: Phase 5.3 IN PROGRESS (3/8 tasks, 38%)
+  - Vuetify v-menu with absolute positioning at click coordinates
+  - Displays concept name, CUI, date, sentence, meta-annotations, confidence
+  - Color-coded meta-annotation chips (green=affirmed/current/patient, red=negated/historical/family, grey=other)
+  - Confidence score as percentage
+  - "View Document" button (emits view-document event)
+  - "Close" button (updates v-model)
+  - Two-way binding with v-model for visibility state
+- ✅ CONTEXT.md updated: Phase 5.3 IN PROGRESS (4/8 tasks, 50%)
 
 **Compliance Review**:
 - ✅ **Frontend Code Quality**: Clean implementation
   - TypeScript type safety: Props/emits properly typed
-  - Composition API: computed properties for reactivity
-  - Record<string, T> for type-safe mappings
-  - Default values for unknown concept types
-  - No hardcoded magic numbers (constants extracted)
-- ✅ **Test Coverage**: 12 comprehensive tests
-  - Marker rendering verification
-  - Color-coding by type
-  - Size distinction (first vs recurring)
-  - Event emission on click
-  - Positioning (x-axis by date, y-axis by type)
-  - Edge cases (empty concepts, unknown types)
-  - Metadata preservation in events
+  - Composition API: ref, watch for reactivity
+  - Two-way binding pattern (v-model)
+  - Graceful handling of missing/null data
+  - Date formatting using browser locale
+- ✅ **Test Coverage**: 23 comprehensive tests
+  - Popover rendering (visible/hidden states)
+  - Content display (name, CUI, date, sentence, meta-annotations, confidence)
+  - Color-coding verification (green/red/grey)
+  - Event emission (view-document, update:modelValue)
+  - Two-way binding (modelValue sync)
+  - Positioning (x, y coordinates)
+  - Edge cases (null concept, missing data, empty meta_annotations)
   - All tests passing
 - ✅ **No HIPAA Impact**: No PHI handling
-  - Component renders visualization only
+  - Component displays data from props (already filtered by backend)
   - No direct PHI access
   - No logging of patient data
-  - Data passed via props (already filtered by backend)
+  - Parent component controls data access
 - ✅ **No Security Impact**: Frontend component only
   - No API calls
   - No authentication/authorization
+  - Vuetify v-menu handles XSS (text escaping)
   - Emit events for parent handling
-  - No XSS risk (SVG attributes escaped by Vue)
-- ✅ **Accessibility**: Basic support
-  - SVG elements with proper attributes
-  - Hover effects for visual feedback
-  - Click events for keyboard navigation (parent responsibility)
-  - Color-coded with sufficient contrast (meets WCAG AA)
+- ✅ **Accessibility**: Good support
+  - Vuetify v-card provides semantic HTML
+  - Color-coded chips with text labels (not color-only)
+  - Buttons for keyboard navigation
+  - ARIA labels via Vuetify components
+  - Sufficient color contrast (WCAG AA)
+- ✅ **Meta-Annotation Best Practices**: Aligned
+  - Green chips for valid concepts (Affirmed, Current, Patient)
+  - Red chips for invalid concepts (Negated, Historical, Family)
+  - Follows medcat-meta-annotations skill guidance
+  - Visual representation matches filtering logic
 
 **Technical Notes**:
-- D3.js scaleTime() for date-to-pixel mapping
-- SVG <g> element groups all concept markers
-- Flattens nested mentions structure (allMentions computed)
-- is_first_mention flag determines marker size
-- Default color/position for unknown types (gray, y=400)
+- Vuetify v-menu with absolute positioning (position-x, position-y)
+- Two-way binding via v-model pattern (watch props, emit updates)
+- Color mapping follows medcat-meta-annotations best practices
+- Date formatting uses browser locale (toLocaleDateString)
+- Graceful handling of missing/null data (v-if guards)
+- Emits custom event for document navigation (future integration)
 
-**Action**: ✅ CLEAR - Ready to commit Task 5.3.3
+**Action**: ✅ CLEAR - Ready to commit Task 5.3.4
 
 ---
 
 ## Previous Commits
+
+### Phase 5.3 Task 5.3.3 - TimelineConcepts Component (2025-11-19)
+
+**Commit** (Task 5.3.3: TimelineConcepts Component):
+- ✅ Frontend component: frontend/src/components/TimelineConcepts.vue (~80 lines)
+- ✅ Unit tests: frontend/tests/unit/components/TimelineConcepts.spec.ts (~290 lines, 12 tests)
+- ✅ Features: SVG circle markers, color-coded by type, size distinction, D3.js positioning, click events
+- ✅ All tests passing
+
+**Compliance**: Clean code quality, 12 comprehensive tests, no HIPAA/security impact, basic accessibility, TypeScript type safety
+
+---
 
 ### Phase 5.3 Task 5.3.2 - Verify TimelineService Includes Concepts (2025-11-19)
 

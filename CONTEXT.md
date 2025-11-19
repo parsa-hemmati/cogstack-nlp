@@ -103,19 +103,100 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 5.2.5: TimelineDocuments component (document markers, 15 unit tests)
   - ✅ Task 5.2.6: TimelineView component (main view, router integration, 15 unit tests)
   - ✅ Task 5.2.7: Integration tests (full timeline rendering workflow, 7 tests)
-- 🔄 **Phase 5.3 (Concept Extraction & Display)**: IN PROGRESS - 3/8 tasks (38%)
+- 🔄 **Phase 5.3 (Concept Extraction & Display)**: IN PROGRESS - 4/8 tasks (50%)
   - ✅ Task 5.3.1: Populate clinical_concepts index script
   - ✅ Task 5.3.2: Verify TimelineService includes concepts (already implemented in Task 5.1.6)
   - ✅ Task 5.3.3: TimelineConcepts.vue component (concept markers rendering)
+  - ✅ Task 5.3.4: ConceptPopover.vue component (concept details on click)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Task 5.3.3 - Create TimelineConcepts component with unit tests
+**Latest Commit**: Task 5.3.4 - Create ConceptPopover component with unit tests
 **Sprint**: Sprint 2 - Timeline View (Phases 5.1-5.2 COMPLETE, Phase 5.3 IN PROGRESS)
-**Next Milestone**: Phase 5.3 (Concept Extraction & Display) - 5/8 tasks remaining
+**Next Milestone**: Phase 5.3 (Concept Extraction & Display) - 4/8 tasks remaining
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.3: Task 5.3.4 ConceptPopover Component
+
+**Commits**: (this commit) - Create ConceptPopover.vue for concept detail display
+
+**Added**:
+- Frontend component: `frontend/src/components/ConceptPopover.vue` (~90 lines)
+  - **Purpose**: Display detailed concept information in popover on marker click
+  - **Features**:
+    - Vuetify v-menu for absolute positioning at click coordinates
+    - Displays concept name, CUI, date, sentence, meta-annotations, confidence
+    - Color-coded meta-annotation chips (green=affirmed/current/patient, red=negated/historical/family, grey=other)
+    - Confidence score as percentage
+    - "View Document" button (emits view-document event)
+    - "Close" button (updates v-model)
+    - Two-way binding with v-model for visibility state
+  - **Props**:
+    - modelValue: boolean (visibility control)
+    - concept: any (concept mention with all metadata)
+    - position: { x: number; y: number } (absolute positioning)
+  - **Emits**:
+    - update:modelValue: [boolean] (v-model binding)
+    - view-document: [documentId] (on View Document click)
+  - **Computed/Methods**:
+    - getMetaColor(value): Maps meta-annotation values to chip colors
+    - formatDate(date): Formats ISO date to locale string
+    - viewDocument(): Emits view-document event with document_id
+- Unit tests: `frontend/tests/unit/components/ConceptPopover.spec.ts` (~400 lines)
+  - **Coverage**: 23 comprehensive test cases
+  - **Tests**:
+    1. Renders popover when modelValue is true
+    2. Does not render card when modelValue is false
+    3. Displays concept name and CUI in title
+    4. Displays formatted date in subtitle
+    5. Displays concept sentence
+    6. Displays meta-annotations with chips
+    7. Color-codes meta-annotation chips correctly (green)
+    8. Uses red color for negated/historical/family
+    9. Uses grey color for unknown annotation values
+    10. Displays confidence score as percentage
+    11. Rounds confidence score to nearest integer
+    12. Renders View Document and Close buttons
+    13. Emits view-document event when View Document clicked
+    14. Does not emit view-document if concept has no document_id
+    15. Emits update:modelValue event when Close clicked
+    16. Updates visible state when modelValue prop changes
+    17. Emits update:modelValue when visible changes
+    18. Positions menu at specified coordinates
+    19. Renders nothing when concept is null
+    20. Handles missing meta_annotations gracefully
+    21. Formats date correctly for different locales
+    22. Edge case: Empty meta_annotations object
+    23. Edge case: Missing document_id
+
+**Why**:
+- Implements Task 5.3.4 from Phase 5.3 task breakdown
+- Provides detailed concept information on user interaction
+- Enables exploration of concept context and metadata
+- Supports clinical decision-making with confidence scores
+- Aligns with "Transparency" principle (full NLP metadata visible)
+- Supports medcat-meta-annotations skill (visual representation of Negation, Temporality, Experiencer, Certainty)
+
+**Impact**:
+- ✅ Concept details accessible via interactive popover
+- ✅ Meta-annotation filtering guidance visible to users
+- ✅ Color-coded chips indicate concept validity (green=include, red=exclude)
+- ✅ Confidence scores support quality assessment
+- ✅ Document navigation support (view-document event)
+- ✅ 23 unit tests ensure reliability
+- 🎯 **Next**: Task 5.3.5 - Integration tests for concept rendering
+
+**Technical Notes**:
+- Vuetify v-menu with absolute positioning (position-x, position-y)
+- Two-way binding via v-model pattern (watch props, emit updates)
+- Color mapping follows medcat-meta-annotations best practices
+- Date formatting uses browser locale
+- Graceful handling of missing/null data
+- Emits custom event for document navigation (future integration)
+
+---
 
 #### [2025-11-19] - Phase 5.3: Task 5.3.3 TimelineConcepts Component
 
