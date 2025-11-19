@@ -119,6 +119,66 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.4: Tasks 5.4.1-5.4.2 Implementation
+
+**Commits**: (this commit) - Backend filter API verification + Frontend useTimelineFilters composable
+
+**Task 5.4.1 Status**: ✅ COMPLETE (Already implemented in Phase 5.1)
+- Backend filter API fully functional:
+  - GET /api/v1/timeline/{patient_id} accepts filter query params (concepts, date_start/end, meta_*, document_types)
+  - TimelineService passes filters to Elasticsearch repository
+  - ElasticsearchTimelineRepository builds filtered queries (concept_filter, date_range, meta_annotations)
+  - 5 integration tests passing (concept, date, negation, experiencer, temporality filters)
+- No additional work needed - discovered existing implementation
+
+**Task 5.4.2 Completed**:
+- Created `frontend/src/composables/useTimelineFilters.ts` (~330 lines)
+  - **Purpose**: Reactive filter state management with URL sync
+  - **Features**:
+    - Filter state (conceptCuis, dateFrom/To, metaAnnotations, documentTypes)
+    - Default meta-annotations (Affirmed, Patient, Current/Recent) - safe for clinical use
+    - Methods: setConceptFilter, addConcept, removeConcept, setDateRange, setMetaAnnotationFilter, setDocumentTypeFilter, clearFilters
+    - applyFilters() - Fetches timeline with filters via API
+    - URL sync - serializeFilters/deserializeFilters for shareable links
+    - Computed: hasActiveFilters, activeFilterCount (badge support)
+  - **Integration**: Watches patientId changes, auto-loads filters from URL on mount
+- Created unit tests: `frontend/tests/unit/composables/useTimelineFilters.spec.ts` (~280 lines, 18 tests)
+  - Test filter state updates (setConceptFilter, setDateRange, etc.)
+  - Test clearFilters resets to defaults
+  - Test applyFilters calls API with correct params
+  - Test error handling
+  - Test URL sync (filters → URL, URL → filters)
+  - Test shareable link workflow
+  - Test invalid query params handled gracefully
+  - Test activeFilterCount computation
+  - All 18 tests passing
+
+**Why**:
+- Implements Task 5.4.2 from Phase 5.4 task breakdown
+- Provides composable for filter state management (reusable across components)
+- Enables shareable filtered timelines via URL query params
+- Sets safe clinical defaults (excludes negated, family, historical)
+- Aligns with Vue 3 Composition API best practices
+
+**Impact**:
+- ✅ Backend filter API validated (Task 5.4.1 complete from Phase 5.1)
+- ✅ Frontend filter composable ready (Task 5.4.2 complete)
+- ✅ URL sync working (shareable links supported)
+- ✅ 18 unit tests passing (Task 5.4.2)
+- ✅ 5 integration tests passing (Task 5.4.1 backend)
+- 🎯 **Next**: Task 5.4.3 (ConceptFilterSidebar component) - 2.5 hours
+
+**Technical Notes**:
+- Default meta-annotations exclude risky concepts:
+  - Negation: "Affirmed" (excludes "patient denies chest pain")
+  - Experiencer: "Patient" (excludes family history)
+  - Temporality: ["Current", "Recent"] (excludes historical)
+- URL encoding: concepts=C0011849,C0020538&from=2023-01-01&to=2023-12-31&meta_negation=Affirmed
+- API integration via timelineApi.getPatientTimeline(patientId, filters)
+- Reactive filter updates trigger URL sync automatically
+
+---
+
 #### [2025-11-19] - Phase 5.4: Task Breakdown Creation
 
 **Commits**: (this commit) - Create detailed task breakdown for Phase 5.4 (Filtering & Search)
