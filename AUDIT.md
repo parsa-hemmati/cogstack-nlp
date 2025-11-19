@@ -18,12 +18,13 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Sprint Status: 🚧 IN PROGRESS - Sprint 3 Phase 1 (Task 1.1 COMPLETE)
+### Sprint Status: 🚧 IN PROGRESS - Sprint 3 Phase 1 (Tasks 1.1-1.2 COMPLETE, 20%)
 
 **Sprint 3: Full-Text Search Enhancement** - IN PROGRESS (Started 2025-11-19)
-- 🚧 Phase 1: Core Search Infrastructure (1/10 tasks, 10% complete)
+- 🚧 Phase 1: Core Search Infrastructure (2/10 tasks, 20% complete)
   - ✅ Task 1.1: Add Elasticsearch to Docker Compose - COMPLETE
-  - ⏳ Tasks 1.2-1.10: Pending
+  - ✅ Task 1.2: Create Elasticsearch Index Mapping - COMPLETE
+  - ⏳ Tasks 1.3-1.10: Pending
 
 **Sprint 2: Timeline View** - COMPLETE (2025-11-19)
 - ✅ Phase 5.1: Backend Timeline Data API
@@ -101,6 +102,113 @@ Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:37-96`
 - No deviations from technical plan
 
 **Next Task PRD Reference**: Task 1.2 - `.specify/tasks/sprint-3-full-text-search-tasks.md:100-161`
+
+---
+
+**Task 1.2: Create Elasticsearch Index Mapping** - COMPLETE (2025-11-19)
+
+**Task Summary**:
+- ✅ documents-mapping.json created with complete schema (150 lines)
+- ✅ Custom clinical_analyzer defined with 14 medical synonyms
+- ✅ create_search_index.py script created (73 lines)
+- ✅ elasticsearch[async]==8.11.0 added to requirements.txt
+- ✅ Index created successfully ('documents' index)
+- ✅ Analyzer tested and validated (synonym expansion working)
+- ✅ Script is idempotent (safe to run multiple times)
+
+**Compliance Review - Task 1.2**:
+
+**✅ PRD Alignment: 100% COMPLIANT**
+
+Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:101-161`:
+- ✅ documents-mapping.json created with complete schema
+- ✅ Index settings defined: shards=2, replicas=1, refresh_interval=30s
+- ✅ Custom clinical_analyzer defined with all components:
+  - standard tokenizer ✓
+  - lowercase filter ✓
+  - english_stop filter (stopwords: _english_) ✓
+  - english_stemmer filter (language: english) ✓
+  - clinical_synonyms filter (14 bidirectional mappings) ✓
+- ✅ Synonym filter with medical abbreviations: MI↔myocardial infarction, CAD↔coronary artery disease, DM↔diabetes mellitus, HTN↔hypertension, + 10 more ✓
+- ✅ All required fields defined (10 properties):
+  - document_id (keyword) ✓
+  - title (text with clinical_analyzer + title.raw keyword for sorting) ✓
+  - content (text with clinical_analyzer) ✓
+  - document_type (keyword) ✓
+  - author (keyword) ✓
+  - department (keyword) ✓
+  - date (date, format: strict_date_optional_time) ✓
+  - patient_id (keyword) ✓
+  - concepts (nested with cui/name/type properties) ✓
+  - indexed_at (date) ✓
+- ✅ Field types correct (text vs keyword vs date vs nested)
+- ✅ Nested concepts field for concept array (enables structured concept queries)
+- ✅ title.raw field added for exact sorting
+- ✅ create_search_index.py script created
+- ✅ Script reads mapping from JSON file
+- ✅ Script deletes existing index if exists (idempotent)
+- ✅ Script creates index with mapping
+- ✅ Script verifies index created
+- ✅ Script successfully creates index (verified: 'documents' index created)
+- ✅ Index mapping verified: curl http://localhost:9200/documents/_mapping shows all 10 fields
+- ✅ Script is idempotent: Run twice without errors, second run deletes & recreates
+
+**Acceptance Criteria: 9/9 PASSED**
+- [✓] documents-mapping.json created with complete schema
+- [✓] Custom clinical_analyzer defined with synonyms
+- [✓] All required fields defined (10 properties: document_id, title, content, document_type, author, department, date, patient_id, concepts, indexed_at)
+- [✓] Field types correct (text vs keyword vs date)
+- [✓] Nested concepts field for concept array
+- [✓] create_search_index.py script created
+- [✓] Script successfully creates index
+- [✓] Index mapping verified via curl
+- [✓] Script is idempotent (can run multiple times)
+
+**✅ Analyzer Validation: PASSED**
+
+Test: `curl -X POST "http://localhost:9200/documents/_analyze" -d '{"analyzer": "clinical_analyzer", "text": "Patient diagnosed with MI (myocardial infarction)"}'`
+
+Expected tokens: "patient", "diagnos" (stemmed), "mi", "myocardi" (synonym), "infarct" (stemmed)
+
+Actual tokens:
+- "patient" (position 0)
+- "diagnos" (position 1, stemmed from "diagnosed" ✓)
+- "mi" (position 3)
+- "myocardi" (position 3, SYNONYM type - synonym expansion from "MI" ✓)
+- "myocardi" (position 4, stemmed from "myocardial" ✓)
+- "infarct" (position 4, SYNONYM type ✓)
+- "mi" (position 4, SYNONYM type - reverse synonym ✓)
+- "infarct" (position 5, stemmed from "infarction" ✓)
+
+**Result**: Synonym expansion working correctly. Searching for "MI" will also match "myocardial infarction" and vice versa.
+
+**✅ HIPAA Compliance: NOT APPLICABLE**
+- Infrastructure task only (index schema definition)
+- No PHI handling in this task
+- Authentication/authorization handled by backend API (Task 1.10+)
+- Indexed data will be encrypted at rest by Elasticsearch volume encryption (future task)
+
+**✅ Configuration Decisions: DOCUMENTED**
+- Index shards: 2 (workstation deployment, supports concurrent queries)
+  - Rationale: Balances parallelism with resource usage for single-node cluster
+- Index replicas: 1 (fault tolerance)
+  - Rationale: Provides backup copy of data, supports failover
+- Refresh interval: 30s (balance search latency vs indexing performance)
+  - Rationale: Allows document batching for better throughput, acceptable delay for clinical search
+- Synonym mapping: Bidirectional (MI ↔ myocardial infarction)
+  - Rationale: Maximizes recall (finds documents regardless of abbreviation usage)
+- Nested concepts field
+  - Rationale: Enables structured concept queries (e.g., "find documents with medication concepts mentioning metformin")
+- date format: strict_date_optional_time
+  - Rationale: ISO 8601 compliant, supports both date-only and datetime formats
+
+**✅ PRD Drift: NONE DETECTED**
+- All task requirements met exactly as specified
+- Mapping schema matches technical plan 100%
+- No breaking changes or deviations
+- Script implementation follows technical plan pattern
+
+**Next Task PRD Reference**: Task 1.3 - `.specify/tasks/sprint-3-full-text-search-tasks.md:165-199`
 
 ---
 

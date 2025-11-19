@@ -146,9 +146,9 @@ The current development focus is **extending** this ecosystem with **clinical ca
 - 🚧 **Sprint 3 (Full-Text Search Enhancement)**: IN PROGRESS - Phase 1 (1/6 phases, ~2% complete)
   - ✅ Technical Plan: `.specify/plans/sprint-3-full-text-search-plan.md` (v1.0.0, 120 hours)
   - ✅ Task Breakdown: `.specify/tasks/sprint-3-full-text-search-tasks.md` (v1.0.0, 65 tasks)
-  - 🚧 **Phase 1 (Core Search Infrastructure)**: IN PROGRESS - 1/10 tasks (10%)
+  - 🚧 **Phase 1 (Core Search Infrastructure)**: IN PROGRESS - 2/10 tasks (20%)
     - ✅ Task 1.1: Add Elasticsearch to Docker Compose (COMPLETE - 2 hours)
-    - ⏳ Task 1.2: Create Elasticsearch Index Mapping (pending)
+    - ✅ Task 1.2: Create Elasticsearch Index Mapping (COMPLETE - 3 hours)
     - ⏳ Task 1.3: Create Elasticsearch Client Module (pending)
     - ⏳ Task 1.4: Add Database Migration for saved_searches (pending)
     - ⏳ Task 1.5: Add Database Migration for search_analytics (pending)
@@ -164,14 +164,83 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ⏳ Phase 6 (Testing & Hardening): Not started
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Sprint 3 Phase 1, Task 1.1 - Add Elasticsearch to Docker Compose
+**Latest Commit**: Sprint 3 Phase 1, Task 1.2 - Create Elasticsearch Index Mapping
 **Sprint**: Sprint 3 - Full-Text Search Enhancement (Phase 1 in progress)
-**Current Status**: Sprint 2 COMPLETE ✅, Sprint 3 Phase 1 started (Task 1.1 COMPLETE)
-**Next Task**: Task 1.2 - Create Elasticsearch Index Mapping (3 hours)
+**Current Status**: Sprint 2 COMPLETE ✅, Sprint 3 Phase 1 in progress (2/10 tasks, 20% complete)
+**Next Task**: Task 1.3 - Create Elasticsearch Client Module (2 hours)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Sprint 3 Phase 1, Task 1.2: Elasticsearch Index Mapping - COMPLETE
+
+**Commits**: Task 1.2 - Create Elasticsearch index mapping with clinical analyzer
+
+**Added**:
+- `backend/elasticsearch/documents-mapping.json` - Complete index schema (150 lines)
+  - 10 field properties: document_id, title, content, document_type, author, department, date, patient_id, concepts, indexed_at
+  - Custom clinical_analyzer with english stop words, stemmer, and clinical synonyms
+  - 14 medical synonym mappings (MI↔myocardial infarction, CAD↔coronary artery disease, etc.)
+  - Nested concepts field for MedCAT concept arrays (cui, name, type)
+  - title.raw keyword field for exact sorting
+- `backend/scripts/create_search_index.py` - Idempotent index creation script (73 lines)
+  - Connects to Elasticsearch (URL from env: ELASTICSEARCH_URL)
+  - Reads mapping from JSON file
+  - Deletes existing index if present (idempotent)
+  - Creates index with mapping
+  - Verifies creation with detailed output
+- `backend/requirements.txt` - Added elasticsearch[async]==8.11.0
+
+**Changed**:
+- None
+
+**Removed**:
+- None
+
+**Why**:
+- 'documents' index is core infrastructure for full-text search (Sprint 3)
+- clinical_analyzer provides domain-specific text processing (stemming "diagnosed" → "diagnos", synonym expansion "MI" → "myocardial infarction")
+- Synonym mapping improves recall (searching "MI" also finds "myocardial infarction" mentions)
+- Nested concepts field enables structured search on MedCAT-extracted clinical entities
+- Idempotent script supports safe re-indexing and development iterations
+
+**Impact**:
+- ✅ Elasticsearch index 'documents' created successfully (2 shards, 1 replica, 30s refresh)
+- ✅ clinical_analyzer tested and working (synonym expansion validated: MI → mi + myocardi + infarct)
+- ✅ Script is idempotent (safe to run multiple times)
+- ✅ 10 fields mapped with correct types (text vs keyword vs date vs nested)
+- ✅ Foundation ready for SearchIndexer service (Task 1.6)
+- 🎯 **Task 1.2 COMPLETE**: Index schema defined, ready for client implementation (Task 1.3)
+
+**Migration Notes**:
+- Create index: `python backend/scripts/create_search_index.py`
+- Verify index: `curl http://localhost:9200/documents`
+- Test analyzer: `curl -X POST "http://localhost:9200/documents/_analyze" -H 'Content-Type: application/json' -d '{"analyzer": "clinical_analyzer", "text": "Patient with MI"}'`
+- Expected tokens: "patient", "mi", "myocardi" (synonym expansion working)
+
+**Technical Decisions**:
+- Index settings: 2 shards (workstation deployment), 1 replica (single-node cluster), 30s refresh interval (balance between search latency and indexing performance)
+- Analyzer components: standard tokenizer → lowercase filter → english stop words filter → english stemmer → clinical synonyms filter
+- Synonym mapping: Bidirectional (MI ↔ myocardial infarction) for maximum recall
+- Nested concepts: Enables querying MedCAT entities with structured filters (e.g., "find documents with concept type=medication AND cui=C1234567")
+- date format: strict_date_optional_time (ISO 8601 compliant, supports both date-only and datetime)
+
+**Design Pattern**:
+- Infrastructure-as-Code: Index mapping stored as JSON for version control and reproducibility
+- Idempotent operations: Script checks for existing index and recreates (safe for CI/CD pipelines)
+- Separation of concerns: Mapping definition (JSON) vs index creation logic (Python script)
+- Environment configuration: Elasticsearch URL from env var (supports dev/staging/production)
+
+**Testing**:
+- Manual verification: Index created successfully ✓
+- Analyzer validation: Synonym expansion working (MI → mi + myocardi) ✓
+- Idempotency test: Script run twice without errors ✓
+- Field mapping check: All 10 fields present with correct types ✓
+
+**Next Steps**: Task 1.3 - Create Elasticsearch Client Module (async client wrapper for application use)
+
+---
 
 #### [2025-11-19] - Sprint 3 Phase 1, Task 1.1: Elasticsearch Infrastructure Setup - COMPLETE
 
