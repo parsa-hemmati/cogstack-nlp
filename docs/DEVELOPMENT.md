@@ -855,6 +855,217 @@ repos:
 
 ---
 
+## API Documentation
+
+### Patient Search API
+
+The Patient Search API provides concept-based patient search with meta-annotation filtering.
+
+**Base URL**: `http://localhost:8000/api/v1/patients`
+
+#### POST /search
+
+Search for patients by clinical concept.
+
+**Authentication**: Required (JWT Bearer token)
+**Authorization**: Clinician, Researcher, or Admin roles
+
+**Request Body**:
+```json
+{
+  "concept": "atrial flutter",
+  "filters": {
+    "temporal": "current",
+    "includeNegated": false,
+    "includeFamily": false
+  },
+  "pagination": {
+    "page": 1,
+    "pageSize": 20
+  },
+  "sort": "relevance"
+}
+```
+
+**cURL Example**:
+```bash
+curl -X POST http://localhost:8000/api/v1/patients/search \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "concept": "diabetes",
+    "filters": {
+      "temporal": "current",
+      "includeNegated": false,
+      "includeFamily": false
+    },
+    "pagination": {
+      "page": 1,
+      "pageSize": 20
+    },
+    "sort": "relevance"
+  }'
+```
+
+**Response** (200 OK):
+```json
+{
+  "results": [
+    {
+      "mrn": "XXX-XXX-1234",
+      "demographics": {
+        "age": 65,
+        "gender": "M",
+        "department": "Cardiology"
+      },
+      "annotations": [
+        {
+          "cui": "C0011849",
+          "conceptName": "Diabetes mellitus",
+          "sourceValue": "diabetes",
+          "documentId": "doc-123",
+          "documentType": "Clinical Note",
+          "documentDate": "2024-01-15T10:30:00Z",
+          "startChar": 45,
+          "endChar": 53,
+          "confidence": 0.95,
+          "metaAnnotations": {
+            "temporality": "Current",
+            "negated": false,
+            "experiencer": "Patient",
+            "certainty": "Definite"
+          }
+        }
+      ],
+      "lastUpdated": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 20,
+    "totalResults": 150,
+    "totalPages": 8
+  },
+  "performance": {
+    "searchTime": 245,
+    "source": "live"
+  }
+}
+```
+
+#### GET /{patient_id}/concept-highlights
+
+Retrieve document highlights for a specific concept and patient.
+
+**Authentication**: Required (JWT Bearer token)
+**Authorization**: Clinician, Researcher, or Admin roles
+
+**Query Parameters**:
+- `cui` (required): SNOMED-CT CUI or concept name
+- `temporal` (optional): current | historical | future | any
+- `include_negated` (optional): true | false
+- `include_family` (optional): true | false
+
+**cURL Example**:
+```bash
+curl -X GET "http://localhost:8000/api/v1/patients/{patient_id}/concept-highlights?cui=C0011849&temporal=current&include_negated=false" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Response** (200 OK):
+```json
+{
+  "documents": [
+    {
+      "documentId": "doc-123",
+      "title": "Clinical Note 2024-01-15",
+      "date": "2024-01-15",
+      "snippet": "Patient presents with <b>diabetes mellitus</b> type 2",
+      "metaAnnotations": {
+        "Negation": "Affirmed",
+        "Temporality": "Current",
+        "Experiencer": "Patient",
+        "Certainty": "Definite"
+      },
+      "startChar": 23,
+      "endChar": 40
+    }
+  ],
+  "totalCount": 3
+}
+```
+
+#### GET /search/history
+
+Retrieve user's search history (last 10 searches).
+
+**Authentication**: Required (JWT Bearer token)
+**Authorization**: Clinician, Researcher, or Admin roles
+
+**cURL Example**:
+```bash
+curl -X GET http://localhost:8000/api/v1/patients/search/history \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Response** (200 OK):
+```json
+{
+  "history": [
+    {
+      "concept": "diabetes",
+      "filters": {
+        "temporal": "current",
+        "includeNegated": false,
+        "includeFamily": false
+      },
+      "timestamp": "2024-01-15T10:30:00"
+    }
+  ]
+}
+```
+
+### Error Responses
+
+All endpoints return standard HTTP status codes:
+
+- **400 Bad Request**: Invalid request parameters
+- **401 Unauthorized**: Missing or invalid JWT token
+- **403 Forbidden**: Insufficient permissions
+- **404 Not Found**: Patient not found
+- **500 Internal Server Error**: Server error
+
+**Error Response Format**:
+```json
+{
+  "detail": "Invalid search request: concept is required"
+}
+```
+
+### Meta-Annotation Filters
+
+**Temporal Context**:
+- `current`: Active conditions (default)
+- `historical`: Past conditions
+- `future`: Planned procedures
+- `any`: All temporal contexts
+
+**Negation**:
+- `includeNegated: false`: Exclude "no diabetes" (default)
+- `includeNegated: true`: Include all mentions
+
+**Experiencer**:
+- `includeFamily: false`: Patient only (default)
+- `includeFamily: true`: Include family history
+
+### Performance Targets
+
+- Search API: <500ms (P95)
+- Concept highlights: <300ms (P95)
+- Search history: <50ms (P95)
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
