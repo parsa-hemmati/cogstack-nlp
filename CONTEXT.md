@@ -119,9 +119,30 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.4: Task 5.4.3 - ConceptFilterSidebar Component
+
+**Commits**: (this commit) - Create ConceptFilterSidebar UI component
+
+**Task 5.4.3 Completed**:
+- Created `frontend/src/components/ConceptFilterSidebar.vue` (~380 lines)
+  - Vuetify v-navigation-drawer with all filter controls
+  - Concept autocomplete (debounced 300ms, mock data)
+  - Date range with quick presets
+  - Meta-annotation chip groups (safe defaults)
+  - Document type checkboxes
+  - Apply/Clear/Save Preset buttons
+- Created unit tests: `frontend/tests/unit/components/ConceptFilterSidebar.spec.ts` (~330 lines, 28 tests)
+- All 28 tests passing
+
+**Impact**:
+- ✅ Filter sidebar UI complete
+- 🎯 **Next**: Task 5.4.4 (Integrate into TimelineView)
+
+---
+
 #### [2025-11-19] - Phase 5.4: Tasks 5.4.1-5.4.2 Implementation
 
-**Commits**: (this commit) - Backend filter API verification + Frontend useTimelineFilters composable
+**Commits**: 4535a2d1 - Backend filter API verification + Frontend useTimelineFilters composable
 
 **Task 5.4.1 Status**: ✅ COMPLETE (Already implemented in Phase 5.1)
 - Backend filter API fully functional:
