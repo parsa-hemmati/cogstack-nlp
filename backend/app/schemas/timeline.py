@@ -1,0 +1,322 @@
+"""
+Timeline API request and response schemas.
+
+This module defines Pydantic models for the Timeline View API endpoints,
+supporting timeline data retrieval, filtering, and export functionality.
+"""
+
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from datetime import datetime
+from uuid import UUID
+
+
+class MetaAnnotations(BaseModel):
+    """Meta-annotations for clinical concept mentions.
+
+    These annotations provide critical context about how the concept
+    was mentioned in the clinical text (negated, historical, family history, etc.).
+    """
+
+    Negation: str = Field(
+        ...,
+        description="Negation status: 'Affirmed' or 'Negated'",
+        example="Affirmed"
+    )
+    Temporality: str = Field(
+        ...,
+        description="Temporal status: 'Current', 'Recent', or 'Historical'",
+        example="Current"
+    )
+    Experiencer: str = Field(
+        ...,
+        description="Who experienced the condition: 'Patient', 'Family', or 'Other'",
+        example="Patient"
+    )
+    Certainty: str = Field(
+        ...,
+        description="Certainty level: 'High', 'Medium', or 'Low'",
+        example="High"
+    )
+
+
+class ConceptMention(BaseModel):
+    """A single mention of a clinical concept in a document.
+
+    Represents one occurrence of a concept (e.g., "diabetes") in a specific
+    document at a specific date, with associated meta-annotations and confidence.
+    """
+
+    document_id: str = Field(
+        ...,
+        description="UUID of the document containing this mention"
+    )
+    date: datetime = Field(
+        ...,
+        description="Date of the document (ISO 8601 format)"
+    )
+    sentence: str = Field(
+        ...,
+        description="Sentence or context where the concept was mentioned",
+        example="Patient diagnosed with Type 2 Diabetes. HbA1c 8.5%."
+    )
+    meta_annotations: MetaAnnotations = Field(
+        ...,
+        description="Meta-annotations providing context about the mention"
+    )
+    confidence: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score from NLP model (0.0-1.0)",
+        example=0.95
+    )
+
+
+class TimelineConcept(BaseModel):
+    """An aggregated clinical concept across all mentions in patient timeline.
+
+    Represents a concept (e.g., "Diabetes Mellitus") with all its mentions
+    across the patient's documents, including first mention date and frequency.
+    """
+
+    concept_cui: str = Field(
+        ...,
+        description="SNOMED-CT Concept Unique Identifier",
+        example="C0011849"
+    )
+    concept_name: str = Field(
+        ...,
+        description="Human-readable concept name",
+        example="Diabetes Mellitus"
+    )
+    concept_type: str = Field(
+        ...,
+        description="Type of concept: 'condition', 'medication', 'procedure', 'symptom', 'lab_result'",
+        example="condition"
+    )
+    first_mention_date: datetime = Field(
+        ...,
+        description="Date of the first mention of this concept"
+    )
+    mention_count: int = Field(
+        ...,
+        ge=1,
+        description="Total number of times this concept was mentioned",
+        example=12
+    )
+    mentions: List[ConceptMention] = Field(
+        ...,
+        description="All mentions of this concept (chronologically ordered)"
+    )
+
+
+class TimelineDocument(BaseModel):
+    """A clinical document in the patient timeline.
+
+    Represents a single document (clinical note, lab report, etc.) with
+    metadata and associated concepts.
+    """
+
+    document_id: str = Field(
+        ...,
+        description="UUID of the document"
+    )
+    title: str = Field(
+        ...,
+        description="Document title or filename",
+        example="Diabetes Clinic Note"
+    )
+    document_type: str = Field(
+        ...,
+        description="Type of document: 'clinical_note', 'discharge_summary', 'lab_report', etc.",
+        example="clinical_note"
+    )
+    date: datetime = Field(
+        ...,
+        description="Document date (ISO 8601 format)"
+    )
+    author: Optional[str] = Field(
+        None,
+        description="Document author (if available)",
+        example="Dr. Smith"
+    )
+    concepts: List[str] = Field(
+        default_factory=list,
+        description="List of concept CUIs mentioned in this document",
+        example=["C0011849", "C0020538"]
+    )
+
+
+class DateRange(BaseModel):
+    """Date range for timeline filtering.
+
+    Represents a start and end date for filtering timeline data.
+    """
+
+    start: datetime = Field(
+        ...,
+        description="Start date (inclusive, ISO 8601 format)"
+    )
+    end: datetime = Field(
+        ...,
+        description="End date (inclusive, ISO 8601 format)"
+    )
+
+
+class TimelineFilters(BaseModel):
+    """Filters for timeline data retrieval.
+
+    Supports filtering by concepts, date range, meta-annotations, and document types.
+    """
+
+    concepts: Optional[List[str]] = Field(
+        None,
+        description="List of concept CUIs to filter by (AND logic)",
+        example=["C0011849", "C0020538"]
+    )
+    date_range: Optional[DateRange] = Field(
+        None,
+        description="Date range to filter documents and concepts"
+    )
+    meta_annotations: Optional[dict] = Field(
+        None,
+        description="Meta-annotation filters (key-value pairs)",
+        example={
+            "Negation": "Affirmed",
+            "Experiencer": "Patient",
+            "Temporality": ["Current", "Recent"]
+        }
+    )
+    document_types: Optional[List[str]] = Field(
+        None,
+        description="List of document types to include",
+        example=["clinical_note", "discharge_summary"]
+    )
+
+
+class PatientTimeline(BaseModel):
+    """Complete patient timeline with documents and concepts.
+
+    This is the main response model for the GET /api/v1/timeline/{patient_id} endpoint.
+    Contains all timeline data: documents, concepts, date range, and applied filters.
+    """
+
+    patient_id: str = Field(
+        ...,
+        description="UUID of the patient"
+    )
+    documents: List[TimelineDocument] = Field(
+        ...,
+        description="List of documents in chronological order"
+    )
+    concepts: List[TimelineConcept] = Field(
+        ...,
+        description="List of aggregated concepts across all documents"
+    )
+    date_range: DateRange = Field(
+        ...,
+        description="Actual date range covered by the timeline (min/max document dates)"
+    )
+    filters_applied: TimelineFilters = Field(
+        ...,
+        description="Filters that were applied to generate this timeline"
+    )
+
+
+class TimelineFilterPreset(BaseModel):
+    """A saved filter preset for timeline view.
+
+    Allows users to save commonly used filter combinations for quick reuse.
+    """
+
+    id: Optional[UUID] = Field(
+        None,
+        description="UUID of the filter preset (null for new presets)"
+    )
+    user_id: UUID = Field(
+        ...,
+        description="UUID of the user who created this preset"
+    )
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Name of the filter preset",
+        example="Diabetes Management View"
+    )
+    description: Optional[str] = Field(
+        None,
+        description="Description of what this filter preset shows",
+        example="Timeline filtered for diabetes-related concepts (diagnosis, medications, lab results)"
+    )
+    filters: TimelineFilters = Field(
+        ...,
+        description="The filter configuration"
+    )
+    is_default: bool = Field(
+        False,
+        description="Whether this is the user's default filter preset"
+    )
+    created_at: Optional[datetime] = Field(
+        None,
+        description="When this preset was created"
+    )
+    updated_at: Optional[datetime] = Field(
+        None,
+        description="When this preset was last updated"
+    )
+
+
+class TimelineExportRequest(BaseModel):
+    """Request to export a patient timeline.
+
+    Supports exporting to PDF, FHIR R4, or JSON formats with optional filters.
+    """
+
+    format: str = Field(
+        ...,
+        description="Export format: 'pdf', 'fhir', or 'json'",
+        example="pdf"
+    )
+    filters: TimelineFilters = Field(
+        default_factory=TimelineFilters,
+        description="Filters to apply before export (same as timeline filters)"
+    )
+    options: Optional[dict] = Field(
+        None,
+        description="Format-specific options",
+        example={
+            "include_provenance": True,
+            "watermark": "Clinical Summary - Confidential"
+        }
+    )
+
+
+class TimelineExportResponse(BaseModel):
+    """Response after creating a timeline export.
+
+    Contains export ID and download URL. The actual file is downloaded separately.
+    """
+
+    export_id: str = Field(
+        ...,
+        description="UUID of the export (for downloading)"
+    )
+    format: str = Field(
+        ...,
+        description="Export format: 'pdf', 'fhir', or 'json'"
+    )
+    download_url: str = Field(
+        ...,
+        description="URL to download the exported file",
+        example="/api/v1/timeline/exports/export-789/download"
+    )
+    expires_at: datetime = Field(
+        ...,
+        description="When this export will be automatically deleted (30 days)"
+    )
+    audit_log_id: str = Field(
+        ...,
+        description="UUID of the audit log entry for this export"
+    )

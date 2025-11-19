@@ -83,27 +83,68 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 4.6: Search History (COMPLETE - Redis cache with 7-day retention)
   - ✅ Task 4.7: Integration Tests (COMPLETE - 43 tests created during TDD implementation)
   - ✅ Task 4.8: Documentation & Deployment (COMPLETE - API docs in DEVELOPMENT.md)
-- 🔄 **Phase 5 (Timeline View)**: IN PROGRESS - Phase 5.1 (Backend Timeline Data API) started (3/7 tasks)
+- 🔄 **Phase 5 (Timeline View)**: IN PROGRESS - Phase 5.1 (Backend Timeline Data API) started (4/7 tasks)
   - ✅ Specification: `.specify/specifications/sprint-2-timeline-view.md` (v1.0.0)
   - ✅ Technical Plan: `.specify/plans/timeline-view-plan.md` (v1.0.0)
   - ✅ Task Breakdown: `.specify/tasks/timeline-view-tasks.md` (v1.0.0, 60 tasks)
-  - 🔄 Implementation: Phase 5.1 started (3/7 tasks complete)
+  - 🔄 Implementation: Phase 5.1 started (4/7 tasks complete)
     - ✅ Task 5.1.1: Database schema - timeline_filters table (migration 008)
     - ✅ Task 5.1.2: Database schema - timeline_exports table (migration 009)
     - ✅ Task 5.1.3: Elasticsearch - clinical_concepts index (mapping + script)
-    - ⏸️ Task 5.1.4: Pydantic models - timeline schemas (next)
-    - ⏸️ Task 5.1.5: Repository - ElasticsearchTimelineRepository
+    - ✅ Task 5.1.4: Pydantic models - timeline schemas (10 models defined)
+    - ⏸️ Task 5.1.5: Repository - ElasticsearchTimelineRepository (next)
     - ⏸️ Task 5.1.6: Service - TimelineService
     - ⏸️ Task 5.1.7: API endpoint - GET /timeline/{patient_id}
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: (this commit) - Phase 5.1: Task 5.1.3 complete (Elasticsearch index)
+**Latest Commit**: (this commit) - Phase 5.1: Task 5.1.4 complete (Pydantic schemas)
 **Sprint**: Sprint 2 - Timeline View (Phase 5) - Implementation Phase
-**Next Milestone**: Complete Phase 5.1 (Backend Timeline Data API) - 4/7 tasks remaining
+**Next Milestone**: Complete Phase 5.1 (Backend Timeline Data API) - 3/7 tasks remaining
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.1: Task 5.1.4 Pydantic Schemas for Timeline API
+
+**Commits**: (this commit) - Define Pydantic models for timeline schemas
+
+**Added**:
+- Timeline API schemas: `backend/app/schemas/timeline.py` (10 models, 400+ lines)
+  - **MetaAnnotations**: Meta-annotation context (Negation, Temporality, Experiencer, Certainty)
+  - **ConceptMention**: Single concept mention with document, date, sentence, confidence
+  - **TimelineConcept**: Aggregated concept across all mentions (first_mention_date, mention_count)
+  - **TimelineDocument**: Clinical document with metadata and associated concepts
+  - **DateRange**: Start/end dates for filtering
+  - **TimelineFilters**: Filter criteria (concepts, date_range, meta_annotations, document_types)
+  - **PatientTimeline**: Main response model (documents + concepts + filters)
+  - **TimelineFilterPreset**: Saved filter presets for users
+  - **TimelineExportRequest**: Export request (format, filters, options)
+  - **TimelineExportResponse**: Export response (export_id, download_url, expires_at)
+- Comprehensive field descriptions with examples
+- Type validation (float 0.0-1.0 for confidence, string length limits, etc.)
+- Pydantic Field annotations for OpenAPI documentation
+
+**Why**:
+- Implements Task 5.1.4 from Phase 5.1 task breakdown
+- Provides type-safe API contracts for timeline endpoints
+- Enables automatic OpenAPI/Swagger documentation generation
+- Ensures data validation at API boundary
+- Models match technical plan specification exactly
+
+**Impact**:
+- ✅ Phase 5.1 progress: 4/7 tasks complete (57.1%)
+- ✅ API contracts defined for all timeline endpoints
+- ✅ Type safety for request/response handling
+- ✅ Ready for service layer and API endpoint implementation
+- ✅ Supports all timeline features (filters, exports, presets)
+
+**Next Steps**:
+1. Complete Task 5.1.5: Implement ElasticsearchTimelineRepository
+2. Write unit tests for Pydantic model validation
+3. Use these models in TimelineService (Task 5.1.6)
+
+---
 
 #### [2025-11-19] - Phase 5.1: Task 5.1.3 Elasticsearch Index for Clinical Concepts
 

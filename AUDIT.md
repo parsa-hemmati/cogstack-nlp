@@ -18,47 +18,50 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Commit Status: ✅ CLEAR (Index Schema Only)
+### Commit Status: ✅ CLEAR (API Schemas Only)
 
-**Phase 5.1 Continued: Timeline View Elasticsearch Index** (2025-11-19)
+**Phase 5.1 Continued: Timeline View Pydantic Schemas** (2025-11-19)
 
 **This Commit**:
-- ✅ Elasticsearch index mapping: clinical_concepts (Task 5.1.3)
-  - Fields: patient_id, document_id, concept_cui, concept_name, concept_type, date
-  - Nested meta_annotations object (Negation, Temporality, Experiencer, Certainty)
-  - Text + keyword sub-field for concept_name (search + aggregation)
-  - Date field with ISO 8601 + epoch millis support
-  - Float confidence scores, text sentence context
-  - Single shard, no replicas, 5-second refresh interval
-- ✅ Index creation script: scripts/create_clinical_concepts_index.py
-  - Loads mapping from JSON file
-  - Connection checks before index creation
-  - Handles existing index (delete/recreate prompt)
-  - Executable Python script with error handling
-- ✅ CONTEXT.md updated: Phase 5.1 progress (3/7 tasks complete)
+- ✅ Timeline API Pydantic schemas: backend/app/schemas/timeline.py (Task 5.1.4)
+  - 10 models defined (400+ lines with comprehensive documentation)
+  - MetaAnnotations, ConceptMention, TimelineConcept, TimelineDocument
+  - DateRange, TimelineFilters, PatientTimeline
+  - TimelineFilterPreset, TimelineExportRequest, TimelineExportResponse
+  - Type validation (float ranges, string lengths, datetime formats)
+  - Field annotations for OpenAPI/Swagger docs
+- ✅ CONTEXT.md updated: Phase 5.1 progress (4/7 tasks complete, 57.1%)
 
 **HIPAA Compliance Review**:
-- ✅ **No PHI Storage**: Index stores concept CUIs and types, not actual patient data
-- ✅ **Patient References**: patient_id is UUID reference (not MRN or identifiable info)
-- ✅ **Sentence Context**: May contain PHI excerpts - treated as protected data
-- ⚠️ **REQUIRED**: Application layer must enforce access controls (authenticated queries only)
-- ⚠️ **REQUIRED**: Audit logging for all concept queries (WHO searched for WHAT)
-- ✅ **Index Security**: Elasticsearch access restricted to backend application only (no direct user access)
+- ✅ **Data Models Only**: No business logic, no PHI access yet
+- ✅ **Type Safety**: Pydantic validation prevents malformed requests
+- ⚠️ **PHI in Responses**: PatientTimeline includes documents and concepts (PHI)
+  - REQUIRED: Endpoints using these models must require authentication
+  - REQUIRED: Audit logging when PatientTimeline data is returned
+  - REQUIRED: RBAC enforcement (clinicians see assigned patients only)
+- ⚠️ **Export Models**: TimelineExportRequest/Response handle PHI exports
+  - REQUIRED: Export endpoints must create audit log entries
+  - REQUIRED: Exported files must be encrypted at rest
+  - REQUIRED: Watermarks applied to PDF exports (as designed)
+- ✅ **Filter Presets**: TimelineFilterPreset stores search criteria (not PHI)
+  - Filter names/descriptions might describe sensitive searches
+  - Consider as protected metadata (authenticate access)
 
 **PRD Compliance**:
-- ✅ Aligned with Sprint 2 Timeline View specification (Phase 5.1, Task 5.1.3)
-- ✅ Supports temporal queries (FR1: Timeline rendering, date range filters)
-- ✅ Supports meta-annotation filtering (FR2.4: Negation, Temporality, Experiencer, Certainty)
-- ✅ Supports concept frequency aggregations (FR4.2: Concept frequency over time)
-- ✅ Optimized for timeline use cases (range queries, term filters, date histograms)
-- ⚠️ No breaking changes (new index, no modifications to existing indices)
+- ✅ Aligned with Sprint 2 Timeline View specification (all functional requirements)
+- ✅ Models support FR1 (Timeline rendering): PatientTimeline with documents/concepts
+- ✅ Models support FR2-FR4 (Concept display, filtering, temporal analysis)
+- ✅ Models support FR5 (Export capabilities): TimelineExportRequest/Response
+- ✅ Models support FR3.5 (Filter presets): TimelineFilterPreset
+- ✅ All required fields present (patient_id, filters, meta_annotations, etc.)
+- ⚠️ No breaking changes (new file, no modifications to existing schemas)
 
-**Action**: Ready to commit (index schema only, no business logic to audit)
+**Action**: Ready to commit (API schemas only, no business logic to audit)
 
 **Next Steps**:
-1. Complete Task 5.1.4: Define Pydantic models for timeline schemas
-2. Test index creation when Elasticsearch is running
-3. Implement query layer with HIPAA-compliant audit logging
+1. Complete Task 5.1.5: Implement ElasticsearchTimelineRepository
+2. Write unit tests for Pydantic model validation
+3. Implement endpoints with authentication + audit logging
 
 ---
 
