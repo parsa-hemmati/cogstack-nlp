@@ -27,6 +27,7 @@
     "@vitejs/plugin-vue": "^5.0.0",
     "@vitest/ui": "^4.0.10",
     "@vue/test-utils": "^2.4.6",
+    "axios-mock-adapter": "^2.1.0",
     "d3": "^7.9.0",
     "eslint": "^8.56.0",
     "eslint-plugin-vue": "^9.20.0",

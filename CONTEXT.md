@@ -95,22 +95,84 @@ The current development focus is **extending** this ecosystem with **clinical ca
     - ✅ Task 5.1.5: Repository - ElasticsearchTimelineRepository (2 methods, 29 tests)
     - ✅ Task 5.1.6: Service - TimelineService (orchestrates PostgreSQL + Elasticsearch, 14 tests)
     - ✅ Task 5.1.7: API endpoint - GET /api/v1/timeline/{patient_id} (auth + audit logging)
-- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 6/12 tasks (50%)
+- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 7/12 tasks (58%)
   - ✅ Task 5.2.1: Install D3.js dependencies (d3@7.9.0, @types/d3@7.4.3)
   - ✅ Task 5.2.2: Timeline API client (getPatientTimeline method, 10 unit tests)
   - ✅ Task 5.2.3: useTimeline composable (fetchTimeline, refreshTimeline, 13 unit tests)
   - ✅ Task 5.2.4: TimelineAxis component (D3.js time axis, 9 unit tests)
   - ✅ Task 5.2.5: TimelineDocuments component (document markers, 15 unit tests)
   - ✅ Task 5.2.6: TimelineView component (main view, router integration, 15 unit tests)
+  - ✅ Task 5.2.7: Integration tests (full timeline rendering workflow, 7 tests)
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Task 5.2.6 - TimelineView main component with router integration
-**Sprint**: Sprint 2 - Timeline View (Phase 5.2 Frontend - 6/12 tasks complete)
-**Next Milestone**: Phase 5.2 (Frontend Timeline Component) - 6/12 tasks remaining
+**Latest Commit**: Task 5.2.7 - Integration tests for timeline rendering
+**Sprint**: Sprint 2 - Timeline View (Phase 5.2 Frontend - 7/12 tasks complete)
+**Next Milestone**: Phase 5.2 (Frontend Timeline Component) - 5/12 tasks remaining
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.2: Task 5.2.7 Integration Tests
+
+**Commits**: (this commit) - Create integration tests for timeline rendering workflow
+
+**Added**:
+- Integration tests: `frontend/tests/integration/TimelineView.integration.spec.ts` (7 tests, ~350 lines)
+  - **Test 1**: Full timeline rendering workflow
+    - Mocks API with axios-mock-adapter
+    - Mounts TimelineView component
+    - Verifies timeline container, SVG, axis, and 5 document markers rendered
+  - **Test 2**: API error handling
+    - Mocks 500 server error
+    - Verifies error alert displayed with error message
+  - **Test 3**: Loading state during API call
+    - Uses promise-based mock to control timing
+    - Verifies v-progress-linear shown during load
+    - Verifies loading indicator removed after data loads
+  - **Test 4**: Document click interaction
+    - Clicks first document marker
+    - Verifies document details card displayed
+    - Verifies correct document title, type, author shown
+  - **Test 5**: Empty timeline (no documents)
+    - Mocks empty timeline response
+    - Verifies empty state message shown
+    - Verifies no document markers rendered
+  - **Test 6**: Date range conversion
+    - Verifies API date strings converted to Date objects
+    - Verifies year extraction correct (2023)
+  - **Test 7**: 404 error handling
+    - Mocks 404 patient not found
+    - Verifies error alert with "Patient not found" message
+- Dependency: axios-mock-adapter installed for API mocking
+
+**Why**:
+- Implements Task 5.2.7 from Phase 5.2 task breakdown
+- Tests full timeline rendering workflow end-to-end
+- Validates API integration with real composable and components
+- Ensures error states handled correctly
+- Verifies loading states work as expected
+- Confirms user interactions (click) work correctly
+- Establishes integration testing pattern for future features
+
+**Impact**:
+- ✅ Integration tests cover full workflow (API → state → rendering)
+- ✅ 7 integration tests passing (full timeline rendering coverage)
+- ✅ 69 total tests across all components (62 unit + 7 integration)
+- ✅ API mocking pattern established (axios-mock-adapter)
+- ✅ Phase 5.2 now 58% complete (7/12 tasks)
+- 🎯 **Next**: Task 5.2.8-12 - Continue with remaining Phase 5.2 tasks
+
+**Technical Notes**:
+- Uses axios-mock-adapter for realistic API mocking
+- Tests use real useTimeline composable (not mocked)
+- Tests use real TimelineView component (not mocked)
+- Mock data includes 5 documents, 3 concepts (realistic scenario)
+- Promise-based mocking for testing loading states
+- flushPromises() to wait for async operations
+- createMemoryHistory for router testing
+
+---
 
 #### [2025-11-19] - Phase 5.2: Task 5.2.6 TimelineView Component
 
