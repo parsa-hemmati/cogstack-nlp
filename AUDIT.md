@@ -18,46 +18,47 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Commit Status: ✅ CLEAR (Database Schema Only)
+### Commit Status: ✅ CLEAR (Index Schema Only)
 
-**Phase 5.1 Started: Timeline View Database Migrations** (2025-11-19)
+**Phase 5.1 Continued: Timeline View Elasticsearch Index** (2025-11-19)
 
 **This Commit**:
-- ✅ Database migration 008: timeline_filters table (Task 5.1.1)
-  - Stores user filter presets (name, description, filters JSONB)
-  - Foreign key to users with CASCADE delete
-  - Unique constraint on (user_id, name)
-  - Index on user_id for performance
-- ✅ Database migration 009: timeline_exports table (Task 5.1.2)
-  - Tracks timeline exports for HIPAA audit compliance
-  - Stores patient_id, user_id, format, file_path, expires_at
-  - Foreign keys to patients, users, audit_logs
-  - 4 indexes for query performance
-- ✅ Frontend: Generated package-lock.json (fixes Docker build)
-  - 216 packages locked to specific versions
-- ✅ CONTEXT.md updated: Phase 5.1 started (2/7 tasks complete)
+- ✅ Elasticsearch index mapping: clinical_concepts (Task 5.1.3)
+  - Fields: patient_id, document_id, concept_cui, concept_name, concept_type, date
+  - Nested meta_annotations object (Negation, Temporality, Experiencer, Certainty)
+  - Text + keyword sub-field for concept_name (search + aggregation)
+  - Date field with ISO 8601 + epoch millis support
+  - Float confidence scores, text sentence context
+  - Single shard, no replicas, 5-second refresh interval
+- ✅ Index creation script: scripts/create_clinical_concepts_index.py
+  - Loads mapping from JSON file
+  - Connection checks before index creation
+  - Handles existing index (delete/recreate prompt)
+  - Executable Python script with error handling
+- ✅ CONTEXT.md updated: Phase 5.1 progress (3/7 tasks complete)
 
 **HIPAA Compliance Review**:
-- ✅ **Audit Support**: timeline_exports table tracks PHI access (export events)
-- ✅ **Retention**: expires_at column enforces 30-day automatic cleanup
-- ✅ **Traceability**: Foreign key to audit_logs links export to audit trail
-- ⚠️ **RECOMMENDED**: Add immutability rules (like audit_logs has) in future migration
-- ⚠️ **REQUIRED**: Export files MUST be encrypted at rest (application layer responsibility)
-- ⚠️ **REQUIRED**: File paths must point to secure directory with restricted permissions
+- ✅ **No PHI Storage**: Index stores concept CUIs and types, not actual patient data
+- ✅ **Patient References**: patient_id is UUID reference (not MRN or identifiable info)
+- ✅ **Sentence Context**: May contain PHI excerpts - treated as protected data
+- ⚠️ **REQUIRED**: Application layer must enforce access controls (authenticated queries only)
+- ⚠️ **REQUIRED**: Audit logging for all concept queries (WHO searched for WHAT)
+- ✅ **Index Security**: Elasticsearch access restricted to backend application only (no direct user access)
 
 **PRD Compliance**:
-- ✅ Aligned with Sprint 2 Timeline View specification
-- ✅ Database schema supports filter persistence (FR3.5: Save filter presets)
-- ✅ Database schema supports export tracking (FR5: Export capabilities audit)
-- ✅ Supports HIPAA audit requirements (export tracking)
-- ⚠️ No breaking changes (new tables only, no modifications to existing schema)
+- ✅ Aligned with Sprint 2 Timeline View specification (Phase 5.1, Task 5.1.3)
+- ✅ Supports temporal queries (FR1: Timeline rendering, date range filters)
+- ✅ Supports meta-annotation filtering (FR2.4: Negation, Temporality, Experiencer, Certainty)
+- ✅ Supports concept frequency aggregations (FR4.2: Concept frequency over time)
+- ✅ Optimized for timeline use cases (range queries, term filters, date histograms)
+- ⚠️ No breaking changes (new index, no modifications to existing indices)
 
-**Action**: Ready to commit (database schema only, no business logic to audit)
+**Action**: Ready to commit (index schema only, no business logic to audit)
 
 **Next Steps**:
-1. Complete Task 5.1.3: Create Elasticsearch clinical_concepts index
-2. Test migrations when Docker services start
-3. Implement business logic with HIPAA-compliant export file encryption
+1. Complete Task 5.1.4: Define Pydantic models for timeline schemas
+2. Test index creation when Elasticsearch is running
+3. Implement query layer with HIPAA-compliant audit logging
 
 ---
 

@@ -83,27 +83,68 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ✅ Task 4.6: Search History (COMPLETE - Redis cache with 7-day retention)
   - ✅ Task 4.7: Integration Tests (COMPLETE - 43 tests created during TDD implementation)
   - ✅ Task 4.8: Documentation & Deployment (COMPLETE - API docs in DEVELOPMENT.md)
-- 🔄 **Phase 5 (Timeline View)**: IN PROGRESS - Phase 5.1 (Backend Timeline Data API) started (2/7 tasks)
+- 🔄 **Phase 5 (Timeline View)**: IN PROGRESS - Phase 5.1 (Backend Timeline Data API) started (3/7 tasks)
   - ✅ Specification: `.specify/specifications/sprint-2-timeline-view.md` (v1.0.0)
   - ✅ Technical Plan: `.specify/plans/timeline-view-plan.md` (v1.0.0)
   - ✅ Task Breakdown: `.specify/tasks/timeline-view-tasks.md` (v1.0.0, 60 tasks)
-  - 🔄 Implementation: Phase 5.1 started (2/7 tasks complete)
+  - 🔄 Implementation: Phase 5.1 started (3/7 tasks complete)
     - ✅ Task 5.1.1: Database schema - timeline_filters table (migration 008)
     - ✅ Task 5.1.2: Database schema - timeline_exports table (migration 009)
-    - ⏸️ Task 5.1.3: Elasticsearch - clinical_concepts index (next)
-    - ⏸️ Task 5.1.4: Pydantic models - timeline schemas
+    - ✅ Task 5.1.3: Elasticsearch - clinical_concepts index (mapping + script)
+    - ⏸️ Task 5.1.4: Pydantic models - timeline schemas (next)
     - ⏸️ Task 5.1.5: Repository - ElasticsearchTimelineRepository
     - ⏸️ Task 5.1.6: Service - TimelineService
     - ⏸️ Task 5.1.7: API endpoint - GET /timeline/{patient_id}
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: (this commit) - Phase 5.1: Tasks 5.1.1-5.1.2 complete (database migrations)
+**Latest Commit**: (this commit) - Phase 5.1: Task 5.1.3 complete (Elasticsearch index)
 **Sprint**: Sprint 2 - Timeline View (Phase 5) - Implementation Phase
-**Next Milestone**: Complete Phase 5.1 (Backend Timeline Data API) - 5/7 tasks remaining
+**Next Milestone**: Complete Phase 5.1 (Backend Timeline Data API) - 4/7 tasks remaining
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.1: Task 5.1.3 Elasticsearch Index for Clinical Concepts
+
+**Commits**: (this commit) - Create Elasticsearch clinical_concepts index
+
+**Added**:
+- Elasticsearch index mapping: `backend/elasticsearch/clinical_concepts_mapping.json`
+  - Fields: patient_id, document_id, concept_cui, concept_name, concept_type, date
+  - Nested meta_annotations object (Negation, Temporality, Experiencer, Certainty)
+  - Text field with keyword sub-field for concept_name (supports both search and aggregation)
+  - Date field with multiple format support (ISO 8601, epoch millis)
+  - Float field for confidence scores
+  - Text field for sentence context
+  - Single shard, no replicas (single-node deployment)
+  - 5-second refresh interval
+- Index creation script: `scripts/create_clinical_concepts_index.py`
+  - Loads mapping from JSON file
+  - Checks Elasticsearch connection before creating index
+  - Handles existing index (prompts user for delete/recreate)
+  - Verifies index creation with settings/mappings display
+  - Executable Python script with error handling
+
+**Why**:
+- Implements Task 5.1.3 from Phase 5.1 task breakdown
+- Provides fast temporal queries for timeline visualization
+- Supports meta-annotation filtering (Negation, Temporality, Experiencer)
+- Enables concept frequency aggregations (bar chart data)
+- Optimized for timeline use case (range queries, term filters, date histograms)
+
+**Impact**:
+- ✅ Phase 5.1 progress: 3/7 tasks complete (42.9%)
+- ✅ Elasticsearch ready for concept indexing
+- ✅ Supports all timeline query patterns (temporal range, meta-annotation filters, concept search)
+- ⏸️ Index not yet populated (requires document processing or migration from extracted_entities)
+
+**Next Steps**:
+1. Complete Task 5.1.4: Define Pydantic models for timeline request/response schemas
+2. Test index creation script when Elasticsearch is running
+3. Populate index with existing concepts (Task 5.3.1 in Phase 5.3)
+
+---
 
 #### [2025-11-19] - Phase 5.1 Started: Database Migrations for Timeline Tables
 
