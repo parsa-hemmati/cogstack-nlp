@@ -129,6 +129,53 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.6: Task 5.6.5 - Create TimelineExportToolbar Component
+
+**Commits**: (this commit) - Implement export toolbar component (Frontend)
+
+**Task 5.6.5 Completed**:
+- ✅ Created `frontend/src/composables/useTimelineExport.ts` (~120 lines)
+  - exportTimeline() API client function
+  - downloadPDF() with base64 decoding (atob + Uint8Array + Blob)
+  - downloadJSON() for JSON/FHIR exports
+  - Error handling with isLoading and error state
+- ✅ Created `frontend/src/components/TimelineExportToolbar.vue` (~280 lines)
+  - Export buttons: PDF (red), FHIR (blue), JSON (green)
+  - Options dialog with checkboxes: de_identified, watermark (PDF only), apply_filters
+  - Success/error snackbar with download button
+  - Per-format loading states (exportLoading.pdf, .fhir, .json)
+  - Automatic filename generation (timestamp + patientId)
+- ✅ Integrated into TimelineView.vue
+  - Added TimelineExportToolbar component to toolbar
+  - Passed props: patientId, filters
+  - Positioned between frequency chart toggle and filter button
+
+**Why**:
+- Implements Task 5.6.5 (2 hours) - Frontend export UI
+- Provides user-friendly interface for timeline exports
+- Supports all 3 formats with clear visual distinction
+- Export options (de-identification, watermark, filters) for flexibility
+- Inline downloads (no separate download page needed)
+
+**Impact**:
+- ✅ Task 5.6.5 complete
+- ✅ Export functionality accessible from timeline view
+- ✅ User-friendly export options with clear labeling
+- ✅ Professional download UX (snackbar notification + download button)
+- 🎯 **Phase 5.6 progress**: 5/10 tasks (50%)
+
+**Technical Notes**:
+- Base64 decoding: atob(base64Data) → Uint8Array → Blob → download
+- Blob API: window.URL.createObjectURL + createElement('a') + click()
+- TypeScript interfaces: ExportRequest, ExportResponse
+- Vuetify components: v-toolbar, v-btn, v-dialog, v-checkbox, v-snackbar
+- Props: patientId (string), filters (Optional[dict])
+- Reactive state: exportLoading (per-format), isExporting, snackbar
+- Conditional rendering: watermark checkbox only for PDF
+- Filename format: `timeline-{patientId.substring(0,8)}-{timestamp}.{ext}`
+
+---
+
 #### [2025-11-19] - Phase 5.6: Task 5.6.4 - Add Export API Endpoints
 
 **Commits**: (this commit) - Implement export API endpoints (POST /export)

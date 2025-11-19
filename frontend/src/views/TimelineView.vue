@@ -50,6 +50,13 @@
             <v-icon>{{ showFrequencyChart ? 'mdi-chart-bar' : 'mdi-chart-bar-stacked' }}</v-icon>
           </v-btn>
 
+          <!-- Export toolbar -->
+          <TimelineExportToolbar
+            :patient-id="patientId"
+            :filters="filters"
+            class="mr-4"
+          />
+
           <!-- Filter button -->
           <v-btn
             icon
@@ -192,6 +199,7 @@ import TimelineConcepts from '@/components/TimelineConcepts.vue'
 import ConceptPopover from '@/components/ConceptPopover.vue'
 import ConceptFilterSidebar from '@/components/ConceptFilterSidebar.vue'
 import ConceptFrequencyChart from '@/components/ConceptFrequencyChart.vue'
+import TimelineExportToolbar from '@/components/TimelineExportToolbar.vue'
 import type { TimelineDocument } from '@/types/timeline'
 import type { TimelineFilters } from '@/composables/useTimelineFilters'
 

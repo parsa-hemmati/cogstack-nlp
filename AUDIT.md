@@ -18,6 +18,69 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
+### Commit Status: ✅ CLEAR - Phase 5.6 Task 5.6.5
+
+**Phase 5.6: Export Capabilities - TimelineExportToolbar Component** (2025-11-19)
+
+**This Commit** (Task 5.6.5):
+- ✅ Created `frontend/src/composables/useTimelineExport.ts` (~120 lines)
+- ✅ Created `frontend/src/components/TimelineExportToolbar.vue` (~280 lines)
+- ✅ Integrated TimelineExportToolbar into TimelineView.vue
+- ✅ Updated CONTEXT.md and AUDIT.md
+
+**Implementation Scope**:
+- Export composable with API client (exportTimeline, downloadPDF, downloadJSON)
+- Export toolbar component with 3 format buttons (PDF, FHIR, JSON)
+- Options dialog with checkboxes (de_identified, watermark, apply_filters)
+- Success/error snackbar with download button
+- Per-format loading states (exportLoading.pdf, .fhir, .json)
+- Automatic filename generation (timestamp + patientId)
+- Base64 decoding for PDF downloads
+- Blob API for browser downloads
+
+**Compliance Review**:
+- ✅ **PRD Alignment**: Implements frontend export requirements
+  - User Story US-E1: "Export timeline to PDF" - UI implemented ✅
+  - User Story US-E2: "Export to FHIR" - UI implemented ✅
+  - User Story US-E3: "Export to JSON" - UI implemented ✅
+  - Export options: de_identified, watermark, apply_filters ✅
+  - Visual distinction between formats (color-coded buttons) ✅
+- ✅ **HIPAA Compliance**: De-identification option visible
+  - Checkbox: "De-identify patient data" with clear hint
+  - Watermark option: "Mark as confidential"
+  - Options shown before export (informed consent)
+  - No PHI in frontend logs (API calls only)
+- ✅ **UI/UX**: Professional clinical interface
+  - Clear button labels (PDF, FHIR, JSON)
+  - Icons for visual identification (mdi-file-pdf-box, mdi-hospital-box, mdi-code-json)
+  - Loading states prevent double exports
+  - Success/error snackbar provides feedback
+  - Download button in snackbar for convenience
+- ✅ **Accessibility**: Vuetify components
+  - v-btn with disabled states when no patient selected
+  - v-checkbox with persistent hints (screen reader friendly)
+  - v-snackbar with close button
+  - Color-coded buttons with text labels (not color-only)
+- ✅ **Error Handling**: User-friendly messages
+  - "Error: No patient selected" when patientId missing
+  - "Export failed: {err.message}" on API errors
+  - "Download failed: {err.message}" on download errors
+  - Snackbar color indicates success (green) vs error (red)
+
+**Technical Notes**:
+- Composable: useTimelineExport.ts (reusable export logic)
+- Component: TimelineExportToolbar.vue (UI layer)
+- Props: patientId (string), filters (Optional[dict])
+- API endpoint: POST /api/v1/timeline/{patient_id}/export
+- Base64 decoding: atob() → Uint8Array → Blob → download
+- TypeScript: ExportRequest, ExportResponse interfaces
+- Vuetify 3: v-toolbar, v-btn, v-dialog, v-checkbox, v-snackbar
+- Reactive state: ref(), reactive() from Vue 3 Composition API
+
+**Action**: ✅ CLEAR - Ready for Task 5.6.6 (Unit Tests for TimelineExportService)
+
+---
+
 ### Commit Status: ✅ CLEAR - Phase 5.6 Task 5.6.4
 
 **Phase 5.6: Export Capabilities - Export API Endpoints** (2025-11-19)
