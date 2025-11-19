@@ -129,6 +129,38 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.6: Task 5.6.1 - Install Export Dependencies
+
+**Commits**: (this commit) - Install WeasyPrint and fhir.resources for timeline export
+
+**Task 5.6.1 Completed**:
+- ✅ Installed WeasyPrint 60.1 for HTML → PDF conversion
+- ✅ Installed fhir.resources 7.1.0 for FHIR R4 compliance
+- ✅ Installed system dependencies (libpango, libcairo, libgdk-pixbuf)
+- ✅ Updated `backend/requirements.txt` with new dependencies
+- ✅ Tested imports successfully
+
+**Why**:
+- Implements Task 5.6.1 (0.5 hours) - First task of Phase 5.6
+- WeasyPrint required for PDF export (Task 5.6.2)
+- fhir.resources required for FHIR R4 Composition mapping (Task 5.6.2)
+- System libraries required by WeasyPrint for rendering
+
+**Impact**:
+- ✅ Task 5.6.1 complete
+- ✅ Export service infrastructure ready
+- ✅ PDF generation capability available
+- ✅ FHIR R4 resource mapping available
+- 🎯 **Phase 5.6 (Export Capabilities)** started
+
+**Technical Notes**:
+- WeasyPrint uses Pango/Cairo for text rendering
+- System deps: libpango-1.0-0, libpangocairo-1.0-0, libgdk-pixbuf2.0-0
+- fhir.resources includes all FHIR R4 resource types
+- Pydantic validation for FHIR schema compliance
+
+---
+
 #### [2025-11-19] - Phase 5.5: Task 5.5.6 - Integration Tests & Performance Validation - **PHASE 5.5 COMPLETE**
 
 **Commits**: (this commit) - Add comprehensive integration tests and performance validation
