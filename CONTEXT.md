@@ -95,8 +95,9 @@ The current development focus is **extending** this ecosystem with **clinical ca
     - ✅ Task 5.1.5: Repository - ElasticsearchTimelineRepository (2 methods, 29 tests)
     - ✅ Task 5.1.6: Service - TimelineService (orchestrates PostgreSQL + Elasticsearch, 14 tests)
     - ✅ Task 5.1.7: API endpoint - GET /api/v1/timeline/{patient_id} (auth + audit logging)
-- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 1/12 tasks (8%)
+- 🔄 **Phase 5.2 (Frontend Timeline Component)**: IN PROGRESS - 2/12 tasks (17%)
   - ✅ Task 5.2.1: Install D3.js dependencies (d3@7.9.0, @types/d3@7.4.3)
+  - ✅ Task 5.2.2: Timeline API client (getPatientTimeline method, 10 unit tests)
 
 **Branch**: `autonomous/mvp-execution`
 **Latest Commit**: (this commit) - Phase 5.1 COMPLETE - Timeline API endpoint
@@ -106,6 +107,72 @@ The current development focus is **extending** this ecosystem with **clinical ca
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Phase 5.2: Task 5.2.2 Timeline API Client
+
+**Commits**: (this commit) - Create timeline API client with TypeScript types and unit tests
+
+**Added**:
+- Timeline API client: `frontend/src/api/timeline.ts` (~95 lines)
+  - **getPatientTimeline()**: Fetch patient timeline with filters
+    - Parameters: patientId (UUID), filters (optional TimelineFilters)
+    - Returns: PatientTimeline with documents, concepts, date range
+    - Query parameter encoding:
+      - concepts: Comma-separated CUI list
+      - date_range: ISO 8601 start/end dates
+      - meta_annotations: Negation, Experiencer, Temporality (single or array), Certainty
+      - document_types: Comma-separated type list
+    - Error handling: Propagates axios errors
+  - Uses shared API client from `@/services/api` (JWT auth, 401 handling)
+  - Comprehensive JSDoc with examples (basic, filtered, historical)
+- TypeScript types: `frontend/src/types/timeline.ts` (~150 lines)
+  - **MetaAnnotations**: Negation, Temporality, Experiencer, Certainty
+  - **ConceptMention**: Single concept mention with sentence, date, meta-annotations
+  - **TimelineConcept**: Aggregated concept with first mention date, count, all mentions
+  - **TimelineDocument**: Document with title, type, date, author, concept CUI list
+  - **DateRange**: Start/end dates
+  - **TimelineFilters**: Concept, date range, meta-annotation, document type filters
+  - **PatientTimeline**: Complete timeline response
+  - **TimelineFilterPreset**: Saved filter presets (for future use)
+  - **TimelineExportRequest/Response**: Export functionality (for future use)
+  - Matches backend Pydantic schemas (backend/app/schemas/timeline.py)
+- API re-export: `frontend/src/api/api.ts`
+  - Re-exports apiClient from `@/services/api`
+  - Enables consistent import pattern across API modules
+- Unit tests: `frontend/tests/unit/api/timeline.spec.ts` (10 tests, ~280 lines)
+  - Mocked axios instance (vi.mock)
+  - Tests for basic timeline retrieval
+  - Tests for concept filter encoding
+  - Tests for date range filter encoding
+  - Tests for meta-annotation filters (single values and arrays)
+  - Tests for document types filter encoding
+  - Tests for combined filters
+  - Tests for empty filters (no query params)
+  - Tests for API error propagation
+  - Tests for undefined filters
+
+**Why**:
+- Implements Task 5.2.2 from Phase 5.2 task breakdown
+- Provides type-safe API client for timeline data retrieval
+- Enables frontend components to fetch timeline data (Task 5.2.3+)
+- TypeScript types ensure consistency with backend schemas
+- Comprehensive tests ensure correct query parameter encoding
+
+**Impact**:
+- ✅ Timeline API client ready for use in composables and components
+- ✅ TypeScript types match backend Pydantic schemas (no drift)
+- ✅ All filter types supported (concepts, date range, meta-annotations, document types)
+- ✅ Query parameters encoded correctly for backend API
+- ✅ 10 unit tests passing (100% method coverage)
+- 🎯 **Next**: Task 5.2.3 - Create useTimeline composable
+
+**Technical Notes**:
+- API client uses shared axios instance with JWT auth
+- Temporality can be single value or array (OR logic)
+- Empty arrays don't append query parameters
+- Date objects converted to ISO 8601 strings
+
+---
 
 #### [2025-11-19] - Phase 5.2: Task 5.2.1 Install D3.js Dependencies
 

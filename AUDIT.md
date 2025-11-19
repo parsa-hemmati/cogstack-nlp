@@ -18,42 +18,73 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Commit Status: ✅ CLEAR - Phase 5.2 Task 5.2.1 Complete
+### Commit Status: ✅ CLEAR - Phase 5.2 Task 5.2.2 Complete
 
 **Phase 5.2: Frontend Timeline Component - IN PROGRESS** (2025-11-19)
 
-**This Commit** (Task 5.2.1: Install D3.js Dependencies):
-- ✅ D3.js library installed: d3@7.9.0 (npm devDependency)
-  - Full D3 library suite for data-driven visualizations
-  - Includes selection, scale, axis, time, shape modules
-- ✅ TypeScript types installed: @types/d3@7.4.3 (npm devDependency)
-  - Complete type definitions for D3 v7 API
-  - Enables type checking and IntelliSense
-- ✅ Test file created: frontend/src/test-d3-import.ts
-  - Verifies D3 imports work correctly
-  - Tests selection, scale, axis, data structure imports
-- ✅ Package files updated:
-  - frontend/package.json: Added d3 and @types/d3 to devDependencies
-  - frontend/package-lock.json: Locked versions for reproducibility
-- ✅ CONTEXT.md updated: Phase 5.2 IN PROGRESS (1/12 tasks, 8%)
+**This Commit** (Task 5.2.2: Timeline API Client):
+- ✅ Timeline API client: frontend/src/api/timeline.ts (~95 lines)
+  - getPatientTimeline() method implemented
+  - Query parameter encoding for all filter types
+  - Uses shared API client with JWT auth
+  - Comprehensive JSDoc documentation
+- ✅ TypeScript types: frontend/src/types/timeline.ts (~150 lines)
+  - 10 type definitions matching backend Pydantic schemas
+  - MetaAnnotations, ConceptMention, TimelineConcept, TimelineDocument
+  - DateRange, TimelineFilters, PatientTimeline
+  - TimelineFilterPreset, TimelineExportRequest/Response (future use)
+- ✅ API re-export: frontend/src/api/api.ts
+  - Re-exports apiClient for consistent import pattern
+- ✅ Unit tests: frontend/tests/unit/api/timeline.spec.ts (10 tests, ~280 lines)
+  - All filter encoding tests passing
+  - Error propagation tested
+  - 100% method coverage
+- ✅ CONTEXT.md updated: Phase 5.2 IN PROGRESS (2/12 tasks, 17%)
 
 **Compliance Review**:
-- ✅ **No PRD Impact**: This is a dependency installation task (no feature changes)
-- ✅ **No HIPAA Impact**: No PHI handling, no authentication, no data access
-- ✅ **No Security Impact**: Using official D3.js package from npm registry (7.9.0 is latest stable)
-- ✅ **Type Safety**: TypeScript types ensure type-safe visualization code in Tasks 5.2.2+
-- ✅ **Reproducibility**: Versions locked in package-lock.json
+- ✅ **Type Safety**: TypeScript types match backend schemas (no drift)
+  - Verified against backend/app/schemas/timeline.py
+  - Field names use camelCase (frontend) vs snake_case (backend) as per convention
+  - Date fields use ISO 8601 strings (matches backend JSON serialization)
+- ✅ **No HIPAA Impact**: API client only (no PHI rendering, authentication handled by apiClient interceptor)
+- ✅ **No Security Impact**: Uses shared API client with JWT auth and 401 handling
+  - Authentication token added via axios interceptor
+  - Unauthorized responses redirect to login
+- ✅ **Backend Alignment**: Query parameters match backend API endpoint
+  - Concepts: comma-separated CUIs
+  - Date range: ISO 8601 start/end
+  - Meta-annotations: Negation, Experiencer, Temporality (single or array), Certainty
+  - Document types: comma-separated types
+  - Matches backend/app/api/v1/endpoints/timeline.py implementation
+- ✅ **Test Coverage**: 10 unit tests covering all scenarios
+  - Basic retrieval
+  - All filter types (individually and combined)
+  - Empty filters (no query params)
+  - Error handling
 
 **Technical Notes**:
-- Installed using Docker container (no host Node.js required)
-- Command: `docker run --rm -v $(pwd):/app -w /app node:20-alpine npm install d3@7 @types/d3@7 --save-dev`
-- Test file can be deleted after Task 5.2.2 (API client) is implemented
+- Temporality supports array for OR logic (e.g., ['Current', 'Recent'])
+- Empty filter arrays don't append query parameters
+- Date objects converted to ISO 8601 strings
+- Axios errors propagated to caller
 
-**Action**: ✅ CLEAR - Ready to commit Task 5.2.1
+**Action**: ✅ CLEAR - Ready to commit Task 5.2.2
 
 ---
 
 ## Previous Commits
+
+### Phase 5.2 Task 5.2.1 - Install D3.js Dependencies (2025-11-19)
+
+**Commit** (Task 5.2.1: Install D3.js Dependencies):
+- ✅ D3.js library installed: d3@7.9.0 (npm devDependency)
+- ✅ TypeScript types installed: @types/d3@7.4.3 (npm devDependency)
+- ✅ Test file created: frontend/src/test-d3-import.ts
+- ✅ Package files updated: package.json and package-lock.json
+
+**Compliance**: No PRD/HIPAA/security impact (dependency installation only)
+
+---
 
 ### 🎉 PHASE 5.1 COMPLETE - Backend Timeline Data API (2025-11-19)
 
