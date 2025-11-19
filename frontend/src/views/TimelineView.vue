@@ -39,6 +39,17 @@
             </v-btn>
           </div>
 
+          <!-- Frequency chart toggle -->
+          <v-btn
+            icon
+            :color="showFrequencyChart ? 'primary' : 'default'"
+            @click="showFrequencyChart = !showFrequencyChart"
+            title="Toggle frequency chart"
+            class="mr-4"
+          >
+            <v-icon>{{ showFrequencyChart ? 'mdi-chart-bar' : 'mdi-chart-bar-stacked' }}</v-icon>
+          </v-btn>
+
           <!-- Filter button -->
           <v-btn
             icon
@@ -75,6 +86,17 @@
         <v-alert v-if="error" type="error" closable @click:close="clearError">
           {{ error }}
         </v-alert>
+
+        <!-- Frequency chart (shown when toggled on) -->
+        <ConceptFrequencyChart
+          v-if="timeline && showFrequencyChart && !isLoading"
+          :concepts="timeline.concepts"
+          :date-range="dateRange"
+          :width="svgWidth"
+          :height="150"
+          bin-size="month"
+          class="mb-4"
+        />
 
         <div v-if="timeline && !isLoading" class="timeline-container">
           <svg ref="timelineSvg" :width="svgWidth" :height="svgHeight" class="timeline-svg">
@@ -169,6 +191,7 @@ import TimelineDocuments from '@/components/timeline/TimelineDocuments.vue'
 import TimelineConcepts from '@/components/TimelineConcepts.vue'
 import ConceptPopover from '@/components/ConceptPopover.vue'
 import ConceptFilterSidebar from '@/components/ConceptFilterSidebar.vue'
+import ConceptFrequencyChart from '@/components/ConceptFrequencyChart.vue'
 import type { TimelineDocument } from '@/types/timeline'
 import type { TimelineFilters } from '@/composables/useTimelineFilters'
 
@@ -220,6 +243,9 @@ const {
 
 // Filter sidebar state
 const showFilterSidebar = ref(false)
+
+// Frequency chart state
+const showFrequencyChart = ref(false)
 
 // Filter composable (for tracking active filters and generating chips)
 const patientIdRef = computed(() => patientId.value)

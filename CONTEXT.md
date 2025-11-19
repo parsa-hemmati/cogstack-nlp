@@ -129,6 +129,62 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-19] - Phase 5.5: Task 5.5.5 - Create Concept Frequency Chart Component
+
+**Commits**: (this commit) - Add concept frequency chart component with D3.js stacked bar chart
+
+**Task 5.5.5 Completed**:
+- ✅ Created `frontend/src/components/ConceptFrequencyChart.vue` (~270 lines)
+  - D3.js stacked bar chart showing concept mention frequency over time
+  - Aggregates mentions into time bins (month/quarter/year)
+  - Stacked bars by concept type with color coding (condition=red, medication=blue, etc.)
+  - Interactive tooltip on hover showing breakdown by type
+  - X-axis with time bin labels, Y-axis with mention counts
+  - Responsive to prop changes (concepts, dateRange, binSize)
+- ✅ Integrated into `frontend/src/views/TimelineView.vue` (~15 lines added)
+  - Added frequency chart toggle button in toolbar (chart-bar icon)
+  - Renders chart above timeline when toggled on
+  - Passes concepts, dateRange, width, height props
+  - Toggle state persists during session
+- ✅ Created `frontend/tests/unit/components/ConceptFrequencyChart.spec.ts` (7 tests, ~280 lines)
+  - Test 1: Frequency aggregation by month
+  - Test 2: SVG chart structure rendered correctly
+  - Test 3: Concept types identified
+  - Test 4: Tooltip hidden by default
+  - Test 5: Bin size change re-aggregates data
+  - Test 6: Empty data handling
+  - Test 7: Bin key generation and parsing
+- ✅ Created `frontend/tests/integration/ConceptFrequencyChart.integration.spec.ts` (3 tests, ~150 lines)
+  - Test 1: Chart renders when toggle clicked
+  - Test 2: Chart updates when filters applied
+  - Test 3: Toggle state persists during interactions
+
+**Why**:
+- Implements Task 5.5.5 (3.5 hours)
+- Provides temporal pattern visualization for concept frequency trends
+- Helps clinicians identify concept mention patterns (e.g., medication started in month X)
+- Stacked bars show concept type distribution over time
+
+**Impact**:
+- ✅ Task 5.5.5 complete
+- ✅ Frequency chart component functional with D3.js stacked bars
+- ✅ Toggle on/off working (button in toolbar)
+- ✅ Aggregation by month/quarter/year configurable
+- ✅ Tooltip shows breakdown on hover
+- ✅ 10 total tests (7 unit + 3 integration)
+- 🎯 **Next**: Task 5.5.6 (Integration tests & performance validation)
+
+**Technical Notes**:
+- D3 stack generator creates stacked bar data
+- Aggregation uses Map for efficient grouping by bin + type
+- Bin keys: "YYYY-MM" (month), "YYYY-QN" (quarter), "YYYY" (year)
+- Tooltip position: fixed positioning at mouse coordinates + offset
+- SVG margins: top=20, right=20, bottom=40, left=50
+- X-axis labels rotated -45deg for readability
+- Color scheme matches TimelineConcepts colors
+
+---
+
 #### [2025-11-19] - Phase 5.5: Task 5.5.4 - Differentiate First vs Recurring Mentions
 
 **Commits**: (this commit) - Add first mention vs recurring mention differentiation
