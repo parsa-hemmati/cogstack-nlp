@@ -344,7 +344,7 @@ class SearchQueryBuilder:
         Wildcards:
         - * matches any character sequence (including empty)
         - ? matches any single character
-        - \* or \? escapes wildcards to treat as literals
+        - \\* or \\? escapes wildcards to treat as literals
 
         Args:
             query_text: Query string with wildcards
@@ -526,6 +526,339 @@ class SearchQueryBuilder:
 
         # Default to match query
         return {"match": {"_all": term}}
+
+    @staticmethod
+    def build_fuzzy_query(
+        query_text: str,
+        filters: Optional[Dict[str, Any]] = None,
+        transpositions: bool = True,
+        prefix_length: int = 0,
+        max_expansions: int = 50
+    ) -> Dict[str, Any]:
+        """
+        Build Elasticsearch query with fuzzy matching for typo tolerance.
+
+        Fuzzy syntax:
+        - term~ : AUTO fuzziness based on term length
+        - term~1 : Specific edit distance (max 2)
+        - "phrase"~2 : Phrase with slop (word proximity)
+
+        Args:
+            query_text: Query string with fuzzy operators (~)
+            filters: Additional filters to apply
+            transpositions: Allow character transpositions (ab->ba)
+            prefix_length: Number of initial characters that must match
+            max_expansions: Maximum number of terms the fuzzy query will expand to
+
+        Returns:
+            Elasticsearch query DSL dictionary
+
+        Note:
+            - AUTO fuzziness: 0 for 1-2 chars, 1 for 3-5 chars, 2 for >5 chars
+            - Edit distance is capped at 2 for performance
+        """
+        # Check for empty query
+        if not query_text or not query_text.strip():
+            return {"query": {"match_all": {}}}
+
+        # Normalize operators
+        query_text = SearchQueryBuilder._normalize_operators(query_text)
+
+        # Extract and protect quoted phrases
+        phrases, query_text = SearchQueryBuilder._extract_phrases_fuzzy(query_text)
+
+        # Parse the fuzzy query
+        parsed_query = SearchQueryBuilder._parse_fuzzy_expression(
+            query_text, phrases, transpositions, prefix_length, max_expansions
+        )
+
+        # Build the final query
+        es_query = {"query": parsed_query}
+
+        # Add filters if provided
+        if filters:
+            filter_clauses = []
+            for key, value in filters.items():
+                if key == "document_type":
+                    filter_clauses.append({"term": {"document_type": value}})
+                elif key == "date_from":
+                    filter_clauses.append({"range": {"date": {"gte": value}}})
+                elif key == "date_to":
+                    filter_clauses.append({"range": {"date": {"lte": value}}})
+
+            if filter_clauses:
+                # Wrap existing query in a bool query with filters
+                if "bool" not in es_query["query"]:
+                    es_query["query"] = {"bool": {"must": [es_query["query"]]}}
+                es_query["query"]["bool"]["filter"] = filter_clauses
+
+        return es_query
+
+    @staticmethod
+    def _extract_phrases_fuzzy(query_text: str) -> Tuple[Dict[str, Tuple[str, int]], str]:
+        """
+        Extract quoted phrases with fuzzy slop and replace with placeholders.
+
+        Args:
+            query_text: Query text with possible phrases
+
+        Returns:
+            Tuple of (phrases dict with slop values, modified query text)
+        """
+        import re
+        phrases = {}
+        phrase_counter = 0
+        modified_text = query_text
+
+        # Find all quoted phrases with optional fuzzy slop
+        pattern = r'"([^"]+)"(~\d+)?'
+
+        for match in re.finditer(pattern, query_text):
+            phrase_text = match.group(1)
+            fuzzy_part = match.group(2)
+
+            # Extract slop value if present
+            slop = 0
+            if fuzzy_part:
+                slop = int(fuzzy_part[1:])  # Skip the ~ character
+
+            # Create placeholder
+            phrase_id = f"__PHRASE_{phrase_counter}__"
+            phrases[phrase_id] = (phrase_text, slop)
+            phrase_counter += 1
+
+            # Replace the entire match (phrase + optional fuzzy) with placeholder
+            modified_text = modified_text.replace(match.group(0), phrase_id)
+
+        return phrases, modified_text
+
+    @staticmethod
+    def _parse_fuzzy_expression(
+        query_text: str,
+        phrases: Dict[str, Tuple[str, int]],
+        transpositions: bool,
+        prefix_length: int,
+        max_expansions: int
+    ) -> Dict[str, Any]:
+        """
+        Parse fuzzy expression into Elasticsearch query.
+
+        Args:
+            query_text: Query string with fuzzy operators
+            phrases: Dictionary of phrase placeholders with slop values
+            transpositions: Allow character transpositions
+            prefix_length: Prefix length requirement
+            max_expansions: Maximum fuzzy expansions
+
+        Returns:
+            Elasticsearch query clause
+        """
+        # Remove extra whitespace
+        query_text = ' '.join(query_text.split())
+
+        # Handle single term
+        if ' AND ' not in query_text and ' OR ' not in query_text and ' NOT ' not in query_text:
+            return SearchQueryBuilder._create_fuzzy_clause(
+                query_text, phrases, transpositions, prefix_length, max_expansions
+            )
+
+        # Handle Boolean operators with fuzzy
+        bool_query = {"bool": {}}
+
+        # Handle NOT operators
+        if ' NOT ' in query_text:
+            parts = query_text.split(' NOT ')
+            left_part = parts[0].strip()
+
+            # Parse the left part
+            if ' OR ' in left_part:
+                bool_query["bool"]["must"] = [SearchQueryBuilder._handle_fuzzy_or(
+                    left_part, phrases, transpositions, prefix_length, max_expansions
+                )]
+            elif ' AND ' in left_part:
+                bool_query["bool"]["must"] = SearchQueryBuilder._handle_fuzzy_and(
+                    left_part, phrases, transpositions, prefix_length, max_expansions
+                )
+            else:
+                bool_query["bool"]["must"] = [SearchQueryBuilder._create_fuzzy_clause(
+                    left_part, phrases, transpositions, prefix_length, max_expansions
+                )]
+
+            # Add must_not clauses
+            bool_query["bool"]["must_not"] = []
+            for part in parts[1:]:
+                term = part.strip().split()[0]
+                bool_query["bool"]["must_not"].append(
+                    SearchQueryBuilder._create_fuzzy_clause(
+                        term, phrases, transpositions, prefix_length, max_expansions
+                    )
+                )
+
+        # Handle AND operators
+        elif ' AND ' in query_text:
+            bool_query["bool"]["must"] = SearchQueryBuilder._handle_fuzzy_and(
+                query_text, phrases, transpositions, prefix_length, max_expansions
+            )
+
+        # Handle OR operators
+        elif ' OR ' in query_text:
+            return SearchQueryBuilder._handle_fuzzy_or(
+                query_text, phrases, transpositions, prefix_length, max_expansions
+            )
+
+        return bool_query
+
+    @staticmethod
+    def _handle_fuzzy_and(
+        query_text: str,
+        phrases: Dict[str, Tuple[str, int]],
+        transpositions: bool,
+        prefix_length: int,
+        max_expansions: int
+    ) -> List[Dict[str, Any]]:
+        """Handle AND expressions with fuzzy."""
+        parts = query_text.split(' AND ')
+        must_clauses = []
+
+        for part in parts:
+            part = part.strip()
+            must_clauses.append(SearchQueryBuilder._create_fuzzy_clause(
+                part, phrases, transpositions, prefix_length, max_expansions
+            ))
+
+        return must_clauses
+
+    @staticmethod
+    def _handle_fuzzy_or(
+        query_text: str,
+        phrases: Dict[str, Tuple[str, int]],
+        transpositions: bool,
+        prefix_length: int,
+        max_expansions: int
+    ) -> Dict[str, Any]:
+        """Handle OR expressions with fuzzy."""
+        parts = query_text.split(' OR ')
+        should_clauses = []
+
+        for part in parts:
+            part = part.strip()
+            should_clauses.append(SearchQueryBuilder._create_fuzzy_clause(
+                part, phrases, transpositions, prefix_length, max_expansions
+            ))
+
+        return {
+            "bool": {
+                "should": should_clauses,
+                "minimum_should_match": 1
+            }
+        }
+
+    @staticmethod
+    def _create_fuzzy_clause(
+        term: str,
+        phrases: Dict[str, Tuple[str, int]],
+        transpositions: bool,
+        prefix_length: int,
+        max_expansions: int
+    ) -> Dict[str, Any]:
+        """
+        Create a fuzzy or match clause based on term content.
+
+        Args:
+            term: Search term that may contain fuzzy operator
+            phrases: Dictionary of phrase placeholders with slop
+            transpositions: Allow transpositions
+            prefix_length: Prefix length requirement
+            max_expansions: Maximum expansions
+
+        Returns:
+            Elasticsearch query clause
+        """
+        term = term.strip()
+
+        # Check if it's a phrase placeholder
+        if term.startswith('__PHRASE_') and term.endswith('__'):
+            phrase_text, slop = phrases.get(term, (term, 0))
+            clause = {"match_phrase": {"_all": {"query": phrase_text}}}
+            if slop > 0:
+                clause["match_phrase"]["_all"]["slop"] = slop
+            return clause
+
+        # Check for field-specific search
+        if ':' in term:
+            field, value = term.split(':', 1)
+            field = field.strip()
+            value = value.strip()
+
+            # Check if value has fuzzy operator
+            if '~' in value:
+                return SearchQueryBuilder._parse_fuzzy_term(
+                    field, value, transpositions, prefix_length, max_expansions
+                )
+            else:
+                return {"match": {field: value}}
+
+        # Check if term has fuzzy operator
+        if '~' in term:
+            return SearchQueryBuilder._parse_fuzzy_term(
+                "_all", term, transpositions, prefix_length, max_expansions
+            )
+
+        # Default to match query
+        return {"match": {"_all": term}}
+
+    @staticmethod
+    def _parse_fuzzy_term(
+        field: str,
+        term: str,
+        transpositions: bool,
+        prefix_length: int,
+        max_expansions: int
+    ) -> Dict[str, Any]:
+        """
+        Parse a single fuzzy term.
+
+        Args:
+            field: Field to search
+            term: Term with fuzzy operator
+            transpositions: Allow transpositions
+            prefix_length: Prefix length requirement
+            max_expansions: Maximum expansions
+
+        Returns:
+            Fuzzy query clause
+        """
+        import re
+
+        # Parse term~fuzziness pattern
+        match = re.match(r'^(.+?)~(\d*)$', term)
+        if match:
+            base_term = match.group(1)
+            fuzziness_str = match.group(2)
+
+            # Determine fuzziness
+            if fuzziness_str:
+                fuzziness = min(int(fuzziness_str), 2)  # Cap at 2
+            else:
+                fuzziness = "AUTO"
+
+            # Build fuzzy query
+            fuzzy_query = {
+                "fuzzy": {
+                    field: {
+                        "value": base_term,
+                        "fuzziness": fuzziness,
+                        "transpositions": transpositions,
+                        "prefix_length": prefix_length,
+                        "max_expansions": max_expansions
+                    }
+                }
+            }
+
+            return fuzzy_query
+
+        # No fuzzy operator found
+        return {"match": {field: term}}
 
     @staticmethod
     def _build_aggregations() -> Dict[str, Any]:

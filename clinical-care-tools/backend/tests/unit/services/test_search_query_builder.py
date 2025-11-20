@@ -562,6 +562,122 @@ class TestWildcardQueries:
         assert "leading wildcard" in warnings[0].lower()
 
 
+class TestFuzzyMatching:
+    """Test fuzzy matching for typo tolerance."""
+
+    def test_simple_fuzzy_query(self):
+        """Test basic fuzzy query with tilde operator."""
+        query = SearchQueryBuilder.build_fuzzy_query("diabets~")
+
+        assert "query" in query
+        assert "fuzzy" in query["query"]
+        assert query["query"]["fuzzy"]["_all"]["value"] == "diabets"
+        assert query["query"]["fuzzy"]["_all"]["fuzziness"] == "AUTO"
+
+    def test_fuzzy_with_edit_distance(self):
+        """Test fuzzy query with specific edit distance."""
+        query = SearchQueryBuilder.build_fuzzy_query("diabets~2")
+
+        assert "query" in query
+        assert "fuzzy" in query["query"]
+        assert query["query"]["fuzzy"]["_all"]["value"] == "diabets"
+        assert query["query"]["fuzzy"]["_all"]["fuzziness"] == 2
+
+    def test_fuzzy_with_boolean_operators(self):
+        """Test fuzzy queries combined with Boolean operators."""
+        query = SearchQueryBuilder.build_fuzzy_query("diabets~ AND hypertenshun~")
+
+        assert "query" in query
+        assert "bool" in query["query"]
+        must_clauses = query["query"]["bool"]["must"]
+        assert len(must_clauses) == 2
+        assert must_clauses[0]["fuzzy"]["_all"]["value"] == "diabets"
+        assert must_clauses[1]["fuzzy"]["_all"]["value"] == "hypertenshun"
+
+    def test_field_specific_fuzzy(self):
+        """Test field-specific fuzzy matching."""
+        query = SearchQueryBuilder.build_fuzzy_query("title:cardiak~ AND content:arythmia~2")
+
+        assert "query" in query
+        must_clauses = query["query"]["bool"]["must"]
+        assert must_clauses[0]["fuzzy"]["title"]["value"] == "cardiak"
+        assert must_clauses[0]["fuzzy"]["title"]["fuzziness"] == "AUTO"
+        assert must_clauses[1]["fuzzy"]["content"]["value"] == "arythmia"
+        assert must_clauses[1]["fuzzy"]["content"]["fuzziness"] == 2
+
+    def test_fuzzy_phrase_query(self):
+        """Test fuzzy matching on phrase queries."""
+        query = SearchQueryBuilder.build_fuzzy_query('"heart failur"~2')
+
+        assert "query" in query
+        assert "match_phrase" in query["query"]
+        assert query["query"]["match_phrase"]["_all"]["query"] == "heart failur"
+        assert query["query"]["match_phrase"]["_all"]["slop"] == 2
+
+    def test_mixed_fuzzy_and_exact(self):
+        """Test mixing fuzzy and exact terms."""
+        query = SearchQueryBuilder.build_fuzzy_query("diabets~ AND medication")
+
+        assert "query" in query
+        must_clauses = query["query"]["bool"]["must"]
+        assert len(must_clauses) == 2
+        assert "fuzzy" in must_clauses[0]
+        assert "match" in must_clauses[1]
+
+    def test_fuzzy_with_filters(self):
+        """Test fuzzy query with additional filters."""
+        query = SearchQueryBuilder.build_fuzzy_query(
+            "diabets~",
+            filters={
+                "document_type": "clinical_note",
+                "date_from": "2023-01-01"
+            }
+        )
+
+        assert "query" in query
+        bool_query = query["query"]["bool"]
+        assert "must" in bool_query
+        assert "filter" in bool_query
+        assert len(bool_query["filter"]) == 2
+
+    def test_auto_fuzziness(self):
+        """Test AUTO fuzziness based on term length."""
+        query = SearchQueryBuilder.build_fuzzy_query("cat~")  # Short term
+        assert query["query"]["fuzzy"]["_all"]["fuzziness"] == "AUTO"
+
+        query = SearchQueryBuilder.build_fuzzy_query("medication~")  # Long term
+        assert query["query"]["fuzzy"]["_all"]["fuzziness"] == "AUTO"
+
+    def test_fuzzy_with_transpositions(self):
+        """Test fuzzy matching with transposition support."""
+        query = SearchQueryBuilder.build_fuzzy_query("diabtes~", transpositions=True)
+
+        assert "query" in query
+        assert query["query"]["fuzzy"]["_all"]["transpositions"] is True
+
+    def test_fuzzy_prefix_length(self):
+        """Test fuzzy matching with prefix length constraint."""
+        query = SearchQueryBuilder.build_fuzzy_query("diabets~", prefix_length=3)
+
+        assert "query" in query
+        assert query["query"]["fuzzy"]["_all"]["prefix_length"] == 3
+
+    def test_fuzzy_max_expansions(self):
+        """Test limiting fuzzy expansions for performance."""
+        query = SearchQueryBuilder.build_fuzzy_query("dia~", max_expansions=50)
+
+        assert "query" in query
+        assert query["query"]["fuzzy"]["_all"]["max_expansions"] == 50
+
+    def test_invalid_fuzziness_handling(self):
+        """Test handling of invalid fuzziness values."""
+        query = SearchQueryBuilder.build_fuzzy_query("diabetes~5")  # Max is 2
+
+        assert "query" in query
+        # Should cap at maximum allowed value
+        assert query["query"]["fuzzy"]["_all"]["fuzziness"] == 2
+
+
 class TestSuggestQuery:
     """Test autocomplete suggestion query."""
 
