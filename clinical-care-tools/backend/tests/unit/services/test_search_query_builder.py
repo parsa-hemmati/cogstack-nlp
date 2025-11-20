@@ -461,6 +461,107 @@ class TestBooleanQueryParsing:
         assert must_clauses[1]["match"]["content"] == "hypertension"
 
 
+class TestWildcardQueries:
+    """Test wildcard query support (* and ?)."""
+
+    def test_single_wildcard_asterisk(self):
+        """Test single asterisk wildcard query."""
+        query = SearchQueryBuilder.build_wildcard_query("diabet*")
+
+        assert "query" in query
+        assert "wildcard" in query["query"]
+        assert query["query"]["wildcard"]["_all"]["value"] == "diabet*"
+
+    def test_single_wildcard_question(self):
+        """Test single question mark wildcard query."""
+        query = SearchQueryBuilder.build_wildcard_query("diabet?s")
+
+        assert "query" in query
+        assert "wildcard" in query["query"]
+        assert query["query"]["wildcard"]["_all"]["value"] == "diabet?s"
+
+    def test_multiple_wildcards(self):
+        """Test query with multiple wildcards."""
+        query = SearchQueryBuilder.build_wildcard_query("*cardia* OR hyper*")
+
+        assert "query" in query
+        assert "bool" in query["query"]
+        should_clauses = query["query"]["bool"]["should"]
+        assert len(should_clauses) == 2
+        assert should_clauses[0]["wildcard"]["_all"]["value"] == "*cardia*"
+        assert should_clauses[1]["wildcard"]["_all"]["value"] == "hyper*"
+
+    def test_wildcard_with_boolean_operators(self):
+        """Test wildcard queries with Boolean operators."""
+        query = SearchQueryBuilder.build_wildcard_query("diabet* AND complicat*")
+
+        assert "query" in query
+        assert "bool" in query["query"]
+        must_clauses = query["query"]["bool"]["must"]
+        assert len(must_clauses) == 2
+        assert must_clauses[0]["wildcard"]["_all"]["value"] == "diabet*"
+        assert must_clauses[1]["wildcard"]["_all"]["value"] == "complicat*"
+
+    def test_field_specific_wildcard(self):
+        """Test field-specific wildcard query."""
+        query = SearchQueryBuilder.build_wildcard_query("title:cardio* AND content:*tension")
+
+        assert "query" in query
+        must_clauses = query["query"]["bool"]["must"]
+        assert must_clauses[0]["wildcard"]["title"]["value"] == "cardio*"
+        assert must_clauses[1]["wildcard"]["content"]["value"] == "*tension"
+
+    def test_wildcard_phrase_protection(self):
+        """Test that wildcards inside quotes are treated as literals."""
+        query = SearchQueryBuilder.build_wildcard_query('"heart * disease"')
+
+        assert "query" in query
+        # Should be a phrase match, not wildcard
+        assert "match_phrase" in query["query"]
+        assert query["query"]["match_phrase"]["_all"] == "heart * disease"
+
+    def test_escape_special_characters(self):
+        """Test escaping special characters in wildcard queries."""
+        query = SearchQueryBuilder.build_wildcard_query(r"test\*literal")
+
+        assert "query" in query
+        # Escaped asterisk should be treated as literal
+        assert "match" in query["query"]
+        assert query["query"]["match"]["_all"] == "test*literal"
+
+    def test_wildcard_with_filters(self):
+        """Test wildcard query with additional filters."""
+        query = SearchQueryBuilder.build_wildcard_query(
+            "diabet*",
+            filters={
+                "document_type": "progress_note",
+                "department": "Endocrinology"
+            }
+        )
+
+        assert "query" in query
+        bool_query = query["query"]["bool"]
+        assert "must" in bool_query
+        assert "filter" in bool_query
+        assert len(bool_query["filter"]) == 2
+
+    def test_empty_wildcard_query(self):
+        """Test handling of empty wildcard query."""
+        query = SearchQueryBuilder.build_wildcard_query("")
+
+        assert "query" in query
+        assert query["query"]["match_all"] == {}
+
+    def test_wildcard_performance_warning(self):
+        """Test that leading wildcards generate performance warnings."""
+        query, warnings = SearchQueryBuilder.build_wildcard_query("*diabetes", return_warnings=True)
+
+        assert "query" in query
+        assert warnings is not None
+        assert len(warnings) > 0
+        assert "leading wildcard" in warnings[0].lower()
+
+
 class TestSuggestQuery:
     """Test autocomplete suggestion query."""
 

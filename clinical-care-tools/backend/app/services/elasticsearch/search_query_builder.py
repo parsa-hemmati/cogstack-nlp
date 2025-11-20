@@ -333,6 +333,201 @@ class SearchQueryBuilder:
         return {"match": {"_all": term}}
 
     @staticmethod
+    def build_wildcard_query(
+        query_text: str,
+        filters: Optional[Dict[str, Any]] = None,
+        return_warnings: bool = False
+    ) -> Any:
+        """
+        Build Elasticsearch query with wildcard support (* and ?).
+
+        Wildcards:
+        - * matches any character sequence (including empty)
+        - ? matches any single character
+        - \* or \? escapes wildcards to treat as literals
+
+        Args:
+            query_text: Query string with wildcards
+            filters: Additional filters to apply
+            return_warnings: If True, return tuple (query, warnings)
+
+        Returns:
+            Elasticsearch query DSL dictionary or (query, warnings) tuple
+
+        Note:
+            Leading wildcards (*term) can cause performance issues
+            as they prevent efficient index usage.
+        """
+        warnings = []
+
+        # Check for empty query
+        if not query_text or not query_text.strip():
+            result = {"query": {"match_all": {}}}
+            return (result, warnings) if return_warnings else result
+
+        # Check for leading wildcards (performance warning)
+        terms = query_text.split()
+        for term in terms:
+            if term.startswith('*') and not term.startswith(r'\*'):
+                warnings.append(f"Leading wildcard in '{term}' may cause slow performance")
+
+        # Normalize operators
+        query_text = SearchQueryBuilder._normalize_operators(query_text)
+
+        # Extract and protect quoted phrases
+        phrases, query_text = SearchQueryBuilder._extract_phrases(query_text)
+
+        # Parse the wildcard query
+        parsed_query = SearchQueryBuilder._parse_wildcard_expression(query_text, phrases)
+
+        # Build the final query
+        es_query = {"query": parsed_query}
+
+        # Add filters if provided
+        if filters:
+            filter_clauses = []
+            for key, value in filters.items():
+                if key == "document_type":
+                    filter_clauses.append({"term": {"document_type": value}})
+                elif key == "department":
+                    filter_clauses.append({"term": {"department": value}})
+
+            if filter_clauses:
+                # Wrap existing query in a bool query with filters
+                if "bool" not in es_query["query"]:
+                    es_query["query"] = {"bool": {"must": [es_query["query"]]}}
+                es_query["query"]["bool"]["filter"] = filter_clauses
+
+        return (es_query, warnings) if return_warnings else es_query
+
+    @staticmethod
+    def _parse_wildcard_expression(query_text: str, phrases: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Parse wildcard expression into Elasticsearch query.
+
+        Args:
+            query_text: Query string with wildcards
+            phrases: Dictionary of phrase placeholders
+
+        Returns:
+            Elasticsearch query clause
+        """
+        # Remove extra whitespace
+        query_text = ' '.join(query_text.split())
+
+        # Handle single term
+        if ' AND ' not in query_text and ' OR ' not in query_text and ' NOT ' not in query_text:
+            return SearchQueryBuilder._create_wildcard_clause(query_text, phrases)
+
+        # Handle Boolean operators with wildcards
+        bool_query = {"bool": {}}
+
+        # Handle NOT operators
+        if ' NOT ' in query_text:
+            parts = query_text.split(' NOT ')
+            left_part = parts[0].strip()
+
+            # Parse the left part
+            if ' OR ' in left_part:
+                bool_query["bool"]["must"] = [SearchQueryBuilder._handle_wildcard_or(left_part, phrases)]
+            elif ' AND ' in left_part:
+                bool_query["bool"]["must"] = SearchQueryBuilder._handle_wildcard_and(left_part, phrases)
+            else:
+                bool_query["bool"]["must"] = [SearchQueryBuilder._create_wildcard_clause(left_part, phrases)]
+
+            # Add must_not clauses
+            bool_query["bool"]["must_not"] = []
+            for part in parts[1:]:
+                term = part.strip().split()[0]
+                bool_query["bool"]["must_not"].append(
+                    SearchQueryBuilder._create_wildcard_clause(term, phrases)
+                )
+
+        # Handle AND operators
+        elif ' AND ' in query_text:
+            bool_query["bool"]["must"] = SearchQueryBuilder._handle_wildcard_and(query_text, phrases)
+
+        # Handle OR operators
+        elif ' OR ' in query_text:
+            return SearchQueryBuilder._handle_wildcard_or(query_text, phrases)
+
+        return bool_query
+
+    @staticmethod
+    def _handle_wildcard_and(query_text: str, phrases: Dict[str, str]) -> List[Dict[str, Any]]:
+        """Handle AND expressions with wildcards."""
+        parts = query_text.split(' AND ')
+        must_clauses = []
+
+        for part in parts:
+            part = part.strip()
+            must_clauses.append(SearchQueryBuilder._create_wildcard_clause(part, phrases))
+
+        return must_clauses
+
+    @staticmethod
+    def _handle_wildcard_or(query_text: str, phrases: Dict[str, str]) -> Dict[str, Any]:
+        """Handle OR expressions with wildcards."""
+        parts = query_text.split(' OR ')
+        should_clauses = []
+
+        for part in parts:
+            part = part.strip()
+            should_clauses.append(SearchQueryBuilder._create_wildcard_clause(part, phrases))
+
+        return {
+            "bool": {
+                "should": should_clauses,
+                "minimum_should_match": 1
+            }
+        }
+
+    @staticmethod
+    def _create_wildcard_clause(term: str, phrases: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Create a wildcard or match clause based on term content.
+
+        Args:
+            term: Search term that may contain wildcards
+            phrases: Dictionary of phrase placeholders
+
+        Returns:
+            Elasticsearch query clause
+        """
+        term = term.strip()
+
+        # Check if it's a phrase placeholder
+        if term.startswith('__PHRASE_') and term.endswith('__'):
+            phrase_text = phrases.get(term, term)
+            # Phrases should not use wildcard queries
+            return {"match_phrase": {"_all": phrase_text}}
+
+        # Handle escaped wildcards (treat as literals)
+        if r'\*' in term or r'\?' in term:
+            # Remove escape characters for literal matching
+            term = term.replace(r'\*', '*').replace(r'\?', '?')
+            return {"match": {"_all": term}}
+
+        # Check for field-specific search
+        if ':' in term:
+            field, value = term.split(':', 1)
+            field = field.strip()
+            value = value.strip()
+
+            # Check if value contains wildcards
+            if '*' in value or '?' in value:
+                return {"wildcard": {field: {"value": value}}}
+            else:
+                return {"match": {field: value}}
+
+        # Check if term contains wildcards
+        if '*' in term or '?' in term:
+            return {"wildcard": {"_all": {"value": term}}}
+
+        # Default to match query
+        return {"match": {"_all": term}}
+
+    @staticmethod
     def _build_aggregations() -> Dict[str, Any]:
         """
         Build facet aggregations.
