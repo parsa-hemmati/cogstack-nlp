@@ -1812,12 +1812,13 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
-### 2025-11-20 - Sprint 3 Phase 2: Advanced Query Parsing (Tasks 2.4-2.6)
+### 2025-11-20 - Sprint 3 Phase 2: Advanced Query Parsing (Tasks 2.4-2.7)
 
 **Commits**:
-- 645c303b - feat(search): Add Boolean operators (AND/OR/NOT) support to SearchQueryBuilder
+- 645c303b - feat(search): Add Boolean operators (AND/OR/NOT) support
 - 4e6f3d56 - feat(search): Add wildcard query support (* and ?)
-- [pending] - feat(search): Add fuzzy matching for typo tolerance (~)
+- 6c8fa8e9 - feat(search): Add fuzzy matching for typo tolerance (~)
+- [pending] - feat(search): Add proximity search (NEAR/W/ADJ operators)
 
 **Task 2.4 - Boolean Query Parsing** ✅:
 - AND/OR/NOT operators (e.g., "diabetes AND hypertension NOT family")
@@ -1843,9 +1844,19 @@ MEDCAT_TIMEOUT = 5  # seconds
 - 12 comprehensive test cases
 - Standalone test runner `test_fuzzy_matching.py`
 
+**Task 2.7 - Proximity Searches** ✅:
+- NEAR operator for finding terms within n words (e.g., "diabetes NEAR complications")
+- NEAR/n for specific distance (e.g., "heart NEAR/3 failure")
+- W/n alternative syntax (e.g., "blood W/2 pressure")
+- ADJ operator for adjacent terms (e.g., "myocardial ADJ infarction")
+- WITHIN/n operator support
+- Span queries for accurate proximity matching
+- 12 comprehensive test cases
+- Standalone test runner `test_proximity_search.py`
+
 **Changed**:
-- `search_query_builder.py`: Added 3 new query builder methods and supporting parsers
-- `test_search_query_builder.py`: Added 3 test classes with 34 total test cases
+- `search_query_builder.py`: Added 4 new query builder methods and supporting parsers
+- Created 4 standalone test runners for validation
 
 **Why**:
 - Enhances Sprint 3 Full-Text Search capabilities
