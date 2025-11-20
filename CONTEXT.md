@@ -604,6 +604,72 @@ MEDIUM:
 
 ### Recent Changes
 
+#### [2025-11-20] - Sprint 3 Phase 2, Task 2.4: Boolean Query Parsing - COMPLETE
+
+**Commits**: Task 2.4 - Implement _build_boolean_query() for AND/OR/NOT operators
+
+**Added**:
+- New `_build_boolean_query()` method in `backend/app/search/query_builder.py` (143 lines)
+  - Parses AND/OR/NOT operators with correct precedence (NOT > AND > OR)
+  - AND operator → must clauses (all terms must match)
+  - OR operator → should clauses with minimum_should_match=1 (at least one matches)
+  - NOT operator → must + must_not clauses (positive terms required, negative excluded)
+  - Supports operator combinations (e.g., "diabetes AND hypertension OR medication")
+  - Case-insensitive operator detection
+  - Preserves quoted phrase handling
+- New `_build_term_clause()` helper method (27 lines)
+  - Builds multi_match queries for single terms or phrases
+  - Detects quoted phrases and applies phrase matching
+  - Applies field boosting (title^10, content^1, author^2)
+- Added TestBooleanQueryBuilding test class in `backend/tests/unit/search/test_query_builder.py` (140 lines)
+  - 7 tests covering AND, OR, NOT operators, case-insensitivity, quoted phrases, and field boosting
+
+**Changed**:
+- None (new methods added)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Sprint 3 Phase 2, Task 2.4 requirement for boolean query parsing
+- Enables advanced search queries with logical operators (AND/OR/NOT)
+- Essential for medical searches (e.g., "diabetes AND hypertension NOT gestational")
+- Supports complex query combinations with correct operator precedence
+- Foundation for nested queries and advanced search features (Tasks 2.5+)
+
+**Impact**:
+- ✅ _build_boolean_query() method created with full boolean logic support
+- ✅ AND operator creates must clauses (all terms required)
+- ✅ OR operator creates should clauses (at least one term required)
+- ✅ NOT operator creates must_not clauses (excluded terms)
+- ✅ Case-insensitive operators (AND, and, AnD all work)
+- ✅ Quoted phrases preserved in boolean queries
+- ✅ Field boosting maintained across operators
+- ✅ Operator precedence correct (NOT > AND > OR)
+- ✅ All 7 tests passing (100% test coverage for boolean logic)
+- ✅ Backward compatibility maintained (Tasks 2.1-2.3 tests still pass)
+- ⚠️ Not yet integrated into build_query() (will be done in Task 2.5+)
+
+**Migration Notes**:
+- None required (new method, not yet called by build_query())
+- Integration planned for later tasks (complete query type routing)
+
+**Technical Debt**:
+- None
+
+**Design Patterns**:
+- **Recursive parsing**: OR operator splits query and recursively processes sub-parts
+- **Helper method pattern**: _build_term_clause() handles single term/phrase queries
+- **Operator precedence**: Explicit handling order (OR → NOT → AND) ensures correct logic
+- **Regex splitting**: Uses re.split() with IGNORECASE flag for flexible operator detection
+
+**Performance Considerations**:
+- Recursive approach may create nested bool queries for complex expressions
+- Field boosting applied consistently across all query types
+- Elasticsearch optimizes bool queries internally (must/should/must_not clauses)
+
+---
+
 #### [2025-11-20] - CCPM Workflow Configuration Update - CLARIFICATION
 
 **Commits**: feat(workflow): Add CCPM multi-agent parallel workflow (2221ef26)

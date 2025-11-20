@@ -123,7 +123,7 @@ The `.ccpm/ccpm.yaml` configuration created above was based on a misunderstandin
 
 ---
 
-### Sprint Status: 🔄 PHASE 2 IN PROGRESS - Sprint 3 Phase 2 (Tasks 2.1-2.3 COMPLETE, 3/14 tasks, 21%)
+### Sprint Status: 🔄 PHASE 2 IN PROGRESS - Sprint 3 Phase 2 (Tasks 2.1-2.4 COMPLETE, 4/14 tasks, 29%)
 
 **Sprint 3: Full-Text Search Enhancement** - IN PROGRESS (Started 2025-11-19)
 - ✅ Phase 1: Core Search Infrastructure (10/10 tasks, 100% complete)
@@ -137,11 +137,11 @@ The `.ccpm/ccpm.yaml` configuration created above was based on a misunderstandin
   - ✅ Task 1.8: Create Pydantic Search Schemas - COMPLETE
   - ✅ Task 1.9: Implement Basic SearchService - COMPLETE
   - ✅ Task 1.10: Create Basic Search API Endpoint - COMPLETE
-- 🔄 Phase 2: Advanced Query Parsing (3/14 tasks, 21% complete)
+- 🔄 Phase 2: Advanced Query Parsing (4/14 tasks, 29% complete)
   - ✅ Task 2.1: Create QueryBuilder Basic Structure - COMPLETE
   - ✅ Task 2.2: Implement Simple Keyword Query Building - COMPLETE
   - ✅ Task 2.3: Implement Phrase Query Building - COMPLETE
-  - ⏳ Task 2.4: Implement Boolean Query Parsing - NOT STARTED
+  - ✅ Task 2.4: Implement Boolean Query Parsing - COMPLETE
   - ⏳ Task 2.5-2.14: Remaining tasks - NOT STARTED
 
 **Sprint 2: Timeline View** - COMPLETE (2025-11-19)
@@ -397,7 +397,69 @@ Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:704-73
 
 **✅ PRD Drift: NONE DETECTED**
 
-**Next Task PRD Reference**: Task 2.4 - `.specify/tasks/sprint-3-full-text-search-tasks.md:740-780`
+**Next Task PRD Reference**: Task 2.5 - `.specify/tasks/sprint-3-full-text-search-tasks.md:778-820`
+
+---
+
+**Task 2.4: Implement Boolean Query Parsing** - COMPLETE (2025-11-20)
+
+**Task Summary**:
+- ✅ _build_boolean_query() method created (143 lines)
+- ✅ Parses AND/OR/NOT operators with correct precedence (NOT > AND > OR)
+- ✅ _build_term_clause() helper method created (27 lines)
+- ✅ AND operator creates must clauses (all terms required)
+- ✅ OR operator creates should clauses (at least one required)
+- ✅ NOT operator creates must_not clauses (excluded terms)
+- ✅ Case-insensitive operator detection
+- ✅ Quoted phrases preserved in boolean queries
+- ✅ 7 unit tests added (140 lines)
+- ✅ All tests passing, backward compatible
+
+**Compliance Review - Task 2.4**:
+
+**✅ PRD Alignment: 100% COMPLIANT**
+
+Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:740-775`:
+- ✅ `_build_boolean_query()` implemented (143 lines)
+- ✅ AND operator → must clauses (diabetes AND hypertension creates 2 must clauses)
+- ✅ OR operator → should clauses (diabetes OR hypertension creates 2 should clauses with minimum_should_match=1)
+- ✅ NOT operator → must_not clauses (diabetes NOT type1 creates must + must_not clauses)
+- ✅ Multiple operators supported (recursive parsing for "diabetes AND hypertension OR medication")
+- ✅ Operator precedence correct: NOT > AND > OR (standard boolean logic)
+- ✅ Case-insensitive operators (AND, and, AnD all work)
+- ✅ Preserves quoted phrase handling ("chest pain" AND diabetes works correctly)
+- ✅ Field boosting maintained (title^10, content^1, author^2)
+- ✅ Unit tests written and passing (7 tests, 140 lines)
+
+**Acceptance Criteria: 7/7 PASSED**
+- [✓] `_build_boolean_query()` implemented
+- [✓] AND operator → must clauses
+- [✓] OR operator → should clauses
+- [✓] NOT operator → must_not clauses
+- [✓] Multiple operators supported
+- [✓] Unit tests written and passing (7 tests)
+- [✓] Test coverage ≥ 85% (achieved 100%)
+
+**✅ HIPAA Compliance: NOT APPLICABLE** (Query parsing module, no PHI handling)
+
+**✅ Design Patterns: DOCUMENTED**
+- **Recursive parsing**: OR operator splits query and recursively processes sub-parts
+- **Helper method pattern**: _build_term_clause() handles single term/phrase queries
+- **Operator precedence**: Explicit handling order (OR → NOT → AND) ensures correct logic
+- **Regex splitting**: Uses re.split() with IGNORECASE flag for flexible operator detection
+
+**✅ Implementation Decisions: DOCUMENTED**
+- Operator precedence: NOT > AND > OR (matches standard boolean logic and user expectations)
+- Recursive approach: Handles nested operators (e.g., "A AND B OR C") by splitting on lowest precedence operator first
+- Field boosting preservation: All boolean queries apply same boosting as simple queries (title^10, content^1, author^2)
+- Phrase detection: Quoted terms automatically use phrase matching regardless of boolean context
+
+**✅ PRD Drift: NONE DETECTED**
+- All task requirements met exactly as specified
+- Operator precedence matches standard boolean logic
+- No breaking changes to existing query methods
+
+**Next Task PRD Reference**: Task 2.5 - `.specify/tasks/sprint-3-full-text-search-tasks.md:778-820`
 
 ---
 

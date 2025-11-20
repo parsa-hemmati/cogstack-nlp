@@ -322,3 +322,147 @@ class TestPhraseQueryBuilding:
         must_clauses = result["bool"]["must"]
         assert len(must_clauses) == 1
         assert must_clauses[0]["multi_match"]["query"] == "chest pain"
+
+
+class TestBooleanQueryBuilding:
+    """Test boolean query parsing (AND/OR/NOT operators)."""
+
+    def test_build_boolean_query_with_and_operator(self):
+        """Test AND operator creates must clauses."""
+        builder = QueryBuilder()
+        result = builder._build_boolean_query("diabetes AND hypertension")
+
+        # Should create bool query with must clauses
+        assert "bool" in result
+        assert "must" in result["bool"]
+        must_clauses = result["bool"]["must"]
+
+        # Should have 2 must clauses (one for each term)
+        assert len(must_clauses) == 2
+
+        # Each clause should be a match query
+        assert "match" in must_clauses[0] or "multi_match" in must_clauses[0]
+        assert "match" in must_clauses[1] or "multi_match" in must_clauses[1]
+
+        # Terms should be extracted correctly
+        terms = [
+            list(must_clauses[0].values())[0]["query"],
+            list(must_clauses[1].values())[0]["query"]
+        ]
+        assert "diabetes" in terms
+        assert "hypertension" in terms
+
+    def test_build_boolean_query_with_or_operator(self):
+        """Test OR operator creates should clauses."""
+        builder = QueryBuilder()
+        result = builder._build_boolean_query("diabetes OR hypertension")
+
+        # Should create bool query with should clauses
+        assert "bool" in result
+        assert "should" in result["bool"]
+        should_clauses = result["bool"]["should"]
+
+        # Should have 2 should clauses (one for each term)
+        assert len(should_clauses) == 2
+
+        # Each clause should be a match query
+        assert "match" in should_clauses[0] or "multi_match" in should_clauses[0]
+        assert "match" in should_clauses[1] or "multi_match" in should_clauses[1]
+
+        # Terms should be extracted correctly
+        terms = [
+            list(should_clauses[0].values())[0]["query"],
+            list(should_clauses[1].values())[0]["query"]
+        ]
+        assert "diabetes" in terms
+        assert "hypertension" in terms
+
+    def test_build_boolean_query_with_not_operator(self):
+        """Test NOT operator creates must + must_not clauses."""
+        builder = QueryBuilder()
+        result = builder._build_boolean_query("diabetes NOT type1")
+
+        # Should create bool query with must and must_not clauses
+        assert "bool" in result
+        assert "must" in result["bool"]
+        assert "must_not" in result["bool"]
+
+        must_clauses = result["bool"]["must"]
+        must_not_clauses = result["bool"]["must_not"]
+
+        # Should have 1 must clause (positive term)
+        assert len(must_clauses) == 1
+        assert list(must_clauses[0].values())[0]["query"] == "diabetes"
+
+        # Should have 1 must_not clause (negated term)
+        assert len(must_not_clauses) == 1
+        assert list(must_not_clauses[0].values())[0]["query"] == "type1"
+
+    def test_build_boolean_query_with_multiple_operators(self):
+        """Test multiple operators in single query."""
+        builder = QueryBuilder()
+        result = builder._build_boolean_query("diabetes AND hypertension OR medication")
+
+        # Should create bool query
+        assert "bool" in result
+
+        # Should have both must and should clauses (AND has higher precedence)
+        # Expected: (diabetes AND hypertension) OR medication
+        # Result: bool with should clauses containing:
+        #   1. bool with must [diabetes, hypertension]
+        #   2. match medication
+        assert "should" in result["bool"]
+        should_clauses = result["bool"]["should"]
+        assert len(should_clauses) >= 2
+
+    def test_build_boolean_query_case_insensitive(self):
+        """Test operators are case-insensitive."""
+        builder = QueryBuilder()
+
+        result_upper = builder._build_boolean_query("diabetes AND hypertension")
+        result_lower = builder._build_boolean_query("diabetes and hypertension")
+        result_mixed = builder._build_boolean_query("diabetes AnD hypertension")
+
+        # All should produce bool queries with must clauses
+        assert "bool" in result_upper and "must" in result_upper["bool"]
+        assert "bool" in result_lower and "must" in result_lower["bool"]
+        assert "bool" in result_mixed and "must" in result_mixed["bool"]
+
+    def test_build_boolean_query_with_quoted_phrases(self):
+        """Test boolean operators with quoted phrases."""
+        builder = QueryBuilder()
+        result = builder._build_boolean_query('"chest pain" AND diabetes')
+
+        # Should create bool query with must clauses
+        assert "bool" in result
+        assert "must" in result["bool"]
+        must_clauses = result["bool"]["must"]
+
+        # Should have 2 must clauses
+        assert len(must_clauses) == 2
+
+        # One should be a phrase query for "chest pain"
+        phrase_queries = [
+            clause for clause in must_clauses
+            if "multi_match" in clause and clause["multi_match"].get("type") == "phrase"
+        ]
+        assert len(phrase_queries) == 1
+        assert phrase_queries[0]["multi_match"]["query"] == "chest pain"
+
+    def test_build_boolean_query_preserves_field_boosting(self):
+        """Test boolean queries preserve field boosting."""
+        builder = QueryBuilder()
+        result = builder._build_boolean_query("diabetes AND hypertension")
+
+        # Should create bool query with must clauses
+        assert "bool" in result
+        assert "must" in result["bool"]
+        must_clauses = result["bool"]["must"]
+
+        # Each clause should search multiple fields with boosting
+        for clause in must_clauses:
+            if "multi_match" in clause:
+                assert "fields" in clause["multi_match"]
+                fields = clause["multi_match"]["fields"]
+                # Should have title^10, content^1, etc.
+                assert any("^" in field for field in fields)
