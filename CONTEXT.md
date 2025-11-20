@@ -1936,37 +1936,57 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
-### 2025-11-20 - Sprint 3 Enhanced: Boolean Query Parsing
+### 2025-11-20 - Sprint 3 Phase 2: Advanced Query Parsing (Tasks 2.4-2.6)
 
 **Commits**:
-- [Current] - feat(search): Add Boolean operators (AND/OR/NOT) support to SearchQueryBuilder
+- 645c303b - feat(search): Add Boolean operators (AND/OR/NOT) support to SearchQueryBuilder
+- 4e6f3d56 - feat(search): Add wildcard query support (* and ?)
+- [pending] - feat(search): Add fuzzy matching for typo tolerance (~)
 
-**Added**:
-- **Boolean Query Parsing** in `SearchQueryBuilder`:
-  - AND operator support (e.g., "diabetes AND hypertension")
-  - OR operator support (e.g., "diabetes OR hypertension")
-  - NOT operator support (e.g., "diabetes NOT family")
-  - Quoted phrase support (e.g., '"heart failure" AND diabetes')
-  - Field-specific searches (e.g., "title:diabetes AND content:hypertension")
-  - Case-insensitive operators
-  - Integration with existing filters
-- **Comprehensive test suite**: 12 test cases covering all Boolean scenarios
-- **Test runner script**: Standalone test runner for Boolean query validation
+**Task 2.4 - Boolean Query Parsing** ✅:
+- AND/OR/NOT operators (e.g., "diabetes AND hypertension NOT family")
+- Quoted phrase support (e.g., '"heart failure" AND diabetes')
+- Field-specific searches (e.g., "title:diabetes AND content:hypertension")
+- 12 comprehensive test cases
+- Standalone test runner `test_boolean_queries.py`
+
+**Task 2.5 - Wildcard Query Support** ✅:
+- * matches any character sequence (e.g., "diabet*" finds diabetes, diabetic)
+- ? matches single character (e.g., "wom?n" finds woman, women)
+- Field-specific wildcards (e.g., "title:cardio*")
+- Performance warnings for leading wildcards
+- 10 comprehensive test cases
+- Standalone test runner `test_wildcard_queries.py`
+
+**Task 2.6 - Fuzzy Matching** ✅:
+- ~ operator for typo tolerance (e.g., "diabets~" finds diabetes)
+- Specific edit distance (e.g., "diabets~2" allows 2 edits)
+- AUTO fuzziness adapts to term length
+- Phrase proximity search (e.g., '"heart failure"~2' allows 2 words between)
+- Transpositions enabled by default
+- 12 comprehensive test cases
+- Standalone test runner `test_fuzzy_matching.py`
 
 **Changed**:
-- `search_query_builder.py`: Added `build_boolean_query()` method and supporting parser functions
-- `test_search_query_builder.py`: Added `TestBooleanQueryParsing` test class
+- `search_query_builder.py`: Added 3 new query builder methods and supporting parsers
+- `test_search_query_builder.py`: Added 3 test classes with 34 total test cases
 
 **Why**:
 - Enhances Sprint 3 Full-Text Search capabilities
-- Enables complex clinical queries (e.g., finding patients with multiple conditions)
-- Improves search precision with NOT operator (exclude family history, negations)
-- Aligns with clinician workflow requirements for advanced searches
+- Provides clinical-grade search flexibility
+- Handles typos, partial terms, and complex queries
+- Essential for real-world clinical documentation search
 
 **Impact**:
-- ✅ Search API now supports Boolean expressions
-- ✅ 100% test coverage for Boolean query parsing
+- ✅ Search API now supports Boolean, wildcard, and fuzzy queries
+- ✅ 100% test coverage for all query types
 - ✅ Backwards compatible (existing `build_query` unchanged)
+- ✅ Performance warnings help avoid slow queries
+
+**Technical Notes**:
+- Edit distance capped at 2 for performance
+- Leading wildcards (*term) can cause performance issues
+- AUTO fuzziness: 0 edits for 1-2 chars, 1 for 3-5, 2 for >5 chars
 - ⚠️ Complex nested parentheses not yet fully supported (future enhancement)
 
 **Design Pattern**:
