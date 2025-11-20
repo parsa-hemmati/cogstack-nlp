@@ -1936,13 +1936,14 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
-### 2025-11-20 - Sprint 3 Phase 2: Advanced Query Parsing (Tasks 2.4-2.7)
+### 2025-11-20 - Sprint 3 Phase 2: Advanced Query Parsing (Tasks 2.4-2.8)
 
 **Commits**:
 - 645c303b - feat(search): Add Boolean operators (AND/OR/NOT) support
 - 4e6f3d56 - feat(search): Add wildcard query support (* and ?)
 - 6c8fa8e9 - feat(search): Add fuzzy matching for typo tolerance (~)
-- [pending] - feat(search): Add proximity search (NEAR/W/ADJ operators)
+- 70d36770 - feat(search): Add proximity search (NEAR/W/ADJ operators)
+- [pending] - feat(search): Add range queries for numeric and date fields
 
 **Task 2.4 - Boolean Query Parsing** ✅:
 - AND/OR/NOT operators (e.g., "diabetes AND hypertension NOT family")
@@ -1978,9 +1979,21 @@ MEDCAT_TIMEOUT = 5  # seconds
 - 12 comprehensive test cases
 - Standalone test runner `test_proximity_search.py`
 
+**Task 2.8 - Range Queries** ✅:
+- Inclusive ranges with square brackets (e.g., "age:[18 TO 65]")
+- Exclusive ranges with curly braces (e.g., "lab_value:{0.5 TO 1.5}")
+- Mixed inclusive/exclusive (e.g., "score:[0 TO 100}")
+- Comparison operators (>, <, >=, <=) (e.g., "bp_systolic:>140")
+- Date range support (e.g., "date:[2023-01-01 TO 2023-12-31]")
+- Open-ended ranges with asterisk (e.g., "date:[2023-01-01 TO *]")
+- Automatic type detection (integer, float, string/date)
+- Integration with Boolean operators
+- 12 comprehensive test cases
+- Standalone test runner `test_range_queries.py`
+
 **Changed**:
-- `search_query_builder.py`: Added 4 new query builder methods and supporting parsers
-- Created 4 standalone test runners for validation
+- `search_query_builder.py`: Added 5 new query builder methods and supporting parsers
+- Created 5 standalone test runners for validation
 
 **Why**:
 - Enhances Sprint 3 Full-Text Search capabilities
