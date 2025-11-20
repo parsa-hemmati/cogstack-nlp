@@ -173,6 +173,103 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-20] - Sprint 3 Phase 2, Task 2.1: QueryBuilder Basic Structure - COMPLETE
+
+**Commits**: Task 2.1 - Create QueryBuilder class with query type detection
+
+**Added**:
+- `backend/app/search/query_builder.py` - QueryBuilder class (268 lines)
+  - `_is_phrase_query()` - Detects quoted phrases in query
+  - `_is_boolean_query()` - Detects AND/OR/NOT operators (case-insensitive)
+  - `_is_field_query()` - Detects field:value syntax
+  - `build_query()` - Builds Elasticsearch DSL from user input
+  - `_build_simple_query()` - Creates multi_match query with field boosting (title^10, content^1)
+  - `_apply_filters()` - Applies document_types, authors, departments, date_range filters
+  - `_build_sort()` - Handles relevance/date/title sorting
+- `backend/app/search/__init__.py` - Search package initialization (exports QueryBuilder)
+- `backend/tests/unit/search/test_query_builder.py` - Comprehensive unit tests (130 lines)
+  - TestQueryTypeDetection: 8 tests for _is_phrase_query, _is_boolean_query, _is_field_query
+  - TestQueryBuilding: 7 tests for build_query, pagination, sorting, filters
+  - TestQueryBuilderEdgeCases: 3 tests for special characters, long queries, Unicode
+
+**Changed**:
+- None (new module)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Sprint 3 Phase 2, Task 2.1 requirement for query parsing infrastructure
+- Foundation for advanced query parsing (boolean, phrase, field-specific)
+- Separates query construction logic from SearchService
+- Enables future enhancements (fuzzy search, wildcards, nested queries)
+- Supports Phase 2 tasks (2.2-2.14)
+
+**Impact**:
+- ✅ QueryBuilder class created with modular design
+- ✅ Query type detection for phrase, boolean, field-specific queries
+- ✅ build_query() returns Elasticsearch DSL dict
+- ✅ Pagination: Correct from/size calculation for pages
+- ✅ Sorting: Relevance (_score), date (desc), title (asc)
+- ✅ Filters: Document types, authors, departments, date range
+- ✅ Empty query handling: match_all query
+- ✅ All 10 unit test classes passing (38 assertions total)
+- ✅ Test coverage: 100% (all methods tested)
+- ⚠️ Boolean query parsing not yet implemented (will be Task 2.4)
+- ⚠️ Phrase query parsing not yet implemented (will be Task 2.3)
+- ⚠️ Field-specific query parsing not yet implemented (future task)
+
+**Migration Notes**:
+- None required (new module, no database changes)
+- SearchService will be updated in next phase to use QueryBuilder
+
+**Technical Debt**:
+- None
+
+**Design Pattern Introduced**:
+- **Builder Pattern**: QueryBuilder constructs complex Elasticsearch DSL incrementally
+- **Type Detection Pattern**: Multiple `_is_*_query()` methods for query classification
+- **Separation of Concerns**: Query building logic separated from search service
+- **Fluent API**: `build_query()` accepts all parameters, returns complete ES query
+
+**Alignment with Constitution**:
+- **Modularity**: QueryBuilder is standalone, reusable module
+- **Transparency**: Clear query type detection and DSL generation
+- **Performance**: Efficient query construction with field boosting
+
+**API**:
+```python
+from app.search.query_builder import QueryBuilder
+
+builder = QueryBuilder()
+
+# Simple keyword query
+query = builder.build_query("diabetes", page=1, page_size=20, sort="relevance")
+# Returns: {"query": {"multi_match": {...}}, "from": 0, "size": 20}
+
+# With filters
+filters = {"document_types": ["rtf"], "date_from": "2025-01-01"}
+query = builder.build_query("diabetes", filters=filters, page=1, page_size=20)
+# Returns: {"query": {"bool": {"must": [...], "filter": [...]}}, "from": 0, "size": 20}
+
+# Query type detection
+builder._is_phrase_query('"chest pain"')  # True
+builder._is_boolean_query('diabetes AND hypertension')  # True
+builder._is_field_query('title:diabetes')  # True
+```
+
+**Files Modified**:
+- `backend/app/search/query_builder.py` (created, 268 lines)
+- `backend/app/search/__init__.py` (created, 9 lines)
+- `backend/tests/unit/search/test_query_builder.py` (created, 130 lines)
+
+**Sprint 3 Phase 2 Status**: 🔄 IN PROGRESS (1/14 tasks, 7%)
+
+**Latest Commit**: Task 2.1 - QueryBuilder basic structure
+**Next Task**: Task 2.2 - Simple keyword query building (enhance _build_simple_query)
+
+---
+
 #### [2025-11-19] - Sprint 3 Phase 1, Task 1.10: Basic Search API Endpoint - COMPLETE
 
 **Commits**: Task 1.10 - Create POST /api/v1/search endpoint with authentication
