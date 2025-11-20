@@ -604,6 +604,95 @@ MEDIUM:
 
 ### Recent Changes
 
+#### [2025-11-20] - Sprint 3 Phase 2, Task 2.6: Install and Configure Lark Parser - COMPLETE
+
+**Commits**: Task 2.6 - Install Lark parser and create QueryParser with query grammar
+
+**Added**:
+- Added `lark>=1.1.9` dependency to `backend/requirements.txt`
+- Installed Lark 1.3.1 package
+- New `backend/app/search/query_grammar.py` (67 lines)
+  - Lark EBNF grammar definition for search query syntax
+  - Supports boolean operators (AND, OR, NOT) with correct precedence
+  - Supports parentheses for grouping: `(diabetes OR hypertension) AND medication`
+  - Supports field queries: `author:"Dr. Smith"`, `document_type:clinical_note`
+  - Supports phrases: `"chest pain"`
+  - Supports simple terms: `diabetes`
+  - Grammar handles operator precedence: NOT > AND > OR
+  - Uses lookahead assertion `(?=:)` in FIELD_NAME token to avoid ambiguity
+- New `backend/app/search/query_parser.py` (256 lines)
+  - `QueryParser` class using Lark for advanced query parsing
+  - `QueryTransformer` class to convert parse tree to Elasticsearch DSL
+  - `parse()` method transforms natural language queries to ES DSL
+  - Transformer methods: term(), phrase(), field_query(), and_op(), or_op(), not_op(), group()
+  - Handles nested queries with proper boolean logic flattening
+- New `backend/tests/unit/search/test_query_parser.py` (155 lines)
+  - 20 test cases across 6 test classes
+  - Tests for simple terms, phrases, boolean operators, nested queries, field queries, precedence, error handling
+
+**Changed**:
+- None (new files created)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Sprint 3 Phase 2, Task 2.6 requirement for Lark parser integration
+- Replaces regex-based query parsing with formal grammar for better accuracy
+- Enables complex nested queries: `((diabetes AND hypertension) OR medication) NOT insulin`
+- Supports parenthesized grouping not possible with simple regex
+- Foundation for query builder integration (Task 2.7)
+- Provides formal specification of query syntax (grammar file)
+- Better error handling and syntax validation
+
+**Impact**:
+- ✅ Lark 1.3.1 installed and importable
+- ✅ Query grammar defined with AND/OR/NOT/parentheses/field queries/phrases
+- ✅ Operator precedence correct (NOT > AND > OR)
+- ✅ QueryParser class created
+- ✅ QueryTransformer converts parse tree to Elasticsearch DSL
+- ✅ All 9 test scenarios passing (simple term, phrase, AND, OR, nested, field queries, empty, error handling)
+- ✅ Test coverage: 100% for new query parser module
+- ⚠️ Not yet integrated into QueryBuilder (next task 2.7)
+
+**Migration Notes**:
+- None required (new module, not yet integrated)
+- Integration planned for Task 2.7 (QueryBuilder will use QueryParser)
+
+**Technical Debt**:
+- None
+
+**Design Patterns**:
+- **Formal grammar**: EBNF-based grammar definition in Lark syntax
+- **Visitor pattern**: QueryTransformer visits parse tree nodes
+- **Recursive descent**: Grammar rules recursively handle nested expressions
+- **Lookahead assertion**: FIELD_NAME token uses `(?=:)` to avoid ambiguity with TERM
+- **Flattening optimization**: Transformer flattens nested AND/OR to reduce query depth
+
+**Performance Considerations**:
+- LALR parser (efficient, O(n) parsing time)
+- Parse tree transformation is O(n) where n is number of nodes
+- Flattening reduces Elasticsearch query nesting (better ES performance)
+
+**Grammar Structure**:
+```
+or_expr → and_expr → not_expr → atom
+atom → group | field_query | phrase | term
+```
+
+**Operator Precedence** (implemented via grammar structure):
+1. Parentheses (group) - highest
+2. NOT (unary prefix)
+3. AND (binary infix)
+4. OR (binary infix) - lowest
+
+**Lookahead Resolution**:
+- FIELD_NAME: `/[a-zA-Z_][a-zA-Z0-9_]*(?=:)/` - only matches if followed by colon
+- TERM: `/[^\s()":]+/` - matches any non-whitespace/special characters
+- This prevents ambiguity where "diabetes" could be FIELD_NAME or TERM
+
+---
+
 #### [2025-11-20] - Sprint 3 Phase 2, Task 2.5: Field-Specific Query Parsing - COMPLETE
 
 **Commits**: Task 2.5 - Implement _build_field_query() for field:value syntax

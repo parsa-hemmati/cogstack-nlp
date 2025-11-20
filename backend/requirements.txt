@@ -27,6 +27,9 @@ aioredis==2.0.1
 # Elasticsearch (Full-Text Search)
 elasticsearch[async]==8.11.0
 
+# Query Parsing (Advanced Search Syntax)
+lark>=1.1.9
+
 # HTTP Client
 httpx==0.27.2
 aiohttp==3.11.7

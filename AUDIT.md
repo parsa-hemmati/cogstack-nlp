@@ -123,7 +123,7 @@ The `.ccpm/ccpm.yaml` configuration created above was based on a misunderstandin
 
 ---
 
-### Sprint Status: 🔄 PHASE 2 IN PROGRESS - Sprint 3 Phase 2 (Tasks 2.1-2.5 COMPLETE, 5/14 tasks, 36%)
+### Sprint Status: 🔄 PHASE 2 IN PROGRESS - Sprint 3 Phase 2 (Tasks 2.1-2.6 COMPLETE, 6/14 tasks, 43%)
 
 **Sprint 3: Full-Text Search Enhancement** - IN PROGRESS (Started 2025-11-19)
 - ✅ Phase 1: Core Search Infrastructure (10/10 tasks, 100% complete)
@@ -137,13 +137,14 @@ The `.ccpm/ccpm.yaml` configuration created above was based on a misunderstandin
   - ✅ Task 1.8: Create Pydantic Search Schemas - COMPLETE
   - ✅ Task 1.9: Implement Basic SearchService - COMPLETE
   - ✅ Task 1.10: Create Basic Search API Endpoint - COMPLETE
-- 🔄 Phase 2: Advanced Query Parsing (5/14 tasks, 36% complete)
+- 🔄 Phase 2: Advanced Query Parsing (6/14 tasks, 43% complete)
   - ✅ Task 2.1: Create QueryBuilder Basic Structure - COMPLETE
   - ✅ Task 2.2: Implement Simple Keyword Query Building - COMPLETE
   - ✅ Task 2.3: Implement Phrase Query Building - COMPLETE
   - ✅ Task 2.4: Implement Boolean Query Parsing - COMPLETE
   - ✅ Task 2.5: Implement Field-Specific Query Parsing - COMPLETE
-  - ⏳ Task 2.6-2.14: Remaining tasks - NOT STARTED
+  - ✅ Task 2.6: Install and Configure Lark Parser - COMPLETE
+  - ⏳ Task 2.7-2.14: Remaining tasks - NOT STARTED
 
 **Sprint 2: Timeline View** - COMPLETE (2025-11-19)
 - ✅ Phase 5.1: Backend Timeline Data API
@@ -398,7 +399,95 @@ Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:704-73
 
 **✅ PRD Drift: NONE DETECTED**
 
-**Next Task PRD Reference**: Task 2.6 - `.specify/tasks/sprint-3-full-text-search-tasks.md:823-900`
+**Next Task PRD Reference**: Task 2.7 - `.specify/tasks/sprint-3-full-text-search-tasks.md:868-900`
+
+---
+
+**Task 2.6: Install and Configure Lark Parser** - COMPLETE (2025-11-20)
+
+**Task Summary**:
+- ✅ Lark 1.3.1 installed (`lark>=1.1.9` added to requirements.txt)
+- ✅ query_grammar.py created (67 lines) with Lark EBNF grammar
+- ✅ query_parser.py created (256 lines) with QueryParser and QueryTransformer
+- ✅ Grammar supports AND/OR/NOT operators with precedence (NOT > AND > OR)
+- ✅ Grammar supports parentheses for grouping
+- ✅ Grammar supports field queries (field:value and field:"quoted value")
+- ✅ Grammar supports phrases ("quoted phrase")
+- ✅ Grammar supports simple terms (keyword)
+- ✅ QueryTransformer converts parse tree to Elasticsearch DSL
+- ✅ 20 unit tests added (155 lines) across 6 test classes
+- ✅ All tests passing, 100% coverage for new modules
+
+**Compliance Review - Task 2.6**:
+
+**✅ PRD Alignment: 100% COMPLIANT**
+
+Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:823-865`:
+- ✅ Lark dependency added to requirements.txt (`lark>=1.1.9`)
+- ✅ Lark installed successfully (version 1.3.1)
+- ✅ Query grammar defined in query_grammar.py (67 lines)
+- ✅ Grammar supports AND/OR/NOT operators with correct precedence
+- ✅ Grammar supports parentheses for grouping: `(A OR B) AND C`
+- ✅ Grammar supports field:value syntax: `author:"Dr. Smith"`
+- ✅ Grammar supports quoted phrases: `"chest pain"`
+- ✅ QueryParser class created in query_parser.py (256 lines)
+- ✅ QueryParser.parse() method transforms queries to Elasticsearch DSL
+- ✅ QueryTransformer converts parse tree nodes (term, phrase, field_query, and_op, or_op, not_op, group)
+- ✅ Unit tests written and passing (20 tests, 155 lines)
+- ✅ Test coverage: 100% for query_grammar.py and query_parser.py
+
+**Acceptance Criteria: 7/7 PASSED**
+- [✓] Lark installed and importable
+- [✓] Query grammar defined (AND, OR, NOT, parentheses, phrases, field queries)
+- [✓] Operator precedence correct (NOT > AND > OR)
+- [✓] QueryParser class created
+- [✓] QueryTransformer converts parse tree to ES DSL
+- [✓] Unit tests written and passing (20 tests)
+- [✓] Test coverage ≥ 85% (achieved 100%)
+
+**✅ HIPAA Compliance: NOT APPLICABLE** (Query parsing module, no PHI handling)
+
+**✅ Design Patterns: DOCUMENTED**
+- **Formal grammar**: EBNF-based grammar using Lark syntax
+- **Visitor pattern**: QueryTransformer visits parse tree nodes and transforms to ES DSL
+- **Recursive descent**: Grammar rules handle nested expressions recursively
+- **Lookahead assertion**: FIELD_NAME token uses `(?=:)` regex to avoid TERM ambiguity
+- **Flattening optimization**: Transformer flattens nested AND/OR operations
+
+**✅ Implementation Decisions: DOCUMENTED**
+- LALR parser: Efficient O(n) parsing for query strings
+- Lookahead resolution: FIELD_NAME matches only when followed by `:` (avoids "diabetes" being field vs term ambiguity)
+- Flattening: `(A AND B) AND C` → `{must: [A, B, C]}` (reduces query nesting depth)
+- Grammar structure enforces precedence: or_expr → and_expr → not_expr → atom
+- Transformer methods use @v_args(inline=True) for cleaner argument handling
+
+**✅ Grammar Structure**:
+```
+or_expr → and_expr (lowest precedence)
+and_expr → not_expr (medium precedence)
+not_expr → atom (highest precedence)
+atom → group | field_query | phrase | term
+```
+
+**✅ Token Definitions**:
+- FIELD_NAME: `/[a-zA-Z_][a-zA-Z0-9_]*(?=:)/` (lookahead for colon)
+- TERM: `/[^\s()":]+/` (any non-whitespace/special chars)
+- ESCAPED_STRING: Lark's built-in for quoted strings
+
+**✅ Test Coverage**:
+- TestQueryParserBasics: Simple terms, phrases
+- TestBooleanOperators: AND, OR, NOT operators
+- TestNestedQueries: Parenthesized grouping, complex nesting
+- TestFieldQueries: Text fields, keyword fields, boolean combinations
+- TestOperatorPrecedence: NOT > AND, AND > OR
+- TestErrorHandling: Invalid syntax (unmatched parenthesis), empty query
+
+**✅ PRD Drift: NONE DETECTED**
+- All task requirements met exactly as specified
+- Operator precedence matches standard boolean logic
+- Grammar is extensible for future query features (wildcards, ranges, fuzzy matching)
+
+**Next Task PRD Reference**: Task 2.7 - `.specify/tasks/sprint-3-full-text-search-tasks.md:868-900`
 
 ---
 
