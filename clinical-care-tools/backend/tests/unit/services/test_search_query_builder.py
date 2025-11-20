@@ -289,6 +289,178 @@ class TestHighlighting:
         assert "highlight" not in query
 
 
+class TestBooleanQueryParsing:
+    """Test Boolean operator parsing (AND/OR/NOT)."""
+
+    def test_parse_simple_and_query(self):
+        """Test parsing query with AND operator."""
+        query = SearchQueryBuilder.build_boolean_query("diabetes AND hypertension")
+
+        assert "query" in query
+        assert "bool" in query["query"]
+        assert "must" in query["query"]["bool"]
+
+        # Should have two must clauses
+        must_clauses = query["query"]["bool"]["must"]
+        assert len(must_clauses) == 2
+        assert must_clauses[0]["match"]["_all"] == "diabetes"
+        assert must_clauses[1]["match"]["_all"] == "hypertension"
+
+    def test_parse_simple_or_query(self):
+        """Test parsing query with OR operator."""
+        query = SearchQueryBuilder.build_boolean_query("diabetes OR hypertension")
+
+        assert "query" in query
+        assert "bool" in query["query"]
+        assert "should" in query["query"]["bool"]
+        assert query["query"]["bool"]["minimum_should_match"] == 1
+
+        # Should have two should clauses
+        should_clauses = query["query"]["bool"]["should"]
+        assert len(should_clauses) == 2
+        assert should_clauses[0]["match"]["_all"] == "diabetes"
+        assert should_clauses[1]["match"]["_all"] == "hypertension"
+
+    def test_parse_simple_not_query(self):
+        """Test parsing query with NOT operator."""
+        query = SearchQueryBuilder.build_boolean_query("diabetes NOT family")
+
+        assert "query" in query
+        assert "bool" in query["query"]
+        assert "must" in query["query"]["bool"]
+        assert "must_not" in query["query"]["bool"]
+
+        # Should have one must and one must_not clause
+        assert len(query["query"]["bool"]["must"]) == 1
+        assert len(query["query"]["bool"]["must_not"]) == 1
+        assert query["query"]["bool"]["must"][0]["match"]["_all"] == "diabetes"
+        assert query["query"]["bool"]["must_not"][0]["match"]["_all"] == "family"
+
+    def test_parse_complex_boolean_query(self):
+        """Test parsing complex query with multiple operators."""
+        query = SearchQueryBuilder.build_boolean_query(
+            "(diabetes OR hypertension) AND medication NOT family"
+        )
+
+        assert "query" in query
+        assert "bool" in query["query"]
+
+        # Check outer AND structure
+        bool_query = query["query"]["bool"]
+        assert "must" in bool_query
+        assert "must_not" in bool_query
+
+        # First must clause should be an OR group
+        or_group = bool_query["must"][0]["bool"]
+        assert "should" in or_group
+        assert len(or_group["should"]) == 2
+
+        # Second must clause should be medication
+        assert bool_query["must"][1]["match"]["_all"] == "medication"
+
+        # Must not clause should be family
+        assert bool_query["must_not"][0]["match"]["_all"] == "family"
+
+    def test_parse_phrase_query(self):
+        """Test parsing quoted phrase query."""
+        query = SearchQueryBuilder.build_boolean_query('"heart failure" AND diabetes')
+
+        assert "query" in query
+        must_clauses = query["query"]["bool"]["must"]
+        assert len(must_clauses) == 2
+
+        # First clause should be a phrase match
+        assert must_clauses[0]["match_phrase"]["_all"] == "heart failure"
+        # Second clause should be a regular match
+        assert must_clauses[1]["match"]["_all"] == "diabetes"
+
+    def test_parse_parentheses_precedence(self):
+        """Test that parentheses control operator precedence."""
+        # Without parentheses: diabetes AND hypertension OR copd
+        # Should be: (diabetes AND hypertension) OR copd
+        query1 = SearchQueryBuilder.build_boolean_query("diabetes AND hypertension OR copd")
+
+        # With explicit parentheses: diabetes AND (hypertension OR copd)
+        query2 = SearchQueryBuilder.build_boolean_query("diabetes AND (hypertension OR copd)")
+
+        # These should produce different structures
+        assert query1 != query2
+
+    def test_case_insensitive_operators(self):
+        """Test that Boolean operators are case-insensitive."""
+        queries = [
+            SearchQueryBuilder.build_boolean_query("diabetes AND hypertension"),
+            SearchQueryBuilder.build_boolean_query("diabetes and hypertension"),
+            SearchQueryBuilder.build_boolean_query("diabetes And hypertension")
+        ]
+
+        # All queries should produce the same structure
+        for i in range(1, len(queries)):
+            assert queries[0] == queries[i]
+
+    def test_handle_empty_query(self):
+        """Test handling of empty query string."""
+        query = SearchQueryBuilder.build_boolean_query("")
+
+        assert "query" in query
+        assert query["query"]["match_all"] == {}
+
+    def test_handle_single_term(self):
+        """Test handling of single term without operators."""
+        query = SearchQueryBuilder.build_boolean_query("diabetes")
+
+        assert "query" in query
+        assert "match" in query["query"]
+        assert query["query"]["match"]["_all"] == "diabetes"
+
+    def test_multiple_not_operators(self):
+        """Test handling multiple NOT operators."""
+        query = SearchQueryBuilder.build_boolean_query("diabetes NOT family NOT history")
+
+        assert "query" in query
+        bool_query = query["query"]["bool"]
+
+        assert len(bool_query["must"]) == 1
+        assert bool_query["must"][0]["match"]["_all"] == "diabetes"
+
+        assert len(bool_query["must_not"]) == 2
+        assert bool_query["must_not"][0]["match"]["_all"] == "family"
+        assert bool_query["must_not"][1]["match"]["_all"] == "history"
+
+    def test_integrate_with_filters(self):
+        """Test Boolean query with additional filters."""
+        query = SearchQueryBuilder.build_boolean_query(
+            "diabetes AND hypertension",
+            filters={
+                "document_type": "discharge_summary",
+                "department": "Cardiology"
+            }
+        )
+
+        assert "query" in query
+        bool_query = query["query"]["bool"]
+
+        # Should have AND clauses
+        assert len(bool_query["must"]) == 2
+
+        # Should have filters
+        assert "filter" in bool_query
+        assert len(bool_query["filter"]) == 2
+
+    def test_field_specific_boolean_query(self):
+        """Test Boolean operators with field-specific searches."""
+        query = SearchQueryBuilder.build_boolean_query(
+            "title:diabetes AND content:hypertension"
+        )
+
+        assert "query" in query
+        must_clauses = query["query"]["bool"]["must"]
+
+        assert len(must_clauses) == 2
+        assert must_clauses[0]["match"]["title"] == "diabetes"
+        assert must_clauses[1]["match"]["content"] == "hypertension"
+
+
 class TestSuggestQuery:
     """Test autocomplete suggestion query."""
 

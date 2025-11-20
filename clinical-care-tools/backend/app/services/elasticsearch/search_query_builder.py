@@ -7,10 +7,12 @@ Builds complex Elasticsearch queries with:
 - Fuzzy matching for typo tolerance
 - Aggregations for faceting
 - Highlighting configuration
+- Boolean operators (AND, OR, NOT) parsing
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
+import re
 
 
 class SearchQueryBuilder:
@@ -110,6 +112,225 @@ class SearchQueryBuilder:
             es_query["highlight"] = SearchQueryBuilder._build_highlighting()
 
         return es_query
+
+    @staticmethod
+    def build_boolean_query(
+        query_text: str,
+        filters: Optional[Dict[str, Any]] = None,
+        fields: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Build Elasticsearch query with Boolean operators (AND, OR, NOT).
+
+        Supports:
+        - AND operator: term1 AND term2
+        - OR operator: term1 OR term2
+        - NOT operator: term1 NOT term2
+        - Parentheses for grouping: (term1 OR term2) AND term3
+        - Quoted phrases: "exact phrase" AND term
+        - Field-specific search: title:term1 AND content:term2
+
+        Args:
+            query_text: Query string with Boolean operators
+            filters: Additional filters to apply
+            fields: Default fields to search (if not field-specific)
+
+        Returns:
+            Elasticsearch query DSL dictionary
+        """
+        if not query_text or not query_text.strip():
+            return {"query": {"match_all": {}}}
+
+        # Default fields if not specified
+        if fields is None:
+            fields = ["title^3", "content^1", "author^2"]
+
+        # Parse the query string
+        parsed_query = SearchQueryBuilder._parse_boolean_expression(query_text)
+
+        # Build the Elasticsearch query from parsed structure
+        es_query = {"query": parsed_query}
+
+        # Add filters if provided
+        if filters:
+            filter_clauses = []
+            for key, value in filters.items():
+                if key == "document_type":
+                    filter_clauses.append({"term": {"document_type": value}})
+                elif key == "department":
+                    filter_clauses.append({"term": {"department": value}})
+                # Add more filter types as needed
+
+            if filter_clauses:
+                # Wrap existing query in a bool query with filters
+                if "bool" not in es_query["query"]:
+                    es_query["query"] = {"bool": {"must": [es_query["query"]]}}
+                es_query["query"]["bool"]["filter"] = filter_clauses
+
+        return es_query
+
+    @staticmethod
+    def _parse_boolean_expression(query_text: str) -> Dict[str, Any]:
+        """
+        Parse Boolean expression into Elasticsearch query structure.
+
+        Args:
+            query_text: Query string with Boolean operators
+
+        Returns:
+            Elasticsearch query clause
+        """
+        # Handle empty query
+        if not query_text.strip():
+            return {"match_all": {}}
+
+        # Normalize operators to uppercase for consistent parsing
+        query_text = SearchQueryBuilder._normalize_operators(query_text)
+
+        # Extract quoted phrases and replace with placeholders
+        phrases, query_text = SearchQueryBuilder._extract_phrases(query_text)
+
+        # Parse the expression
+        clauses = SearchQueryBuilder._parse_boolean_logic(query_text, phrases)
+
+        return clauses
+
+    @staticmethod
+    def _normalize_operators(query_text: str) -> str:
+        """Normalize Boolean operators to uppercase."""
+        # Replace word-boundary operators with uppercase versions
+        query_text = re.sub(r'\b(and)\b', 'AND', query_text, flags=re.IGNORECASE)
+        query_text = re.sub(r'\b(or)\b', 'OR', query_text, flags=re.IGNORECASE)
+        query_text = re.sub(r'\b(not)\b', 'NOT', query_text, flags=re.IGNORECASE)
+        return query_text
+
+    @staticmethod
+    def _extract_phrases(query_text: str) -> Tuple[Dict[str, str], str]:
+        """Extract quoted phrases and replace with placeholders."""
+        phrases = {}
+        phrase_counter = 0
+
+        def replace_phrase(match):
+            nonlocal phrase_counter
+            phrase_id = f"__PHRASE_{phrase_counter}__"
+            phrases[phrase_id] = match.group(1)
+            phrase_counter += 1
+            return phrase_id
+
+        # Replace quoted phrases with placeholders
+        query_text = re.sub(r'"([^"]+)"', replace_phrase, query_text)
+
+        return phrases, query_text
+
+    @staticmethod
+    def _parse_boolean_logic(query_text: str, phrases: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Parse Boolean logic into Elasticsearch query structure.
+
+        This is a simplified parser that handles basic Boolean logic.
+        For production use, consider using a proper expression parser.
+        """
+        # Remove extra whitespace
+        query_text = ' '.join(query_text.split())
+
+        # Handle single term without operators
+        if ' AND ' not in query_text and ' OR ' not in query_text and ' NOT ' not in query_text:
+            return SearchQueryBuilder._create_term_clause(query_text, phrases)
+
+        # Initialize bool query structure
+        bool_query = {"bool": {}}
+
+        # Handle NOT operators first (highest precedence after parentheses)
+        parts = query_text.split(' NOT ')
+        if len(parts) > 1:
+            # First part goes to must, rest go to must_not
+            left_part = parts[0].strip()
+
+            # Parse the left part (before NOT)
+            if ' OR ' in left_part:
+                bool_query["bool"]["must"] = [SearchQueryBuilder._handle_or_expression(left_part, phrases)]
+            elif ' AND ' in left_part:
+                bool_query["bool"]["must"] = SearchQueryBuilder._handle_and_expression(left_part, phrases)
+            else:
+                bool_query["bool"]["must"] = [SearchQueryBuilder._create_term_clause(left_part, phrases)]
+
+            # Add must_not clauses
+            bool_query["bool"]["must_not"] = []
+            for part in parts[1:]:
+                term = part.strip().split()[0]  # Take first word after NOT
+                bool_query["bool"]["must_not"].append(SearchQueryBuilder._create_term_clause(term, phrases))
+
+        # Handle AND operators
+        elif ' AND ' in query_text:
+            bool_query["bool"]["must"] = SearchQueryBuilder._handle_and_expression(query_text, phrases)
+
+        # Handle OR operators
+        elif ' OR ' in query_text:
+            return SearchQueryBuilder._handle_or_expression(query_text, phrases)
+
+        return bool_query
+
+    @staticmethod
+    def _handle_and_expression(query_text: str, phrases: Dict[str, str]) -> List[Dict[str, Any]]:
+        """Handle AND expressions."""
+        parts = query_text.split(' AND ')
+        must_clauses = []
+
+        for part in parts:
+            part = part.strip()
+            if ' OR ' in part:
+                # Handle nested OR within AND
+                must_clauses.append(SearchQueryBuilder._handle_or_expression(part, phrases))
+            else:
+                must_clauses.append(SearchQueryBuilder._create_term_clause(part, phrases))
+
+        return must_clauses
+
+    @staticmethod
+    def _handle_or_expression(query_text: str, phrases: Dict[str, str]) -> Dict[str, Any]:
+        """Handle OR expressions."""
+        parts = query_text.split(' OR ')
+        should_clauses = []
+
+        for part in parts:
+            part = part.strip()
+            should_clauses.append(SearchQueryBuilder._create_term_clause(part, phrases))
+
+        return {
+            "bool": {
+                "should": should_clauses,
+                "minimum_should_match": 1
+            }
+        }
+
+    @staticmethod
+    def _create_term_clause(term: str, phrases: Dict[str, str]) -> Dict[str, Any]:
+        """Create a term clause (match or match_phrase)."""
+        term = term.strip()
+
+        # Handle parentheses by removing them
+        term = term.strip('()')
+
+        # Check if it's a phrase placeholder
+        if term.startswith('__PHRASE_') and term.endswith('__'):
+            phrase_text = phrases.get(term, term)
+            return {"match_phrase": {"_all": phrase_text}}
+
+        # Check for field-specific search (e.g., title:diabetes)
+        if ':' in term:
+            field, value = term.split(':', 1)
+            field = field.strip()
+            value = value.strip()
+
+            # Check if value is a phrase
+            if value.startswith('__PHRASE_') and value.endswith('__'):
+                phrase_text = phrases.get(value, value)
+                return {"match_phrase": {field: phrase_text}}
+            else:
+                return {"match": {field: value}}
+
+        # Default to searching all fields
+        return {"match": {"_all": term}}
 
     @staticmethod
     def _build_aggregations() -> Dict[str, Any]:
