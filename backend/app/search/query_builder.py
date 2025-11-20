@@ -149,31 +149,59 @@ class QueryBuilder:
 
     def _build_simple_query(self, query: str) -> Dict:
         """
-        Build simple multi_match query with field boosting.
+        Build bool query with should clauses for simple keyword search.
+
+        Uses individual match queries for each field with specific boosting.
+        At least one field must match (minimum_should_match=1).
 
         Args:
             query: Search query string
 
         Returns:
-            Elasticsearch query clause
+            Elasticsearch bool query with should clauses
 
         Examples:
             >>> _build_simple_query("diabetes")
             {
-                "multi_match": {
-                    "query": "diabetes",
-                    "fields": ["title^10", "content^1", "author^2"],
-                    "type": "best_fields",
-                    "operator": "or"
+                "bool": {
+                    "should": [
+                        {"match": {"title": {"query": "diabetes", "boost": 10}}},
+                        {"match": {"content": {"query": "diabetes", "boost": 1}}},
+                        {"match": {"author": {"query": "diabetes", "boost": 2}}}
+                    ],
+                    "minimum_should_match": 1
                 }
             }
         """
         return {
-            "multi_match": {
-                "query": query,
-                "fields": ["title^10", "content^1"],
-                "type": "best_fields",
-                "operator": "or"
+            "bool": {
+                "should": [
+                    {
+                        "match": {
+                            "title": {
+                                "query": query,
+                                "boost": 10
+                            }
+                        }
+                    },
+                    {
+                        "match": {
+                            "content": {
+                                "query": query,
+                                "boost": 1
+                            }
+                        }
+                    },
+                    {
+                        "match": {
+                            "author": {
+                                "query": query,
+                                "boost": 2
+                            }
+                        }
+                    }
+                ],
+                "minimum_should_match": 1
             }
         }
 

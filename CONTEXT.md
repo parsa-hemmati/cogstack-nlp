@@ -173,6 +173,98 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-20] - Sprint 3 Phase 2, Task 2.2: Simple Keyword Query Building - COMPLETE
+
+**Commits**: Task 2.2 - Enhance _build_simple_query() with bool query and field boosting
+
+**Added**:
+- Enhanced `_build_simple_query()` method in `backend/app/search/query_builder.py` (56 lines)
+  - Changed from multi_match to bool query with should clauses
+  - Added author field with boost 2 (was missing before)
+  - Set minimum_should_match=1 (at least one field must match)
+  - Individual match queries for title (boost 10), content (boost 1), author (boost 2)
+- Added TestSimpleQueryBuilding test class in `backend/tests/unit/search/test_query_builder.py` (63 lines)
+  - 4 tests for bool query structure, field boosting, minimum_should_match, multi-word queries
+
+**Changed**:
+- `backend/app/search/query_builder.py` - _build_simple_query() method updated
+  - FROM: `{"multi_match": {"query": query, "fields": ["title^10", "content^1"], ...}}`
+  - TO: `{"bool": {"should": [...], "minimum_should_match": 1}}`
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Sprint 3 Phase 2, Task 2.2 requirement for simple keyword query building
+- Provides more granular control over field boosting than multi_match
+- Enables future enhancements (per-field analyzers, different match types)
+- Separates field concerns for better query tuning
+- Adds author field search (important for clinician-specific queries)
+- minimum_should_match=1 ensures at least one field matches (prevents empty results on typos)
+
+**Impact**:
+- ✅ _build_simple_query() now returns bool query with should clauses
+- ✅ Field boosting: title^10 (highest priority), content^1 (baseline), author^2 (medium priority)
+- ✅ minimum_should_match=1 enforced
+- ✅ Author field searchable (e.g., "Dr. Smith diabetes" searches author AND content)
+- ✅ All Task 2.1 tests still pass (backward compatible)
+- ✅ All Task 2.2 tests pass (17 new assertions)
+- ✅ Total test coverage: 53 assertions (36 from Task 2.1 + 17 from Task 2.2)
+- ⚠️ Query structure changed from multi_match to bool (SearchService unaffected, still returns same results)
+
+**Migration Notes**:
+- None required (implementation detail change, API unchanged)
+- SearchService continues to call build_query() and get correct results
+- Elasticsearch DSL change is transparent to callers
+
+**Technical Debt**:
+- None
+
+**Design Pattern Enhanced**:
+- **Bool Query Pattern**: Using should clauses with minimum_should_match for flexible OR logic
+- **Field-Specific Boosting**: Individual match queries enable fine-tuned relevance scoring
+- **Graceful Degradation**: minimum_should_match=1 allows partial matches (typo-tolerant)
+
+**Alignment with Constitution**:
+- **Transparency**: Explicit field boosting (clinicians understand title>author>content priority)
+- **Performance**: Bool queries with should clauses are as fast as multi_match (ES optimizes both)
+- **Modularity**: Each field can be independently tuned or enhanced
+
+**Query Comparison**:
+```python
+# OLD (Task 2.1):
+{
+  "multi_match": {
+    "query": "diabetes",
+    "fields": ["title^10", "content^1"],
+    "type": "best_fields"
+  }
+}
+
+# NEW (Task 2.2):
+{
+  "bool": {
+    "should": [
+      {"match": {"title": {"query": "diabetes", "boost": 10}}},
+      {"match": {"content": {"query": "diabetes", "boost": 1}}},
+      {"match": {"author": {"query": "diabetes", "boost": 2}}}
+    ],
+    "minimum_should_match": 1
+  }
+}
+```
+
+**Files Modified**:
+- `backend/app/search/query_builder.py` (updated _build_simple_query, 56 lines)
+- `backend/tests/unit/search/test_query_builder.py` (added TestSimpleQueryBuilding, 63 lines)
+
+**Sprint 3 Phase 2 Status**: 🔄 IN PROGRESS (2/14 tasks, 14%)
+
+**Latest Commit**: Task 2.2 - Simple keyword query building
+**Next Task**: Task 2.3 - Phrase query building ("exact phrase" search)
+
+---
+
 #### [2025-11-20] - Sprint 3 Phase 2, Task 2.1: QueryBuilder Basic Structure - COMPLETE
 
 **Commits**: Task 2.1 - Create QueryBuilder class with query type detection

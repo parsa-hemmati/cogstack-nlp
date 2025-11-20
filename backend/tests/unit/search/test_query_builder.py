@@ -183,3 +183,66 @@ class TestQueryBuilderEdgeCases:
 
         query = builder.build_query('diabète, hipertensión, 糖尿病', filters=None, page=1, page_size=20, sort="relevance")
         assert isinstance(query, dict)
+
+
+class TestSimpleQueryBuilding:
+    """Test simple keyword query building (Task 2.2)."""
+
+    def test_build_simple_query_returns_bool_query(self):
+        """Test that _build_simple_query() returns bool query with should clauses."""
+        builder = QueryBuilder()
+        result = builder._build_simple_query("diabetes")
+
+        # Should return bool query structure
+        assert "bool" in result
+        assert "should" in result["bool"]
+        assert isinstance(result["bool"]["should"], list)
+        assert len(result["bool"]["should"]) >= 3  # title, content, author
+
+    def test_build_simple_query_applies_field_boosting(self):
+        """Test that _build_simple_query() applies correct field boosting."""
+        builder = QueryBuilder()
+        result = builder._build_simple_query("diabetes")
+
+        should_clauses = result["bool"]["should"]
+
+        # Find title, content, and author match clauses
+        title_clause = next((c for c in should_clauses if "match" in c and "title" in c["match"]), None)
+        content_clause = next((c for c in should_clauses if "match" in c and "content" in c["match"]), None)
+        author_clause = next((c for c in should_clauses if "match" in c and "author" in c["match"]), None)
+
+        # Verify all clauses exist
+        assert title_clause is not None, "Title match clause not found"
+        assert content_clause is not None, "Content match clause not found"
+        assert author_clause is not None, "Author match clause not found"
+
+        # Verify field boosting (title^10, content^1, author^2)
+        assert title_clause["match"]["title"]["boost"] == 10
+        assert content_clause["match"]["content"]["boost"] == 1
+        assert author_clause["match"]["author"]["boost"] == 2
+
+    def test_build_simple_query_sets_minimum_should_match(self):
+        """Test that _build_simple_query() sets minimum_should_match=1."""
+        builder = QueryBuilder()
+        result = builder._build_simple_query("diabetes")
+
+        # Should have minimum_should_match=1
+        assert "bool" in result
+        assert "minimum_should_match" in result["bool"]
+        assert result["bool"]["minimum_should_match"] == 1
+
+    def test_build_simple_query_with_multi_word_query(self):
+        """Test that _build_simple_query() handles multi-word queries."""
+        builder = QueryBuilder()
+        result = builder._build_simple_query("diabetes mellitus type 2")
+
+        # Should return bool query
+        assert "bool" in result
+        assert "should" in result["bool"]
+
+        # Should contain the full query text
+        should_clauses = result["bool"]["should"]
+        for clause in should_clauses:
+            if "match" in clause:
+                for field, value in clause["match"].items():
+                    assert value["query"] == "diabetes mellitus type 2"
