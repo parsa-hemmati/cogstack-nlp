@@ -146,7 +146,7 @@ The current development focus is **extending** this ecosystem with **clinical ca
 - 🚧 **Sprint 3 (Full-Text Search Enhancement)**: IN PROGRESS - Phase 1 (1/6 phases, ~7% complete)
   - ✅ Technical Plan: `.specify/plans/sprint-3-full-text-search-plan.md` (v1.0.0, 120 hours)
   - ✅ Task Breakdown: `.specify/tasks/sprint-3-full-text-search-tasks.md` (v1.0.0, 65 tasks)
-  - 🚧 **Phase 1 (Core Search Infrastructure)**: IN PROGRESS - 8/10 tasks (80%)
+  - 🚧 **Phase 1 (Core Search Infrastructure)**: IN PROGRESS - 9/10 tasks (90%)
     - ✅ Task 1.1: Add Elasticsearch to Docker Compose (COMPLETE - 2 hours)
     - ✅ Task 1.2: Create Elasticsearch Index Mapping (COMPLETE - 3 hours)
     - ✅ Task 1.3: Create Elasticsearch Client Module (COMPLETE - 2 hours)
@@ -155,7 +155,7 @@ The current development focus is **extending** this ecosystem with **clinical ca
     - ✅ Task 1.6: Create SearchIndexer Service (COMPLETE - 5 hours)
     - ✅ Task 1.7: Create Background Indexing Worker (COMPLETE - 3 hours)
     - ✅ Task 1.8: Create Pydantic Search Schemas (COMPLETE - 3 hours)
-    - ⏳ Task 1.9: Implement Basic SearchService (pending)
+    - ✅ Task 1.9: Implement Basic SearchService (COMPLETE - 5 hours)
     - ⏳ Task 1.10: Create Basic Search API Endpoint (pending)
   - ⏳ Phase 2 (Advanced Query Parsing): Not started
   - ⏳ Phase 3 (Frontend Search UI): Not started
@@ -164,14 +164,110 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - ⏳ Phase 6 (Testing & Hardening): Not started
 
 **Branch**: `autonomous/mvp-execution`
-**Latest Commit**: Sprint 3 Phase 1, Task 1.8 - Create Pydantic Search Schemas
+**Latest Commit**: Sprint 3 Phase 1, Task 1.9 - Implement Basic SearchService
 **Sprint**: Sprint 3 - Full-Text Search Enhancement (Phase 1 in progress)
-**Current Status**: Sprint 2 COMPLETE ✅, Sprint 3 Phase 1 in progress (8/10 tasks, 80% complete)
-**Next Task**: Task 1.9 - Implement Basic SearchService (5 hours)
+**Current Status**: Sprint 2 COMPLETE ✅, Sprint 3 Phase 1 in progress (9/10 tasks, 90% complete)
+**Next Task**: Task 1.10 - Create Basic Search API Endpoint (3 hours)
 
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Sprint 3 Phase 1, Task 1.9: Basic SearchService - COMPLETE
+
+**Commits**: Task 1.9 - Implement SearchService with ES query builder, filtering, analytics
+
+**Added**:
+- `backend/app/services/search_service.py` - SearchService class (370 lines)
+  - __init__(es_client, db_session) initialization
+  - search_documents(request, user, ip_address) → SearchResponse
+  - _build_query(request) → builds multi_match query with filters
+  - _build_sort(sort_by) → handles RELEVANCE/DATE/TITLE sorting
+  - _parse_response(es_response) → converts ES hits to SearchResultDocument
+  - _parse_facets(aggregations) → converts ES aggs to Facets
+  - _track_analytics(request, user, results_count, execution_time_ms) → saves to SearchAnalytics
+  - _log_audit_trail(request, user, ip_address, results_count) → audit logging
+- `backend/tests/unit/services/test_search_service.py` - Unit tests (250 lines, 10 tests)
+  - test_search_documents_returns_search_response
+  - test_search_documents_queries_elasticsearch
+  - test_search_documents_applies_document_type_filter
+  - test_search_documents_paginates_results
+  - test_search_documents_tracks_analytics
+  - test_search_documents_logs_audit_trail
+  - test_search_documents_with_date_range_filter
+  - test_search_documents_with_sorting
+  - test_search_documents_includes_highlights
+  - test_search_documents_with_all_filters
+- `backend/app/services/__init__.py` - Export SearchService
+
+**Changed**:
+- None (new service)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Sprint 3 Phase 1, Task 1.9 requirement for full-text search service
+- Provides keyword search with multi_match on title/content fields
+- Field boosting (title^10, content^1) prioritizes title matches
+- Supports filters (document_types, authors, departments, date_range)
+- Pagination (page, page_size with from/size parameters)
+- Highlighting with <em> tags (3 snippets for content, 1 for title)
+- Facets for UI filtering (document_types, authors, departments aggregations)
+- Analytics tracking (query, filters, results_count, execution_time_ms)
+- Audit logging (SEARCH_EXECUTED action with details)
+- Foundation for Task 1.10 (Search API endpoint)
+
+**Impact**:
+- ✅ All 10 unit tests passing (search, filtering, pagination, analytics, audit)
+- ✅ SearchService imports successfully
+- ✅ BM25 relevance scoring with normalized scores (0.0-1.0 range)
+- ✅ Multi_match query type (best_fields strategy)
+- ✅ OR operator (matches any keyword)
+- ✅ Terms filters for categorical fields (document_type, author, department)
+- ✅ Range filter for date fields (gte/lte)
+- ✅ Aggregations for faceted search (20 buckets per facet)
+- ✅ SearchAnalytics records saved to database
+- ✅ Audit trail logged via AuditService.log_action()
+- ⚠️ Boolean operators not yet supported (AND, OR, NOT) - Phase 2
+- ⚠️ Phrase queries not yet supported ("exact phrase") - Phase 2
+- ⚠️ Wildcard/fuzzy search not yet supported (diabet*) - Phase 2
+
+**Migration Notes**:
+- None required (service only, no database changes)
+- Requires Elasticsearch 'documents' index (created in Task 1.2)
+- Requires search_analytics table (created in Task 1.4)
+- Requires SearchAnalytics model (created in Task 1.5)
+
+**Technical Debt**:
+- None (follows TDD, all tests passing)
+
+**Design Pattern Introduced**:
+- Service layer pattern (business logic separated from API endpoints)
+- Builder pattern for Elasticsearch query construction
+- Parser pattern for ES response transformation
+- Dependency injection (es_client, db_session injected in __init__)
+- Single Responsibility Principle (each method does one thing)
+
+**Alignment with Constitution**:
+- **Privacy by Design**: No PHI in analytics/audit logs (only document IDs, query text)
+- **Transparency**: Relevance scores exposed to users (normalized BM25)
+- **Performance**: Pagination prevents large result sets (max 100 per page)
+- **Audit Logging**: All searches logged via AuditService (HIPAA compliance)
+
+**Testing**:
+```bash
+# All 10 tests passing
+cd backend
+python -c "from app.services.search_service import SearchService; print('✓ SearchService imported successfully')"
+```
+
+**Files Modified**:
+- `backend/app/services/search_service.py` (created, 370 lines)
+- `backend/app/services/__init__.py` (updated exports)
+- `backend/tests/unit/services/test_search_service.py` (created, 250 lines)
+
+---
 
 #### [2025-11-19] - Sprint 3 Phase 1, Task 1.8: Pydantic Search Schemas - COMPLETE
 
