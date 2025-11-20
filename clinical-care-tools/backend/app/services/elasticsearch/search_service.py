@@ -18,6 +18,7 @@ import logging
 
 from app.services.elasticsearch.search_query_builder import SearchQueryBuilder
 from app.services.elasticsearch.index_config import INDEX_NAME
+from app.services.elasticsearch.query_cache import QueryCache
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,7 @@ class SearchService:
         self.es = es_client
         self.redis = redis_client
         self.db = db
+        self.cache = QueryCache(redis_client) if redis_client else None
 
     async def search(
         self,
@@ -102,6 +104,28 @@ class SearchService:
             elasticsearch.exceptions.ElasticsearchException: If search fails
         """
         start_time = time.time()
+
+        # Check cache if available
+        if self.cache and query.query_type != "regex":  # Don't cache regex for safety
+            filters = {}
+            if query.document_type:
+                filters["document_type"] = query.document_type
+            if query.department:
+                filters["department"] = query.department
+
+            cached_result = await self.cache.get(
+                query_text=query.q,
+                query_type=query.query_type,
+                filters=filters,
+                page=query.page,
+                page_size=query.page_size
+            )
+
+            if cached_result:
+                logger.info(f"Cache hit for query: {query.q[:50]}...")
+                cached_result["from_cache"] = True
+                cached_result["execution_time_ms"] = int((time.time() - start_time) * 1000)
+                return SearchResponse(**cached_result)
 
         try:
             # Build filters for advanced query types
@@ -209,7 +233,8 @@ class SearchService:
                 except Exception as e:
                     logger.warning(f"Failed to track search analytics: {e}")
 
-            return SearchResponse(
+            # Create response
+            search_response = SearchResponse(
                 query=query.q,
                 total_results=total_results,
                 page=query.page,
@@ -219,6 +244,25 @@ class SearchService:
                 facets=facets,
                 execution_time_ms=execution_time_ms
             )
+
+            # Cache the results if caching is available
+            if self.cache and query.query_type != "regex":  # Don't cache regex for safety
+                filters = {}
+                if query.document_type:
+                    filters["document_type"] = query.document_type
+                if query.department:
+                    filters["department"] = query.department
+
+                await self.cache.set(
+                    query_text=query.q,
+                    query_type=query.query_type,
+                    results=search_response.dict(),
+                    filters=filters,
+                    page=query.page,
+                    page_size=query.page_size
+                )
+
+            return search_response
 
         except Exception as e:
             logger.error(f"Search failed: {e}")

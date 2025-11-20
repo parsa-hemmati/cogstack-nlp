@@ -387,6 +387,80 @@ async def validate_search_query(
         }
 
 
+@router.get("/search/cache/stats")
+async def get_cache_statistics(
+    current_user: User = Depends(require_role(UserRole.ADMIN)),
+    redis_client: redis.Redis = Depends(get_redis_client)
+) -> dict:
+    """
+    Get search cache statistics (admin only).
+
+    Returns cache hit rates and performance metrics.
+
+    Returns:
+        Cache statistics by query type
+    """
+    try:
+        from app.services.elasticsearch.query_cache import QueryCache
+
+        cache = QueryCache(redis_client)
+        stats = await cache.get_stats()
+
+        return {
+            "cache_stats": stats,
+            "message": "Cache statistics retrieved successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get cache stats: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get cache statistics: {str(e)}"
+        )
+
+
+@router.post("/search/cache/invalidate")
+async def invalidate_cache(
+    pattern: Optional[str] = Query(None, description="Pattern to invalidate (e.g., 'boolean:*')"),
+    current_user: User = Depends(require_role(UserRole.ADMIN)),
+    redis_client: redis.Redis = Depends(get_redis_client)
+) -> dict:
+    """
+    Invalidate search cache (admin only).
+
+    Args:
+        pattern: Optional pattern to match keys for invalidation
+
+    Returns:
+        Number of cache entries invalidated
+    """
+    try:
+        from app.services.elasticsearch.query_cache import QueryCache
+
+        cache = QueryCache(redis_client)
+
+        if pattern:
+            invalidated = await cache.invalidate_pattern(pattern)
+            return {
+                "invalidated": invalidated,
+                "pattern": pattern,
+                "message": f"Invalidated {invalidated} cache entries matching pattern"
+            }
+        else:
+            invalidated = await cache.invalidate_all()
+            return {
+                "invalidated": invalidated,
+                "message": f"Invalidated all {invalidated} cache entries"
+            }
+
+    except Exception as e:
+        logger.error(f"Failed to invalidate cache: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to invalidate cache: {str(e)}"
+        )
+
+
 @router.get("/search/analytics")
 async def get_search_analytics(
     date_from: str = Query(..., description="Start date (ISO format)"),
