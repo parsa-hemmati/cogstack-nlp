@@ -627,3 +627,119 @@ class TestQueryParserIntegration:
         # Test simple NOT
         not_result = builder._build_boolean_query('diabetes NOT type1')
         assert "bool" in not_result
+
+
+class TestFilterApplication:
+    """Test filter application to Elasticsearch queries."""
+
+    def test_apply_filters_document_types(self):
+        """Test document_types filter uses terms query."""
+        builder = QueryBuilder()
+        base_query = {"match_all": {}}
+        filters = {"document_types": ["clinical_note", "discharge_summary"]}
+
+        result = builder._apply_filters(base_query, filters)
+
+        # Should wrap in bool query with filter clause
+        assert "bool" in result
+        assert "filter" in result["bool"]
+
+        # Should have terms query for document_type
+        filter_clauses = result["bool"]["filter"]
+        assert isinstance(filter_clauses, list)
+        assert len(filter_clauses) > 0
+
+        # Find terms query for document_type
+        doc_type_filter = next((f for f in filter_clauses if "terms" in f and "document_type" in f["terms"]), None)
+        assert doc_type_filter is not None
+        assert doc_type_filter["terms"]["document_type"] == ["clinical_note", "discharge_summary"]
+
+    def test_apply_filters_authors(self):
+        """Test authors filter uses terms query."""
+        builder = QueryBuilder()
+        base_query = {"match_all": {}}
+        filters = {"authors": ["Dr. Smith", "Dr. Jones"]}
+
+        result = builder._apply_filters(base_query, filters)
+
+        # Should have terms query for author
+        filter_clauses = result["bool"]["filter"]
+        author_filter = next((f for f in filter_clauses if "terms" in f and "author" in f["terms"]), None)
+        assert author_filter is not None
+        assert author_filter["terms"]["author"] == ["Dr. Smith", "Dr. Jones"]
+
+    def test_apply_filters_departments(self):
+        """Test departments filter uses terms query."""
+        builder = QueryBuilder()
+        base_query = {"match_all": {}}
+        filters = {"departments": ["Cardiology", "Neurology"]}
+
+        result = builder._apply_filters(base_query, filters)
+
+        # Should have terms query for department
+        filter_clauses = result["bool"]["filter"]
+        dept_filter = next((f for f in filter_clauses if "terms" in f and "department" in f["terms"]), None)
+        assert dept_filter is not None
+        assert dept_filter["terms"]["department"] == ["Cardiology", "Neurology"]
+
+    def test_apply_filters_date_range(self):
+        """Test date_range filter uses range query."""
+        builder = QueryBuilder()
+        base_query = {"match_all": {}}
+        filters = {"date_range": {"start": "2024-01-01", "end": "2024-12-31"}}
+
+        result = builder._apply_filters(base_query, filters)
+
+        # Should have range query for date
+        filter_clauses = result["bool"]["filter"]
+        date_filter = next((f for f in filter_clauses if "range" in f), None)
+        assert date_filter is not None
+        assert "date" in date_filter["range"]
+        assert date_filter["range"]["date"]["gte"] == "2024-01-01"
+        assert date_filter["range"]["date"]["lte"] == "2024-12-31"
+
+    def test_apply_filters_multiple(self):
+        """Test multiple filters combined with AND logic."""
+        builder = QueryBuilder()
+        base_query = {"match_all": {}}
+        filters = {
+            "document_types": ["clinical_note"],
+            "authors": ["Dr. Smith"],
+            "departments": ["Cardiology"],
+            "date_range": {"start": "2024-01-01", "end": "2024-12-31"}
+        }
+
+        result = builder._apply_filters(base_query, filters)
+
+        # Should have all filter clauses
+        filter_clauses = result["bool"]["filter"]
+        assert len(filter_clauses) == 4
+
+        # Check all filters present
+        has_doc_type = any("terms" in f and "document_type" in f.get("terms", {}) for f in filter_clauses)
+        has_author = any("terms" in f and "author" in f.get("terms", {}) for f in filter_clauses)
+        has_dept = any("terms" in f and "department" in f.get("terms", {}) for f in filter_clauses)
+        has_date = any("range" in f for f in filter_clauses)
+
+        assert has_doc_type and has_author and has_dept and has_date
+
+    def test_apply_filters_empty_filters(self):
+        """Test empty filters returns base query unchanged."""
+        builder = QueryBuilder()
+        base_query = {"match_all": {}}
+        filters = {}
+
+        result = builder._apply_filters(base_query, filters)
+
+        # Should return base query unchanged
+        assert result == base_query
+
+    def test_apply_filters_none_filters(self):
+        """Test None filters returns base query unchanged."""
+        builder = QueryBuilder()
+        base_query = {"match_all": {}}
+
+        result = builder._apply_filters(base_query, None)
+
+        # Should return base query unchanged
+        assert result == base_query

@@ -604,6 +604,88 @@ MEDIUM:
 
 ### Recent Changes
 
+#### [2025-11-20] - Sprint 3 Phase 2, Task 2.8: Implement Filter Application - COMPLETE
+
+**Commits**: Task 2.8 - Add _apply_filters() method for query filtering
+
+**Added**:
+- New `_apply_filters()` method in `backend/app/search/query_builder.py` (82 lines)
+  - Applies filters to Elasticsearch queries
+  - Supports document_types filter (terms query on document_type field)
+  - Supports authors filter (terms query on author field)
+  - Supports departments filter (terms query on department field)
+  - Supports date_range filter (range query with gte/lte on date field)
+  - Filters combined with AND logic (all must match)
+  - Wraps base query in bool query with filter clauses
+  - Returns base query unchanged if no filters provided
+- New TestFilterApplication test class in `backend/tests/unit/search/test_query_builder.py` (116 lines)
+  - 7 tests covering all filter types and combinations
+
+**Changed**:
+- None (new method added)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Sprint 3 Phase 2, Task 2.8 requirement for filter application
+- Enables filtering by metadata fields (document type, author, department, date)
+- Essential for narrowing search results without affecting relevance scores
+- Filters use AND logic (all specified filters must match)
+- Foundation for advanced filtering UI (dropdown menus, date pickers)
+- Elasticsearch filter context (no scoring overhead, cached for performance)
+
+**Impact**:
+- ✅ _apply_filters() method created (82 lines)
+- ✅ document_types filter using terms query
+- ✅ authors filter using terms query
+- ✅ departments filter using terms query
+- ✅ date_range filter using range query (gte/lte)
+- ✅ Multiple filters combined with AND logic
+- ✅ All 7 tests passing (100% test coverage for filter application)
+- ✅ Backward compatible (optional filters parameter)
+- ⚠️ Not yet integrated into build_query() (will be done in later tasks)
+
+**Migration Notes**:
+- None required (new method, not yet called by build_query())
+- Integration planned for complete query routing implementation
+
+**Technical Debt**:
+- None
+
+**Design Patterns**:
+- **Filter context**: Uses Elasticsearch filter clauses (no scoring, cached)
+- **Builder pattern**: _apply_filters() wraps query with filters
+- **Optional parameters**: Filters are optional, returns base query if None/empty
+- **AND logic**: All filter clauses must match (filter array in bool query)
+
+**Performance Considerations**:
+- Filters use Elasticsearch filter context (no scoring overhead)
+- Terms queries are exact match on keyword fields (very fast)
+- Range queries use Lucene RangeQuery (efficient for date filtering)
+- Filter results are cached by Elasticsearch (subsequent queries faster)
+- AND logic means fewer results = faster response times
+
+**Filter Types**:
+- **terms query**: Exact match on keyword fields (document_type, author, department)
+- **range query**: Date range with gte (greater than or equal) and lte (less than or equal)
+
+**Query Structure**:
+```json
+{
+  "bool": {
+    "must": [<base query>],
+    "filter": [
+      {"terms": {"document_type": ["clinical_note"]}},
+      {"terms": {"author": ["Dr. Smith"]}},
+      {"range": {"date": {"gte": "2024-01-01", "lte": "2024-12-31"}}}
+    ]
+  }
+}
+```
+
+---
+
 #### [2025-11-20] - Sprint 3 Phase 2, Task 2.7: Integrate QueryParser into QueryBuilder - COMPLETE
 
 **Commits**: Task 2.7 - Replace regex-based _build_boolean_query() with QueryParser

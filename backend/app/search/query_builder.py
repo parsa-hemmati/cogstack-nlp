@@ -591,3 +591,86 @@ class QueryBuilder:
         else:
             # Default to relevance (no explicit sort, uses _score)
             return []
+
+    def _apply_filters(self, query: Dict, filters: Optional[Dict] = None) -> Dict:
+        """
+        Apply filters to Elasticsearch query.
+
+        Wraps base query in bool query with filter clauses (AND logic).
+        Filters do not affect scoring, only narrow results.
+
+        Supported filters:
+        - document_types: List of document types (terms query)
+        - authors: List of authors (terms query)
+        - departments: List of departments (terms query)
+        - date_range: Date range with start/end (range query)
+
+        Args:
+            query: Base Elasticsearch query
+            filters: Dict of filter criteria (optional)
+
+        Returns:
+            Query with filters applied, or base query if no filters
+
+        Examples:
+            >>> _apply_filters({"match_all": {}}, {"document_types": ["clinical_note"]})
+            {
+                "bool": {
+                    "must": [{"match_all": {}}],
+                    "filter": [
+                        {"terms": {"document_type": ["clinical_note"]}}
+                    ]
+                }
+            }
+        """
+        # Return base query if no filters provided
+        if not filters:
+            return query
+
+        filter_clauses = []
+
+        # Document types filter (terms query for exact match on keyword field)
+        if "document_types" in filters and filters["document_types"]:
+            filter_clauses.append({
+                "terms": {"document_type": filters["document_types"]}
+            })
+
+        # Authors filter (terms query)
+        if "authors" in filters and filters["authors"]:
+            filter_clauses.append({
+                "terms": {"author": filters["authors"]}
+            })
+
+        # Departments filter (terms query)
+        if "departments" in filters and filters["departments"]:
+            filter_clauses.append({
+                "terms": {"department": filters["departments"]}
+            })
+
+        # Date range filter (range query with gte/lte)
+        if "date_range" in filters and filters["date_range"]:
+            date_range = filters["date_range"]
+            range_query = {"range": {"date": {}}}
+
+            if "start" in date_range and date_range["start"]:
+                range_query["range"]["date"]["gte"] = date_range["start"]
+
+            if "end" in date_range and date_range["end"]:
+                range_query["range"]["date"]["lte"] = date_range["end"]
+
+            # Only add if at least one bound is set
+            if range_query["range"]["date"]:
+                filter_clauses.append(range_query)
+
+        # Return base query if no filter clauses were added
+        if not filter_clauses:
+            return query
+
+        # Wrap query in bool with filter clauses
+        # Filter clauses use AND logic (all must match)
+        return {
+            "bool": {
+                "must": [query],
+                "filter": filter_clauses
+            }
+        }
