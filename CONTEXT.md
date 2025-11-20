@@ -1936,14 +1936,15 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
-### 2025-11-20 - Sprint 3 Phase 2: Advanced Query Parsing (Tasks 2.4-2.8)
+### 2025-11-20 - Sprint 3 Phase 2: Advanced Query Parsing (Tasks 2.4-2.9)
 
 **Commits**:
 - 645c303b - feat(search): Add Boolean operators (AND/OR/NOT) support
 - 4e6f3d56 - feat(search): Add wildcard query support (* and ?)
 - 6c8fa8e9 - feat(search): Add fuzzy matching for typo tolerance (~)
 - 70d36770 - feat(search): Add proximity search (NEAR/W/ADJ operators)
-- [pending] - feat(search): Add range queries for numeric and date fields
+- 04981ce6 - feat(search): Add range queries for numeric and date fields
+- [pending] - feat(search): Add regular expression support
 
 **Task 2.4 - Boolean Query Parsing** ✅:
 - AND/OR/NOT operators (e.g., "diabetes AND hypertension NOT family")
@@ -1991,9 +1992,21 @@ MEDCAT_TIMEOUT = 5  # seconds
 - 12 comprehensive test cases
 - Standalone test runner `test_range_queries.py`
 
+**Task 2.9 - Regular Expression Support** ✅:
+- Standard regex syntax with /pattern/ notation
+- Field-specific regex (e.g., "diagnosis:/heart.+failure/")
+- Regex flags support (i, m, s, etc.) (e.g., "/diabet.*/i")
+- Complex patterns with groups (e.g., "/heart.+(failure|disease)/")
+- Character classes and anchors (e.g., "/[Cc]ardio.*/", "/^Smith.*/")
+- Elasticsearch regex flag mapping (CASE_INSENSITIVE, MULTILINE, etc.)
+- Performance controls (max_determinized_states)
+- Integration with Boolean operators
+- 12 comprehensive test cases
+- Standalone test runner `test_regex_queries.py`
+
 **Changed**:
-- `search_query_builder.py`: Added 5 new query builder methods and supporting parsers
-- Created 5 standalone test runners for validation
+- `search_query_builder.py`: Added 6 new query builder methods and supporting parsers
+- Created 6 standalone test runners for validation
 
 **Why**:
 - Enhances Sprint 3 Full-Text Search capabilities

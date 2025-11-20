@@ -1327,6 +1327,230 @@ class SearchQueryBuilder:
         return {"bool": {"must": range_clauses}}
 
     @staticmethod
+    def build_regex_query(
+        query_text: str,
+        filters: Optional[Dict[str, Any]] = None,
+        flags: Optional[str] = None,
+        max_determinized_states: int = 10000
+    ) -> Dict[str, Any]:
+        """
+        Build Elasticsearch query with regular expression support.
+
+        Regex syntax:
+        - /pattern/ : Basic regex pattern
+        - /pattern/flags : Regex with flags
+        - field:/pattern/ : Field-specific regex
+        - Supports standard regex metacharacters: . * + ? [ ] ( ) | ^ $
+
+        Args:
+            query_text: Query string with regex patterns
+            filters: Additional filters to apply
+            flags: Default regex flags (if not specified in pattern)
+            max_determinized_states: Max states for regex automaton (performance)
+
+        Returns:
+            Elasticsearch query DSL dictionary
+
+        Examples:
+            - "/diabet.*/": Matches diabetes, diabetic, etc.
+            - "diagnosis:/heart.+(failure|disease)/": Complex pattern
+            - "/[Cc]ardio.*/": Case variations
+            - "name:/^Smith.*/": Names starting with Smith
+
+        Note:
+            Regex queries can be expensive. Use with caution on large datasets.
+        """
+        # Check for empty query
+        if not query_text or not query_text.strip():
+            return {"query": {"match_all": {}}}
+
+        # Parse the regex query
+        parsed_query = SearchQueryBuilder._parse_regex_expression(
+            query_text, flags, max_determinized_states
+        )
+
+        # Build the final query
+        es_query = {"query": parsed_query}
+
+        # Add filters if provided
+        if filters:
+            filter_clauses = []
+            for key, value in filters.items():
+                if key == "document_type":
+                    filter_clauses.append({"term": {"document_type": value}})
+                elif key == "department":
+                    filter_clauses.append({"term": {"department": value}})
+
+            if filter_clauses:
+                # Wrap existing query in a bool query with filters
+                if "bool" not in es_query["query"]:
+                    es_query["query"] = {"bool": {"must": [es_query["query"]]}}
+                es_query["query"]["bool"]["filter"] = filter_clauses
+
+        return es_query
+
+    @staticmethod
+    def _parse_regex_expression(
+        query_text: str,
+        default_flags: Optional[str],
+        max_determinized_states: int
+    ) -> Dict[str, Any]:
+        """
+        Parse regular expression patterns into Elasticsearch query.
+
+        Args:
+            query_text: Query string with regex patterns
+            default_flags: Default flags for regex
+            max_determinized_states: Max states for automaton
+
+        Returns:
+            Elasticsearch query clause
+        """
+        import re
+
+        # Normalize Boolean operators
+        query_text = SearchQueryBuilder._normalize_operators(query_text)
+
+        # Pattern to match regex expressions: /pattern/ or /pattern/flags
+        regex_pattern = r'(?:(\w+):)?/([^/]+)/([a-z]*)?'
+
+        # Collect all regex clauses
+        regex_clauses = []
+        remaining_text = query_text
+
+        for match in re.finditer(regex_pattern, query_text):
+            field = match.group(1) or "_all"
+            pattern = match.group(2)
+            flags_str = match.group(3) or default_flags or ""
+
+            # Build regexp query
+            regexp_query = {
+                "regexp": {
+                    field: {
+                        "value": pattern,
+                        "max_determinized_states": max_determinized_states
+                    }
+                }
+            }
+
+            # Add flags if specified
+            if flags_str:
+                regexp_query["regexp"][field]["flags"] = SearchQueryBuilder._parse_regex_flags(flags_str)
+
+            regex_clauses.append(regexp_query)
+            remaining_text = remaining_text.replace(match.group(0), '')
+
+        # Handle Boolean logic in remaining text
+        remaining_text = remaining_text.strip()
+
+        if ' AND ' in query_text:
+            # All regex patterns must match
+            if regex_clauses:
+                # Check for additional non-regex terms
+                extra_clauses = SearchQueryBuilder._parse_non_regex_terms(remaining_text)
+                all_clauses = regex_clauses + extra_clauses
+                if len(all_clauses) == 1:
+                    return all_clauses[0]
+                return {"bool": {"must": all_clauses}}
+
+        elif ' OR ' in query_text:
+            # Any regex pattern can match
+            if regex_clauses:
+                extra_clauses = SearchQueryBuilder._parse_non_regex_terms(remaining_text)
+                all_clauses = regex_clauses + extra_clauses
+                return {
+                    "bool": {
+                        "should": all_clauses,
+                        "minimum_should_match": 1
+                    }
+                }
+
+        elif ' NOT ' in query_text:
+            # Handle NOT operator
+            parts = query_text.split(' NOT ')
+            if len(parts) > 1 and regex_clauses:
+                return {
+                    "bool": {
+                        "must": [regex_clauses[0]] if len(regex_clauses) > 0 else [],
+                        "must_not": regex_clauses[1:] if len(regex_clauses) > 1 else []
+                    }
+                }
+
+        # Default: return regex clauses or remaining terms
+        if regex_clauses:
+            if len(regex_clauses) == 1:
+                return regex_clauses[0]
+            return {"bool": {"must": regex_clauses}}
+
+        # If no regex patterns found, treat as regular query
+        if remaining_text:
+            return {"match": {"_all": remaining_text}}
+
+        return {"match_all": {}}
+
+    @staticmethod
+    def _parse_regex_flags(flags_str: str) -> str:
+        """
+        Parse regex flags string into Elasticsearch format.
+
+        Args:
+            flags_str: String containing regex flags
+
+        Returns:
+            Elasticsearch-compatible flags string
+        """
+        es_flags = []
+
+        # Map common regex flags to Elasticsearch flags
+        flag_mapping = {
+            'i': 'CASE_INSENSITIVE',
+            'm': 'MULTILINE',
+            's': 'DOTALL',
+            'x': 'COMMENTS',
+            'u': 'UNICODE_CASE',
+            'U': 'UNICODE_CHARACTER_CLASS',
+            'l': 'LITERAL',
+            'd': 'UNICODE_CHARACTER_CLASS'
+        }
+
+        for flag in flags_str:
+            if flag in flag_mapping:
+                es_flags.append(flag_mapping[flag])
+
+        # Join with pipe for Elasticsearch
+        return '|'.join(es_flags) if es_flags else 'ALL'
+
+    @staticmethod
+    def _parse_non_regex_terms(text: str) -> List[Dict[str, Any]]:
+        """
+        Parse non-regex terms from remaining text.
+
+        Args:
+            text: Text after removing regex patterns
+
+        Returns:
+            List of match clauses
+        """
+        clauses = []
+        text = text.strip()
+
+        if not text or text in ['AND', 'OR', 'NOT']:
+            return clauses
+
+        # Split on Boolean operators and process each term
+        terms = text.split()
+        for term in terms:
+            if term not in ['AND', 'OR', 'NOT'] and term.strip():
+                # Check if it's a field:value pattern
+                if ':' in term and '/' not in term:
+                    field, value = term.split(':', 1)
+                    clauses.append({"match": {field: value}})
+                else:
+                    clauses.append({"match": {"_all": term}})
+
+        return clauses
+
+    @staticmethod
     def _build_aggregations() -> Dict[str, Any]:
         """
         Build facet aggregations.
