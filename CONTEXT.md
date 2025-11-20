@@ -173,6 +173,92 @@ The current development focus is **extending** this ecosystem with **clinical ca
 
 ### Recent Changes
 
+#### [2025-11-20] - Sprint 3 Phase 2, Task 2.3: Phrase Query Building - COMPLETE
+
+**Commits**: Task 2.3 - Implement _build_phrase_query() for exact phrase matching
+
+**Added**:
+- New `_build_phrase_query()` method in `backend/app/search/query_builder.py` (64 lines)
+  - Extracts phrases from double quotes using regex `r'"([^"]*)"'`
+  - Creates multi_match queries with type=phrase for exact phrase matching
+  - Multiple phrases use AND logic (bool query with must clauses)
+  - Searches title^10 and content^1 fields
+- Added TestPhraseQueryBuilding test class in `backend/tests/unit/search/test_query_builder.py` (75 lines)
+  - 5 tests for single phrase, multiple phrases, field searching, empty quotes, mixed text
+
+**Changed**:
+- None (new method added)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Sprint 3 Phase 2, Task 2.3 requirement for phrase search
+- Enables exact phrase matching (e.g., "chest pain" matches only that exact phrase)
+- Critical for medical terminology (e.g., "myocardial infarction" vs "myocardial" + "infarction")
+- Supports multiple phrases with AND logic (all phrases must appear in document)
+- Foundation for advanced query combinations (Task 2.4)
+
+**Impact**:
+- ✅ _build_phrase_query() method created
+- ✅ Extracts phrases from double quotes correctly
+- ✅ Builds multi_match queries with type=phrase
+- ✅ Multiple phrases supported with AND logic (must clauses)
+- ✅ Empty quotes handled gracefully (returns empty must array)
+- ✅ Ignores non-quoted text (extracts only quoted phrases)
+- ✅ All 5 tests passing (26 assertions)
+- ✅ Backward compatibility maintained (Tasks 2.1-2.2 tests still pass)
+- ⚠️ Not yet integrated into build_query() (will be done in Task 2.4)
+
+**Migration Notes**:
+- None required (new method, not yet called by build_query())
+- Integration planned for Task 2.4 (Boolean Query Parsing)
+
+**Technical Debt**:
+- None
+
+**Design Pattern Introduced**:
+- **Phrase Query Pattern**: Using multi_match with type=phrase for exact matching
+- **Regex Extraction Pattern**: Extract structured data from user input
+- **AND Logic Pattern**: Bool query with must clauses (all phrases must match)
+
+**Alignment with Constitution**:
+- **Accuracy**: Exact phrase matching prevents false positives (critical for medical terms)
+- **Transparency**: Clear phrase extraction (users see what's being matched)
+- **Modularity**: Independent method for phrase queries (composable with other query types)
+
+**Examples**:
+```python
+# Single phrase
+builder._build_phrase_query('"chest pain"')
+# → Searches for exact phrase "chest pain" in title and content
+
+# Multiple phrases (AND logic)
+builder._build_phrase_query('"diabetes mellitus" AND "chest pain"')
+# → Document must contain BOTH phrases
+
+# Mixed with text (extracts only quotes)
+builder._build_phrase_query('patient with "chest pain" and symptoms')
+# → Searches for "chest pain" phrase, ignores "patient with" and "and symptoms"
+```
+
+**Medical Use Cases**:
+- "myocardial infarction" (exact medical term)
+- "chronic obstructive pulmonary disease" (multi-word diagnosis)
+- "type 2 diabetes mellitus" (specific condition)
+- "coronary artery bypass graft" (surgical procedure)
+
+**Files Modified**:
+- `backend/app/search/query_builder.py` (added _build_phrase_query, 64 lines)
+- `backend/tests/unit/search/test_query_builder.py` (added TestPhraseQueryBuilding, 75 lines)
+
+**Sprint 3 Phase 2 Status**: 🔄 IN PROGRESS (3/14 tasks, 21%)
+
+**Latest Commit**: Task 2.3 - Phrase query building
+**Next Task**: Task 2.4 - Boolean query parsing (AND, OR, NOT operators)
+
+---
+
 #### [2025-11-20] - Sprint 3 Phase 2, Task 2.2: Simple Keyword Query Building - COMPLETE
 
 **Commits**: Task 2.2 - Enhance _build_simple_query() with bool query and field boosting

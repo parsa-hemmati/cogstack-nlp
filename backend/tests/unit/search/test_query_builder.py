@@ -246,3 +246,79 @@ class TestSimpleQueryBuilding:
             if "match" in clause:
                 for field, value in clause["match"].items():
                     assert value["query"] == "diabetes mellitus type 2"
+
+
+class TestPhraseQueryBuilding:
+    """Test phrase query building (Task 2.3)."""
+
+    def test_build_phrase_query_extracts_single_phrase(self):
+        """Test that _build_phrase_query() extracts single phrase from quotes."""
+        builder = QueryBuilder()
+        result = builder._build_phrase_query('"chest pain"')
+
+        # Should return bool query with must clauses
+        assert "bool" in result
+        assert "must" in result["bool"]
+        assert isinstance(result["bool"]["must"], list)
+        assert len(result["bool"]["must"]) >= 1
+
+        # Should contain multi_match with type=phrase
+        must_clause = result["bool"]["must"][0]
+        assert "multi_match" in must_clause
+        assert must_clause["multi_match"]["type"] == "phrase"
+        assert must_clause["multi_match"]["query"] == "chest pain"
+
+    def test_build_phrase_query_extracts_multiple_phrases(self):
+        """Test that _build_phrase_query() extracts multiple phrases (AND logic)."""
+        builder = QueryBuilder()
+        result = builder._build_phrase_query('"diabetes mellitus" AND "chest pain"')
+
+        # Should return bool query with must clauses (AND logic)
+        assert "bool" in result
+        assert "must" in result["bool"]
+        must_clauses = result["bool"]["must"]
+        assert len(must_clauses) == 2
+
+        # First phrase
+        assert "multi_match" in must_clauses[0]
+        assert must_clauses[0]["multi_match"]["query"] == "diabetes mellitus"
+        assert must_clauses[0]["multi_match"]["type"] == "phrase"
+
+        # Second phrase
+        assert "multi_match" in must_clauses[1]
+        assert must_clauses[1]["multi_match"]["query"] == "chest pain"
+        assert must_clauses[1]["multi_match"]["type"] == "phrase"
+
+    def test_build_phrase_query_searches_multiple_fields(self):
+        """Test that _build_phrase_query() searches title and content fields."""
+        builder = QueryBuilder()
+        result = builder._build_phrase_query('"atrial flutter"')
+
+        must_clause = result["bool"]["must"][0]
+        # Should search both title and content fields
+        assert "fields" in must_clause["multi_match"]
+        fields = must_clause["multi_match"]["fields"]
+        assert "title" in fields or "title^10" in fields
+        assert "content" in fields or "content^1" in fields
+
+    def test_build_phrase_query_with_empty_quotes(self):
+        """Test that _build_phrase_query() handles empty quotes."""
+        builder = QueryBuilder()
+        result = builder._build_phrase_query('""')
+
+        # Empty quotes should return empty must clauses
+        assert "bool" in result
+        assert "must" in result["bool"]
+        assert len(result["bool"]["must"]) == 0
+
+    def test_build_phrase_query_mixed_with_text(self):
+        """Test that _build_phrase_query() extracts only quoted phrases."""
+        builder = QueryBuilder()
+        result = builder._build_phrase_query('patient with "chest pain" and symptoms')
+
+        # Should extract only "chest pain" phrase
+        assert "bool" in result
+        assert "must" in result["bool"]
+        must_clauses = result["bool"]["must"]
+        assert len(must_clauses) == 1
+        assert must_clauses[0]["multi_match"]["query"] == "chest pain"

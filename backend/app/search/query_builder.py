@@ -205,6 +205,70 @@ class QueryBuilder:
             }
         }
 
+    def _build_phrase_query(self, query: str) -> Dict:
+        """
+        Build bool query with must clauses for phrase search.
+
+        Extracts phrases from double quotes and creates multi_match queries
+        with type=phrase for exact phrase matching. Multiple phrases use
+        AND logic (all must match).
+
+        Args:
+            query: Search query string with quoted phrases
+
+        Returns:
+            Elasticsearch bool query with must clauses
+
+        Examples:
+            >>> _build_phrase_query('"chest pain"')
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "multi_match": {
+                                "query": "chest pain",
+                                "fields": ["title^10", "content^1"],
+                                "type": "phrase"
+                            }
+                        }
+                    ]
+                }
+            }
+
+            >>> _build_phrase_query('"diabetes mellitus" AND "chest pain"')
+            {
+                "bool": {
+                    "must": [
+                        {"multi_match": {"query": "diabetes mellitus", "type": "phrase", ...}},
+                        {"multi_match": {"query": "chest pain", "type": "phrase", ...}}
+                    ]
+                }
+            }
+        """
+        # Extract phrases from double quotes
+        phrase_pattern = r'"([^"]*)"'
+        phrases = re.findall(phrase_pattern, query)
+
+        # Filter out empty phrases
+        phrases = [p.strip() for p in phrases if p.strip()]
+
+        # Build must clauses for each phrase
+        must_clauses = []
+        for phrase in phrases:
+            must_clauses.append({
+                "multi_match": {
+                    "query": phrase,
+                    "fields": ["title^10", "content^1"],
+                    "type": "phrase"
+                }
+            })
+
+        return {
+            "bool": {
+                "must": must_clauses
+            }
+        }
+
     def _apply_filters(self, query_clause: Dict, filters: Dict) -> Dict:
         """
         Apply filters to query using bool query.
