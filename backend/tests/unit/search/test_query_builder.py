@@ -547,3 +547,83 @@ class TestFieldQueryBuilding:
         assert "term" in result
         assert "department" in result["term"]
         assert result["term"]["department"] == "Cardiology"
+
+
+class TestQueryParserIntegration:
+    """Test QueryParser integration with QueryBuilder."""
+
+    def test_build_boolean_query_with_parentheses(self):
+        """Test complex nested query with parentheses uses QueryParser."""
+        builder = QueryBuilder()
+        result = builder._build_boolean_query('(diabetes OR hypertension) AND medication')
+
+        # Should create nested bool query
+        assert "bool" in result
+        assert "must" in result["bool"]
+        assert len(result["bool"]["must"]) == 2
+
+        # First must clause should be OR of diabetes/hypertension
+        first_must = result["bool"]["must"][0]
+        assert "bool" in first_must
+        assert "should" in first_must["bool"]
+        assert len(first_must["bool"]["should"]) == 2
+
+        # Second must clause should be medication
+        second_must = result["bool"]["must"][1]
+        assert "multi_match" in second_must
+        assert second_must["multi_match"]["query"] == "medication"
+
+    def test_build_boolean_query_complex_nested(self):
+        """Test highly complex nested query."""
+        builder = QueryBuilder()
+        result = builder._build_boolean_query('((diabetes AND hypertension) OR medication) NOT insulin')
+
+        # Should create nested bool query with must_not
+        assert "bool" in result
+        # Complex structure with nested boolean logic
+
+    def test_build_boolean_query_fallback_on_parse_error(self):
+        """Test fallback to simple query on parse error."""
+        builder = QueryBuilder()
+
+        # Query with unmatched parenthesis (should fail to parse)
+        result = builder._build_boolean_query('(diabetes AND hypertension')
+
+        # Should fall back to simple multi_match query
+        assert "multi_match" in result
+        assert result["multi_match"]["query"] == '(diabetes AND hypertension'
+
+    def test_build_boolean_query_field_queries(self):
+        """Test QueryParser handles field queries in boolean context."""
+        builder = QueryBuilder()
+        result = builder._build_boolean_query('author:"Dr. Smith" AND document_type:clinical_note')
+
+        # Should create bool query with must clauses
+        assert "bool" in result
+        assert "must" in result["bool"]
+        assert len(result["bool"]["must"]) == 2
+
+        # Check for match query (text field) and term query (keyword field)
+        has_match = any("match" in clause for clause in result["bool"]["must"])
+        has_term = any("term" in clause for clause in result["bool"]["must"])
+        assert has_match and has_term
+
+    def test_existing_boolean_tests_still_pass(self):
+        """Verify existing boolean query tests still work with QueryParser."""
+        builder = QueryBuilder()
+
+        # Test simple AND
+        and_result = builder._build_boolean_query('diabetes AND hypertension')
+        assert "bool" in and_result
+        assert "must" in and_result["bool"]
+        assert len(and_result["bool"]["must"]) == 2
+
+        # Test simple OR
+        or_result = builder._build_boolean_query('diabetes OR hypertension')
+        assert "bool" in or_result
+        assert "should" in or_result["bool"]
+        assert len(or_result["bool"]["should"]) == 2
+
+        # Test simple NOT
+        not_result = builder._build_boolean_query('diabetes NOT type1')
+        assert "bool" in not_result

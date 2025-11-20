@@ -6,6 +6,10 @@ Handles query parsing, type detection, and DSL generation.
 import re
 from typing import Dict, List, Optional
 
+from lark.exceptions import LarkError
+
+from app.search.query_parser import QueryParser
+
 
 class QueryBuilder:
     """
@@ -20,7 +24,7 @@ class QueryBuilder:
 
     def __init__(self):
         """Initialize QueryBuilder."""
-        pass
+        self.query_parser = QueryParser()
 
     def _is_phrase_query(self, query: str) -> bool:
         """
@@ -273,9 +277,10 @@ class QueryBuilder:
         """
         Build bool query for boolean search with AND/OR/NOT operators.
 
-        Parses query for boolean operators and creates appropriate Elasticsearch
-        bool query with must/should/must_not clauses. Supports quoted phrases
-        and preserves field boosting.
+        Now uses QueryParser (Lark-based) for parsing complex queries with
+        proper operator precedence and parentheses support.
+
+        Falls back to simple multi_match query if parsing fails.
 
         Operator precedence: NOT > AND > OR (standard boolean logic)
 
@@ -296,122 +301,30 @@ class QueryBuilder:
                 }
             }
 
-            >>> _build_boolean_query("diabetes OR hypertension")
+            >>> _build_boolean_query("(diabetes OR hypertension) AND medication")
             {
                 "bool": {
-                    "should": [
-                        {"multi_match": {"query": "diabetes", "fields": [...]}},
-                        {"multi_match": {"query": "hypertension", "fields": [...]}}
-                    ],
-                    "minimum_should_match": 1
-                }
-            }
-
-            >>> _build_boolean_query("diabetes NOT type1")
-            {
-                "bool": {
-                    "must": [{"multi_match": {"query": "diabetes", "fields": [...]}}],
-                    "must_not": [{"multi_match": {"query": "type1", "fields": [...]}}]
+                    "must": [
+                        {"bool": {"should": [...]}},
+                        {"multi_match": {"query": "medication", ...}}
+                    ]
                 }
             }
         """
-        # Handle OR operator first (lowest precedence)
-        if re.search(r'\bOR\b', query, re.IGNORECASE):
-            # Split by OR and process each part
-            or_parts = re.split(r'\s+OR\s+', query, flags=re.IGNORECASE)
-            should_clauses = []
+        try:
+            # Try using QueryParser for better handling of complex queries
+            parsed_query = self.query_parser.parse(query)
 
-            for part in or_parts:
-                part = part.strip()
-                if not part:
-                    continue
+            # If parser returns None (empty query), fall back to simple query
+            if parsed_query is None:
+                return self._build_term_clause(query)
 
-                # If part contains AND or NOT, process as sub-query
-                if re.search(r'\b(AND|NOT)\b', part, re.IGNORECASE):
-                    sub_query = self._build_boolean_query(part)
-                    should_clauses.append(sub_query)
-                else:
-                    # Single term or phrase
-                    clause = self._build_term_clause(part)
-                    should_clauses.append(clause)
+            return parsed_query
 
-            return {
-                "bool": {
-                    "should": should_clauses,
-                    "minimum_should_match": 1
-                }
-            }
-
-        # Handle NOT operator (highest precedence)
-        if re.search(r'\bNOT\b', query, re.IGNORECASE):
-            # Split by NOT (everything after NOT is negated)
-            not_pattern = r'\s+NOT\s+'
-            parts = re.split(not_pattern, query, maxsplit=1, flags=re.IGNORECASE)
-
-            positive_part = parts[0].strip()
-            negative_part = parts[1].strip() if len(parts) > 1 else ""
-
-            must_clauses = []
-            must_not_clauses = []
-
-            # Process positive part
-            if positive_part:
-                # If positive part contains AND, process as AND query
-                if re.search(r'\bAND\b', positive_part, re.IGNORECASE):
-                    positive_query = self._build_boolean_query(positive_part)
-                    # Extract must clauses from nested bool query
-                    if "bool" in positive_query and "must" in positive_query["bool"]:
-                        must_clauses.extend(positive_query["bool"]["must"])
-                    else:
-                        must_clauses.append(positive_query)
-                else:
-                    clause = self._build_term_clause(positive_part)
-                    must_clauses.append(clause)
-
-            # Process negative part
-            if negative_part:
-                # Split negative part by AND (all negated terms)
-                if re.search(r'\bAND\b', negative_part, re.IGNORECASE):
-                    negative_terms = re.split(r'\s+AND\s+', negative_part, flags=re.IGNORECASE)
-                    for term in negative_terms:
-                        term = term.strip()
-                        if term:
-                            clause = self._build_term_clause(term)
-                            must_not_clauses.append(clause)
-                else:
-                    clause = self._build_term_clause(negative_part)
-                    must_not_clauses.append(clause)
-
-            result = {"bool": {}}
-            if must_clauses:
-                result["bool"]["must"] = must_clauses
-            if must_not_clauses:
-                result["bool"]["must_not"] = must_not_clauses
-
-            return result
-
-        # Handle AND operator (medium precedence)
-        if re.search(r'\bAND\b', query, re.IGNORECASE):
-            # Split by AND and process each part
-            and_parts = re.split(r'\s+AND\s+', query, flags=re.IGNORECASE)
-            must_clauses = []
-
-            for part in and_parts:
-                part = part.strip()
-                if not part:
-                    continue
-
-                clause = self._build_term_clause(part)
-                must_clauses.append(clause)
-
-            return {
-                "bool": {
-                    "must": must_clauses
-                }
-            }
-
-        # No boolean operators - single term or phrase
-        return self._build_term_clause(query)
+        except LarkError as e:
+            # Parse error - fall back to simple multi_match query
+            # This handles cases where query syntax is invalid or too complex
+            return self._build_term_clause(query)
 
     def _build_field_query(self, query: str) -> Dict:
         """

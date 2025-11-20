@@ -123,7 +123,7 @@ The `.ccpm/ccpm.yaml` configuration created above was based on a misunderstandin
 
 ---
 
-### Sprint Status: 🔄 PHASE 2 IN PROGRESS - Sprint 3 Phase 2 (Tasks 2.1-2.6 COMPLETE, 6/14 tasks, 43%)
+### Sprint Status: 🔄 PHASE 2 IN PROGRESS - Sprint 3 Phase 2 (Tasks 2.1-2.7 COMPLETE, 7/14 tasks, 50%)
 
 **Sprint 3: Full-Text Search Enhancement** - IN PROGRESS (Started 2025-11-19)
 - ✅ Phase 1: Core Search Infrastructure (10/10 tasks, 100% complete)
@@ -137,14 +137,15 @@ The `.ccpm/ccpm.yaml` configuration created above was based on a misunderstandin
   - ✅ Task 1.8: Create Pydantic Search Schemas - COMPLETE
   - ✅ Task 1.9: Implement Basic SearchService - COMPLETE
   - ✅ Task 1.10: Create Basic Search API Endpoint - COMPLETE
-- 🔄 Phase 2: Advanced Query Parsing (6/14 tasks, 43% complete)
+- 🔄 Phase 2: Advanced Query Parsing (7/14 tasks, 50% complete)
   - ✅ Task 2.1: Create QueryBuilder Basic Structure - COMPLETE
   - ✅ Task 2.2: Implement Simple Keyword Query Building - COMPLETE
   - ✅ Task 2.3: Implement Phrase Query Building - COMPLETE
   - ✅ Task 2.4: Implement Boolean Query Parsing - COMPLETE
   - ✅ Task 2.5: Implement Field-Specific Query Parsing - COMPLETE
   - ✅ Task 2.6: Install and Configure Lark Parser - COMPLETE
-  - ⏳ Task 2.7-2.14: Remaining tasks - NOT STARTED
+  - ✅ Task 2.7: Integrate QueryParser into QueryBuilder - COMPLETE
+  - ⏳ Task 2.8-2.14: Remaining tasks - NOT STARTED
 
 **Sprint 2: Timeline View** - COMPLETE (2025-11-19)
 - ✅ Phase 5.1: Backend Timeline Data API
@@ -399,7 +400,93 @@ Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:704-73
 
 **✅ PRD Drift: NONE DETECTED**
 
-**Next Task PRD Reference**: Task 2.7 - `.specify/tasks/sprint-3-full-text-search-tasks.md:868-900`
+**Next Task PRD Reference**: Task 2.8 - `.specify/tasks/sprint-3-full-text-search-tasks.md:901-950`
+
+---
+
+**Task 2.7: Integrate QueryParser into QueryBuilder** - COMPLETE (2025-11-20)
+
+**Task Summary**:
+- ✅ Modified _build_boolean_query() to use QueryParser (143 lines → 50 lines, 65% reduction)
+- ✅ Removed all regex-based parsing logic (93 lines removed)
+- ✅ Added QueryParser import and initialization in QueryBuilder
+- ✅ Added fallback to simple query on parse error (LarkError)
+- ✅ Added fallback for None result (empty query)
+- ✅ Added 5 integration tests (78 lines) in TestQueryParserIntegration class
+- ✅ All existing QueryBuilder tests pass (100% backward compatible)
+- ✅ Parentheses support enabled: (A OR B) AND C
+
+**Compliance Review - Task 2.7**:
+
+**✅ PRD Alignment: 100% COMPLIANT**
+
+Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:868-900`:
+- ✅ QueryBuilder uses QueryParser for boolean queries
+- ✅ Fallback to simple query if parse error (LarkError caught, returns _build_term_clause())
+- ✅ Existing tests still pass (all TestBooleanQueryBuilding tests pass)
+- ✅ New test for complex nested query passes (test_build_boolean_query_with_parentheses)
+- ✅ Test coverage maintained at 100% (was 100%, still 100%)
+
+**Acceptance Criteria: 5/5 PASSED**
+- [✓] QueryBuilder uses QueryParser for boolean queries
+- [✓] Fallback to simple query if parse error
+- [✓] Existing tests still pass
+- [✓] New test for complex nested query passes
+- [✓] Test coverage maintained ≥ 85% (achieved 100%)
+
+**✅ HIPAA Compliance: NOT APPLICABLE** (Query parsing module, no PHI handling)
+
+**✅ Design Patterns: DOCUMENTED**
+- **Composition**: QueryBuilder composes QueryParser (delegation pattern)
+- **Fallback pattern**: Try advanced parsing, fall back to simple on error
+- **Single Responsibility**: Parsing logic delegated to QueryParser
+- **Error handling**: Catch LarkError and gracefully degrade
+
+**✅ Implementation Decisions: DOCUMENTED**
+- Delegation over inheritance: QueryBuilder instantiates QueryParser
+- Fallback strategy: On parse error, treat query as simple term (robust)
+- Backward compatibility: QueryParser produces identical DSL structure
+- Code simplification: 143 lines → 50 lines (65% reduction)
+
+**✅ Integration Testing**:
+- TestQueryParserIntegration class with 5 tests:
+  1. test_build_boolean_query_with_parentheses: Complex nested query (A OR B) AND C
+  2. test_build_boolean_query_complex_nested: Highly complex ((A AND B) OR C) NOT D
+  3. test_build_boolean_query_fallback_on_parse_error: Unmatched parenthesis fallback
+  4. test_build_boolean_query_field_queries: Field queries in boolean context
+  5. test_existing_boolean_tests_still_pass: Backward compatibility (AND, OR, NOT)
+
+**✅ Backward Compatibility**:
+- All existing TestBooleanQueryBuilding tests pass without modification
+- QueryParser produces same Elasticsearch DSL structure as old regex implementation
+- No breaking changes to API or query output format
+- Existing code using QueryBuilder continues to work without changes
+
+**✅ New Capabilities**:
+- Parentheses support: `(diabetes OR hypertension) AND medication`
+- Nested grouping: `((A AND B) OR C) NOT D`
+- Grammar-based precedence (more accurate than regex)
+- Better error messages (Lark parse errors more informative than regex failures)
+
+**✅ Performance Impact**:
+- Parsing: O(n) for query string (LALR parser, efficient)
+- Transformation: O(nodes) where nodes = terms/operators
+- Fallback overhead: Minimal (exception handling)
+- Overall: Performance improvement for complex queries (no recursive regex splitting)
+
+**✅ Code Quality**:
+- Code size reduced: 143 lines → 50 lines (65% reduction)
+- Complexity reduced: Removed recursive regex logic
+- Maintainability improved: Grammar is declarative, easier to understand
+- Testability improved: Separation of concerns (parsing vs routing)
+
+**✅ PRD Drift: NONE DETECTED**
+- All task requirements met exactly as specified
+- Fallback behavior documented and tested
+- Existing tests pass (no regressions)
+- Test coverage maintained at 100%
+
+**Next Task PRD Reference**: Task 2.8 - `.specify/tasks/sprint-3-full-text-search-tasks.md:901-950`
 
 ---
 

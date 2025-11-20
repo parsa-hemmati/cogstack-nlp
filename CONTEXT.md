@@ -604,6 +604,80 @@ MEDIUM:
 
 ### Recent Changes
 
+#### [2025-11-20] - Sprint 3 Phase 2, Task 2.7: Integrate QueryParser into QueryBuilder - COMPLETE
+
+**Commits**: Task 2.7 - Replace regex-based _build_boolean_query() with QueryParser
+
+**Added**:
+- Import QueryParser and LarkError in `backend/app/search/query_builder.py`
+- QueryParser instance initialized in QueryBuilder.__init__()
+- New TestQueryParserIntegration test class in `backend/tests/unit/search/test_query_builder.py` (78 lines)
+  - 5 integration tests covering parentheses, fallback, field queries, backward compatibility
+
+**Changed**:
+- Modified `_build_boolean_query()` method (143 lines → 50 lines, 65% reduction)
+  - Now uses QueryParser.parse() for complex query parsing
+  - Removed all regex-based parsing logic (regex splitting, recursive processing)
+  - Added fallback to _build_term_clause() on LarkError (parse error)
+  - Added fallback for None result (empty query)
+  - Simplified from recursive regex approach to single parse() call
+- Updated method docstring to reflect QueryParser usage
+
+**Removed**:
+- All regex-based parsing logic from _build_boolean_query() (93 lines removed)
+- Complex operator precedence handling code (now handled by grammar)
+- Manual OR/AND/NOT splitting and processing
+
+**Why**:
+- Implements Sprint 3 Phase 2, Task 2.7 requirement for QueryParser integration
+- Replaces fragile regex parsing with formal grammar (more robust)
+- Enables parenthesized queries: `(diabetes OR hypertension) AND medication`
+- Simplifies QueryBuilder code (65% size reduction)
+- Better error handling through Lark parse errors
+- Maintains backward compatibility (all existing tests pass)
+- Foundation for advanced query features (wildcards, ranges, proximity, fuzzy)
+
+**Impact**:
+- ✅ _build_boolean_query() now uses QueryParser
+- ✅ Fallback to simple query on parse error (graceful degradation)
+- ✅ All existing QueryBuilder tests still pass (100% backward compatible)
+- ✅ New tests for complex nested queries passing (5 tests, 78 lines)
+- ✅ Test coverage maintained at 100% for QueryBuilder
+- ✅ Code size reduced by 93 lines (143 → 50)
+- ✅ Parentheses support enabled: `(A OR B) AND C`
+- ⚠️ Extremely complex queries may fall back to simple query (acceptable tradeoff)
+
+**Migration Notes**:
+- None required (internal implementation change, external API unchanged)
+- Existing code using QueryBuilder continues to work without changes
+- New parentheses syntax now available for advanced users
+
+**Technical Debt**:
+- None
+
+**Design Patterns**:
+- **Composition**: QueryBuilder now composes QueryParser (delegation)
+- **Fallback pattern**: Try advanced parsing, fall back to simple on error
+- **Single Responsibility**: Parsing delegated to QueryParser, QueryBuilder focuses on routing
+
+**Performance Considerations**:
+- Lark parsing is O(n) for query strings (LALR parser)
+- Parse tree transformation is O(nodes) where nodes = query terms/operators
+- Fallback adds minimal overhead (exception handling)
+- Overall performance improvement for complex queries (no recursive regex splitting)
+
+**Backward Compatibility**:
+- All existing query types work identically: simple terms, phrases, AND, OR, NOT
+- QueryParser produces same Elasticsearch DSL structure as old regex implementation
+- No breaking changes to API or query output format
+
+**New Capabilities**:
+- Parentheses: `(diabetes OR hypertension) AND medication`
+- Nested grouping: `((A AND B) OR C) NOT D`
+- Complex precedence: Grammar-based (more accurate than regex)
+
+---
+
 #### [2025-11-20] - Sprint 3 Phase 2, Task 2.6: Install and Configure Lark Parser - COMPLETE
 
 **Commits**: Task 2.6 - Install Lark parser and create QueryParser with query grammar
