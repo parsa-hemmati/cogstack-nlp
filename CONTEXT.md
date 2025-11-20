@@ -1812,7 +1812,7 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
-### 2025-11-20 - Sprint 3 Phase 2: Advanced Query Parsing (Tasks 2.4-2.9)
+### 2025-11-20 - Sprint 3 Phase 2: Advanced Query Parsing (Tasks 2.4-2.10)
 
 **Commits**:
 - 645c303b - feat(search): Add Boolean operators (AND/OR/NOT) support
@@ -1820,7 +1820,8 @@ MEDCAT_TIMEOUT = 5  # seconds
 - 6c8fa8e9 - feat(search): Add fuzzy matching for typo tolerance (~)
 - 70d36770 - feat(search): Add proximity search (NEAR/W/ADJ operators)
 - 04981ce6 - feat(search): Add range queries for numeric and date fields
-- [pending] - feat(search): Add regular expression support
+- ae7a138a - feat(search): Add regular expression support
+- [pending] - feat(search): Integrate advanced queries with search API
 
 **Task 2.4 - Boolean Query Parsing** ✅:
 - AND/OR/NOT operators (e.g., "diabetes AND hypertension NOT family")

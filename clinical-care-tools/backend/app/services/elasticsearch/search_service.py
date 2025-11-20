@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 class SearchQuery(BaseModel):
     """Search query parameters."""
     q: str
+    query_type: Optional[str] = "standard"  # standard, boolean, wildcard, fuzzy, proximity, range, regex
     fields: Optional[List[str]] = None
     document_type: Optional[str] = None
     date_from: Optional[str] = None
@@ -103,20 +104,77 @@ class SearchService:
         start_time = time.time()
 
         try:
-            # Build Elasticsearch query
-            es_query = SearchQueryBuilder.build_query(
-                query_text=query.q,
-                fields=query.fields,
-                document_type=query.document_type,
-                date_from=query.date_from,
-                date_to=query.date_to,
-                department=query.department,
-                author=query.author,
-                page=query.page,
-                page_size=query.page_size,
-                include_aggregations=True,
-                include_highlighting=True
-            )
+            # Build filters for advanced query types
+            filters = {}
+            if query.document_type:
+                filters["document_type"] = query.document_type
+            if query.department:
+                filters["department"] = query.department
+            if query.date_from or query.date_to:
+                filters["date_from"] = query.date_from
+                filters["date_to"] = query.date_to
+
+            # Build Elasticsearch query based on query type
+            if query.query_type == "boolean":
+                # Boolean query with AND/OR/NOT
+                es_query = SearchQueryBuilder.build_boolean_query(
+                    query_text=query.q,
+                    filters=filters,
+                    fields=query.fields
+                )
+            elif query.query_type == "wildcard":
+                # Wildcard query with * and ?
+                es_query = SearchQueryBuilder.build_wildcard_query(
+                    query_text=query.q,
+                    filters=filters
+                )
+            elif query.query_type == "fuzzy":
+                # Fuzzy query for typo tolerance
+                es_query = SearchQueryBuilder.build_fuzzy_query(
+                    query_text=query.q,
+                    filters=filters
+                )
+            elif query.query_type == "proximity":
+                # Proximity search with NEAR/W/ADJ operators
+                es_query = SearchQueryBuilder.build_proximity_query(
+                    query_text=query.q,
+                    filters=filters
+                )
+            elif query.query_type == "range":
+                # Range queries for numeric and date fields
+                es_query = SearchQueryBuilder.build_range_query(
+                    query_text=query.q,
+                    filters=filters
+                )
+            elif query.query_type == "regex":
+                # Regular expression queries
+                es_query = SearchQueryBuilder.build_regex_query(
+                    query_text=query.q,
+                    filters=filters
+                )
+            else:
+                # Default to standard multi-field query
+                es_query = SearchQueryBuilder.build_query(
+                    query_text=query.q,
+                    fields=query.fields,
+                    document_type=query.document_type,
+                    date_from=query.date_from,
+                    date_to=query.date_to,
+                    department=query.department,
+                    author=query.author,
+                    page=query.page,
+                    page_size=query.page_size,
+                    include_aggregations=True,
+                    include_highlighting=True
+                )
+
+            # Add aggregations for non-standard query types
+            if query.query_type != "standard" and "aggs" not in es_query:
+                es_query["aggs"] = SearchQueryBuilder._build_aggregations()
+
+            # Add highlighting for non-standard query types
+            if query.query_type != "standard" and "highlight" not in es_query:
+                es_query["highlight"] = SearchQueryBuilder._build_highlighting()
 
             # Execute search
             from_offset = (query.page - 1) * query.page_size

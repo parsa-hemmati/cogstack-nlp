@@ -59,6 +59,7 @@ async def get_redis_client() -> redis.Redis:
 @router.get("/search", response_model=SearchResponse)
 async def search_documents(
     q: str = Query(..., description="Search query", min_length=1),
+    query_type: Optional[str] = Query("standard", description="Query type: standard, boolean, wildcard, fuzzy, proximity, range, regex"),
     document_type: Optional[str] = Query(None, description="Filter by document type"),
     date_from: Optional[str] = Query(None, description="Start date (ISO format)"),
     date_to: Optional[str] = Query(None, description="End date (ISO format)"),
@@ -72,16 +73,27 @@ async def search_documents(
     db: AsyncSession = Depends(get_db)
 ) -> SearchResponse:
     """
-    Search documents with full-text query.
+    Search documents with advanced query support.
 
     Features:
     - Multi-field search (title, content, author)
+    - Advanced query types:
+      - standard: Basic multi-field search with fuzziness
+      - boolean: AND/OR/NOT operators (e.g., "diabetes AND hypertension")
+      - wildcard: Pattern matching with * and ? (e.g., "diabet*")
+      - fuzzy: Typo tolerance with ~ (e.g., "diabets~")
+      - proximity: Terms within distance (e.g., "heart NEAR/3 failure")
+      - range: Numeric/date ranges (e.g., "age:[18 TO 65]")
+      - regex: Regular expressions (e.g., "/diabet.*/")
     - Faceted filtering (document type, department, date range)
     - Result highlighting
     - Relevance ranking (BM25)
 
-    Example:
-        GET /api/v1/search?q=diabetes+mellitus&document_type=discharge_summary&page=1&page_size=20
+    Examples:
+        GET /api/v1/search?q=diabetes+mellitus&query_type=standard
+        GET /api/v1/search?q=diabetes+AND+hypertension&query_type=boolean
+        GET /api/v1/search?q=diabet*&query_type=wildcard
+        GET /api/v1/search?q=/heart.%2B(failure|disease)/&query_type=regex
 
     Returns:
         SearchResponse with results, facets, and metadata
@@ -90,6 +102,7 @@ async def search_documents(
         # Build search query
         search_query = SearchQuery(
             q=q,
+            query_type=query_type,
             document_type=document_type,
             date_from=date_from,
             date_to=date_to,
