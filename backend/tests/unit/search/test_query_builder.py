@@ -466,3 +466,84 @@ class TestBooleanQueryBuilding:
                 fields = clause["multi_match"]["fields"]
                 # Should have title^10, content^1, etc.
                 assert any("^" in field for field in fields)
+
+
+class TestFieldQueryBuilding:
+    """Test field-specific query parsing (field:value syntax)."""
+
+    def test_build_field_query_single_text_field(self):
+        """Test field:value syntax for text fields."""
+        builder = QueryBuilder()
+        result = builder._build_field_query('author:"Dr. Smith"')
+
+        # Should create match query for author field
+        assert "match" in result
+        assert "author" in result["match"]
+        assert result["match"]["author"]["query"] == "Dr. Smith"
+
+    def test_build_field_query_keyword_field(self):
+        """Test field:value syntax for keyword fields."""
+        builder = QueryBuilder()
+        result = builder._build_field_query('document_type:"clinical_note"')
+
+        # Should create term query for keyword fields
+        assert "term" in result
+        assert "document_type" in result["term"]
+        assert result["term"]["document_type"] == "clinical_note"
+
+    def test_build_field_query_multiple_fields(self):
+        """Test multiple field:value pairs with AND."""
+        builder = QueryBuilder()
+        result = builder._build_field_query('author:"Dr. Smith" AND document_type:"clinical_note"')
+
+        # Should create bool query with must clauses
+        assert "bool" in result
+        assert "must" in result["bool"]
+        must_clauses = result["bool"]["must"]
+        assert len(must_clauses) == 2
+
+        # Check for author match query
+        author_queries = [c for c in must_clauses if "match" in c and "author" in c.get("match", {})]
+        assert len(author_queries) == 1
+        assert author_queries[0]["match"]["author"]["query"] == "Dr. Smith"
+
+        # Check for document_type term query
+        type_queries = [c for c in must_clauses if "term" in c and "document_type" in c.get("term", {})]
+        assert len(type_queries) == 1
+        assert type_queries[0]["term"]["document_type"] == "clinical_note"
+
+    def test_build_field_query_unquoted_value(self):
+        """Test field:value syntax without quotes."""
+        builder = QueryBuilder()
+        result = builder._build_field_query('author:Smith')
+
+        # Should create match query for single-word value
+        assert "match" in result
+        assert "author" in result["match"]
+        assert result["match"]["author"]["query"] == "Smith"
+
+    def test_build_field_query_mixed_with_boolean(self):
+        """Test field queries mixed with boolean operators."""
+        builder = QueryBuilder()
+        result = builder._build_field_query('author:"Dr. Smith" OR author:"Dr. Jones"')
+
+        # Should create bool query with should clauses
+        assert "bool" in result
+        assert "should" in result["bool"]
+        should_clauses = result["bool"]["should"]
+        assert len(should_clauses) == 2
+
+        # Check both author queries
+        authors = [c["match"]["author"]["query"] for c in should_clauses if "match" in c and "author" in c.get("match", {})]
+        assert "Dr. Smith" in authors
+        assert "Dr. Jones" in authors
+
+    def test_build_field_query_department_field(self):
+        """Test department field (keyword field)."""
+        builder = QueryBuilder()
+        result = builder._build_field_query('department:Cardiology')
+
+        # Should create term query for keyword field
+        assert "term" in result
+        assert "department" in result["term"]
+        assert result["term"]["department"] == "Cardiology"

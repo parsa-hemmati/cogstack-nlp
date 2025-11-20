@@ -413,6 +413,157 @@ class QueryBuilder:
         # No boolean operators - single term or phrase
         return self._build_term_clause(query)
 
+    def _build_field_query(self, query: str) -> Dict:
+        """
+        Build query for field-specific search (field:value syntax).
+
+        Supports field:value and field:"value with spaces" syntax.
+        Uses match queries for text fields (author, title, content).
+        Uses term queries for keyword fields (document_type, department).
+
+        Args:
+            query: Search query with field:value syntax
+
+        Returns:
+            Elasticsearch query clause (match, term, or bool query)
+
+        Examples:
+            >>> _build_field_query('author:"Dr. Smith"')
+            {"match": {"author": {"query": "Dr. Smith"}}}
+
+            >>> _build_field_query('document_type:"clinical_note"')
+            {"term": {"document_type": "clinical_note"}}
+
+            >>> _build_field_query('author:"Dr. Smith" AND document_type:"clinical_note"')
+            {
+                "bool": {
+                    "must": [
+                        {"match": {"author": {"query": "Dr. Smith"}}},
+                        {"term": {"document_type": "clinical_note"}}
+                    ]
+                }
+            }
+        """
+        # Define keyword fields (use term query)
+        keyword_fields = {"document_type", "department"}
+
+        # Check if query contains boolean operators
+        if re.search(r'\b(AND|OR|NOT)\b', query, re.IGNORECASE):
+            # Parse field queries and combine with boolean logic
+            return self._build_field_boolean_query(query, keyword_fields)
+
+        # Extract field:value pattern
+        # Pattern: field:"quoted value" or field:unquoted_value
+        field_pattern = r'(\w+):(\"[^\"]+\"|[^\s]+)'
+        match = re.search(field_pattern, query)
+
+        if not match:
+            # No field syntax found, return simple query
+            return self._build_term_clause(query)
+
+        field_name = match.group(1)
+        field_value = match.group(2)
+
+        # Remove quotes if present
+        if field_value.startswith('"') and field_value.endswith('"'):
+            field_value = field_value[1:-1]
+
+        # Use term query for keyword fields, match query for text fields
+        if field_name in keyword_fields:
+            return {
+                "term": {
+                    field_name: field_value
+                }
+            }
+        else:
+            return {
+                "match": {
+                    field_name: {
+                        "query": field_value
+                    }
+                }
+            }
+
+    def _build_field_boolean_query(self, query: str, keyword_fields: set) -> Dict:
+        """
+        Build boolean query with field-specific clauses.
+
+        Args:
+            query: Query with field:value syntax and boolean operators
+            keyword_fields: Set of field names that use term queries
+
+        Returns:
+            Elasticsearch bool query
+        """
+        # Handle OR operator
+        if re.search(r'\bOR\b', query, re.IGNORECASE):
+            or_parts = re.split(r'\s+OR\s+', query, flags=re.IGNORECASE)
+            should_clauses = []
+
+            for part in or_parts:
+                part = part.strip()
+                if not part:
+                    continue
+
+                # Parse field query for this part
+                clause = self._build_field_query(part)
+                should_clauses.append(clause)
+
+            return {
+                "bool": {
+                    "should": should_clauses,
+                    "minimum_should_match": 1
+                }
+            }
+
+        # Handle NOT operator
+        if re.search(r'\bNOT\b', query, re.IGNORECASE):
+            parts = re.split(r'\s+NOT\s+', query, maxsplit=1, flags=re.IGNORECASE)
+            positive_part = parts[0].strip()
+            negative_part = parts[1].strip() if len(parts) > 1 else ""
+
+            must_clauses = []
+            must_not_clauses = []
+
+            if positive_part:
+                clause = self._build_field_query(positive_part)
+                must_clauses.append(clause)
+
+            if negative_part:
+                clause = self._build_field_query(negative_part)
+                must_not_clauses.append(clause)
+
+            result = {"bool": {}}
+            if must_clauses:
+                result["bool"]["must"] = must_clauses
+            if must_not_clauses:
+                result["bool"]["must_not"] = must_not_clauses
+
+            return result
+
+        # Handle AND operator
+        if re.search(r'\bAND\b', query, re.IGNORECASE):
+            and_parts = re.split(r'\s+AND\s+', query, flags=re.IGNORECASE)
+            must_clauses = []
+
+            for part in and_parts:
+                part = part.strip()
+                if not part:
+                    continue
+
+                # Parse field query for this part
+                clause = self._build_field_query(part)
+                must_clauses.append(clause)
+
+            return {
+                "bool": {
+                    "must": must_clauses
+                }
+            }
+
+        # No boolean operators, single field query
+        return self._build_field_query(query)
+
     def _build_term_clause(self, term: str) -> Dict:
         """
         Build query clause for a single term or phrase.

@@ -123,7 +123,7 @@ The `.ccpm/ccpm.yaml` configuration created above was based on a misunderstandin
 
 ---
 
-### Sprint Status: 🔄 PHASE 2 IN PROGRESS - Sprint 3 Phase 2 (Tasks 2.1-2.4 COMPLETE, 4/14 tasks, 29%)
+### Sprint Status: 🔄 PHASE 2 IN PROGRESS - Sprint 3 Phase 2 (Tasks 2.1-2.5 COMPLETE, 5/14 tasks, 36%)
 
 **Sprint 3: Full-Text Search Enhancement** - IN PROGRESS (Started 2025-11-19)
 - ✅ Phase 1: Core Search Infrastructure (10/10 tasks, 100% complete)
@@ -137,12 +137,13 @@ The `.ccpm/ccpm.yaml` configuration created above was based on a misunderstandin
   - ✅ Task 1.8: Create Pydantic Search Schemas - COMPLETE
   - ✅ Task 1.9: Implement Basic SearchService - COMPLETE
   - ✅ Task 1.10: Create Basic Search API Endpoint - COMPLETE
-- 🔄 Phase 2: Advanced Query Parsing (4/14 tasks, 29% complete)
+- 🔄 Phase 2: Advanced Query Parsing (5/14 tasks, 36% complete)
   - ✅ Task 2.1: Create QueryBuilder Basic Structure - COMPLETE
   - ✅ Task 2.2: Implement Simple Keyword Query Building - COMPLETE
   - ✅ Task 2.3: Implement Phrase Query Building - COMPLETE
   - ✅ Task 2.4: Implement Boolean Query Parsing - COMPLETE
-  - ⏳ Task 2.5-2.14: Remaining tasks - NOT STARTED
+  - ✅ Task 2.5: Implement Field-Specific Query Parsing - COMPLETE
+  - ⏳ Task 2.6-2.14: Remaining tasks - NOT STARTED
 
 **Sprint 2: Timeline View** - COMPLETE (2025-11-19)
 - ✅ Phase 5.1: Backend Timeline Data API
@@ -397,7 +398,70 @@ Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:704-73
 
 **✅ PRD Drift: NONE DETECTED**
 
-**Next Task PRD Reference**: Task 2.5 - `.specify/tasks/sprint-3-full-text-search-tasks.md:778-820`
+**Next Task PRD Reference**: Task 2.6 - `.specify/tasks/sprint-3-full-text-search-tasks.md:823-900`
+
+---
+
+**Task 2.5: Implement Field-Specific Query Parsing** - COMPLETE (2025-11-20)
+
+**Task Summary**:
+- ✅ _build_field_query() method created (82 lines)
+- ✅ _build_field_boolean_query() helper method created (78 lines)
+- ✅ Parses field:value and field:"quoted value" syntax
+- ✅ Differentiates text fields (author, title, content) vs keyword fields (document_type, department)
+- ✅ Text fields use match queries (analyzed, case-insensitive)
+- ✅ Keyword fields use term queries (exact match, case-sensitive)
+- ✅ Boolean operators (AND/OR/NOT) work with field queries
+- ✅ Quoted and unquoted field values supported
+- ✅ Regex pattern: `(\w+):(\"[^\"]+\"|[^\s]+)` for field extraction
+- ✅ 6 unit tests added (78 lines)
+- ✅ All tests passing, backward compatible
+
+**Compliance Review - Task 2.5**:
+
+**✅ PRD Alignment: 100% COMPLIANT**
+
+Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:778-820`:
+- ✅ `_build_field_query()` implemented (82 lines)
+- ✅ Parses field:value syntax (author:"Dr. Smith" → match query on author field)
+- ✅ Parses field:"quoted value" syntax (author:"Dr. Jane Smith" → preserves spaces)
+- ✅ Text fields use match queries (author, title, content analyzed with standard analyzer)
+- ✅ Keyword fields use term queries (document_type, department exact match)
+- ✅ Boolean operators supported with field queries (author:"Dr. Smith" AND document_type:"clinical_note")
+- ✅ Unquoted values supported (author:Smith works without quotes)
+- ✅ Multiple field:value pairs supported (author:Smith AND department:Cardiology)
+- ✅ Field queries integrate with existing query methods (can combine with boolean and phrase queries)
+- ✅ Unit tests written and passing (6 tests, 78 lines)
+
+**Acceptance Criteria: 6/6 PASSED**
+- [✓] `_build_field_query()` implemented
+- [✓] Parses field:value and field:"quoted value" syntax
+- [✓] Text fields use match queries
+- [✓] Keyword fields use term queries
+- [✓] Boolean operators work with field queries
+- [✓] Unit tests written and passing (6 tests)
+
+**✅ HIPAA Compliance: NOT APPLICABLE** (Query parsing module, no PHI handling)
+
+**✅ Design Patterns: DOCUMENTED**
+- **Field type differentiation**: Maintains keyword_fields set for exact matching vs analyzed matching
+- **Helper method pattern**: `_build_field_boolean_query()` handles operator combinations with field queries
+- **Regex extraction**: Pattern `(\w+):(\"[^\"]+\"|[^\s]+)` captures field name and quoted/unquoted values
+- **Query type selection**: Conditional logic selects term vs match query based on field type
+
+**✅ Implementation Decisions: DOCUMENTED**
+- Keyword fields: document_type, department (exact match, case-sensitive via term query)
+- Text fields: author, title, content (analyzed, case-insensitive via match query)
+- Quote handling: Strips quotes from field values while preserving internal spaces
+- Integration: Field queries combine with boolean operators through `_build_field_boolean_query()`
+
+**✅ PRD Drift: NONE DETECTED**
+- All task requirements met exactly as specified
+- Field types correctly differentiated (text vs keyword)
+- Boolean operators work seamlessly with field queries
+- No breaking changes to existing query methods
+
+**Next Task PRD Reference**: Task 2.6 - `.specify/tasks/sprint-3-full-text-search-tasks.md:823-900`
 
 ---
 

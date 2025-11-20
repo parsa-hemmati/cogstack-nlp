@@ -604,6 +604,66 @@ MEDIUM:
 
 ### Recent Changes
 
+#### [2025-11-20] - Sprint 3 Phase 2, Task 2.5: Field-Specific Query Parsing - COMPLETE
+
+**Commits**: Task 2.5 - Implement _build_field_query() for field:value syntax
+
+**Added**:
+- New `_build_field_query()` method in `backend/app/search/query_builder.py` (82 lines)
+  - Parses field:value syntax (author:"Dr. Smith", document_type:"clinical_note")
+  - Supports quoted values (field:"value with spaces") and unquoted (field:value)
+  - Uses match queries for text fields (author, title, content)
+  - Uses term queries for keyword fields (document_type, department)
+  - Integrates with boolean operators (field1:value1 AND field2:value2)
+- New `_build_field_boolean_query()` helper method (78 lines)
+  - Combines field queries with AND/OR/NOT operators
+  - Preserves field-specific query types (match vs term) in boolean logic
+- Added TestFieldQueryBuilding test class in `backend/tests/unit/search/test_query_builder.py` (78 lines)
+  - 6 tests covering single fields, keyword fields, multiple fields, unquoted values, boolean combinations
+
+**Changed**:
+- None (new methods added)
+
+**Removed**:
+- None
+
+**Why**:
+- Implements Sprint 3 Phase 2, Task 2.5 requirement for field-specific queries
+- Enables targeted searching in specific fields (author:, document_type:, department:)
+- Essential for filtering by metadata (document_type:"clinical_note", department:Cardiology)
+- Supports combining field queries with boolean operators
+- Foundation for advanced search filtering (Tasks 2.6+)
+
+**Impact**:
+- ✅ _build_field_query() method created with field:value parsing
+- ✅ Supports quoted and unquoted field values
+- ✅ Text fields use match queries (flexible matching)
+- ✅ Keyword fields use term queries (exact matching)
+- ✅ Integrates with AND/OR/NOT operators
+- ✅ All 6 tests passing (100% test coverage for field queries)
+- ✅ Backward compatibility maintained (Tasks 2.1-2.4 tests still pass)
+- ⚠️ Not yet integrated into build_query() (will be done in later tasks)
+
+**Migration Notes**:
+- None required (new method, not yet called by build_query())
+- Integration planned for complete query routing implementation
+
+**Technical Debt**:
+- None
+
+**Design Patterns**:
+- **Regex extraction**: Extracts field:value pairs using pattern `(\w+):(\"[^\"]+\"|[^\s]+)`
+- **Query type selection**: Differentiates between text and keyword fields for appropriate query type
+- **Recursive boolean handling**: Delegates to _build_field_boolean_query() for operator combinations
+- **Helper method pattern**: _build_field_boolean_query() separates boolean logic from field parsing
+
+**Performance Considerations**:
+- Term queries (keyword fields) are faster than match queries (exact match, no analysis)
+- Field-specific queries reduce search scope (more efficient than multi_match across all fields)
+- Boolean combinations maintain Elasticsearch query optimization
+
+---
+
 #### [2025-11-20] - Sprint 3 Phase 2, Task 2.4: Boolean Query Parsing - COMPLETE
 
 **Commits**: Task 2.4 - Implement _build_boolean_query() for AND/OR/NOT operators
