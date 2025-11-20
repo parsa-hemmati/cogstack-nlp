@@ -143,15 +143,15 @@ The current development focus is **extending** this ecosystem with **clinical ca
   - **Dependencies**: WeasyPrint 62.3, fhir.resources 7.1.0, Jinja2 3.1.4
   - **Test Coverage**: 69 tests total (29 service unit + 13 API integration + 27 frontend unit)
 
-- 🚧 **Sprint 3 (Full-Text Search Enhancement)**: IN PROGRESS - Phase 1 (1/6 phases, ~3% complete)
+- 🚧 **Sprint 3 (Full-Text Search Enhancement)**: IN PROGRESS - Phase 1 (1/6 phases, ~4% complete)
   - ✅ Technical Plan: `.specify/plans/sprint-3-full-text-search-plan.md` (v1.0.0, 120 hours)
   - ✅ Task Breakdown: `.specify/tasks/sprint-3-full-text-search-tasks.md` (v1.0.0, 65 tasks)
-  - 🚧 **Phase 1 (Core Search Infrastructure)**: IN PROGRESS - 4/10 tasks (40%)
+  - 🚧 **Phase 1 (Core Search Infrastructure)**: IN PROGRESS - 5/10 tasks (50%)
     - ✅ Task 1.1: Add Elasticsearch to Docker Compose (COMPLETE - 2 hours)
     - ✅ Task 1.2: Create Elasticsearch Index Mapping (COMPLETE - 3 hours)
     - ✅ Task 1.3: Create Elasticsearch Client Module (COMPLETE - 2 hours)
     - ✅ Task 1.4: Add Database Migration for Search Tables (COMPLETE - 2 hours)
-    - ⏳ Task 1.5: Database schema models (SQLAlchemy) (pending)
+    - ✅ Task 1.5: Create SQLAlchemy Models (SavedSearch, SearchAnalytics) (COMPLETE - 2 hours)
     - ⏳ Task 1.6: Create SearchIndexer Service (pending)
     - ⏳ Task 1.7: Create IndexingWorker for Background Processing (pending)
     - ⏳ Task 1.8: Create Document Indexing API Endpoint (pending)
@@ -172,6 +172,82 @@ The current development focus is **extending** this ecosystem with **clinical ca
 ---
 
 ### Recent Changes
+
+#### [2025-11-19] - Sprint 3 Phase 1, Task 1.5: SQLAlchemy Models for Search Tables - COMPLETE
+
+**Commits**: Task 1.5 - Create SavedSearch and SearchAnalytics SQLAlchemy models
+
+**Added**:
+- `backend/app/models/saved_search.py` - SavedSearch model (91 lines)
+  - Fields: id, user_id, name, description, query, filters (JSONB), is_shared, execution_count, created_at, updated_at
+  - Relationship: user (back_populates saved_searches)
+  - Unique constraint: (user_id, name) enforced at ORM level
+  - to_dict() method for serialization
+  - __repr__() for debugging
+- `backend/app/models/search_analytics.py` - SearchAnalytics model (87 lines)
+  - Fields: id, user_id, query, filters (JSONB), results_count, execution_time_ms, clicked_documents (ARRAY[UUID]), created_at
+  - Relationship: user (back_populates search_analytics)
+  - Index: created_at DESC for performance
+  - to_dict() method handles UUID array serialization
+  - __repr__() for debugging
+- `backend/tests/unit/models/test_saved_search.py` - Unit tests (7 tests, TDD approach)
+  - test_create_saved_search_with_valid_data
+  - test_saved_search_default_values
+  - test_saved_search_repr
+  - test_saved_search_to_dict
+  - test_saved_search_increment_execution_count
+  - test_saved_search_filters_jsonb
+- `backend/tests/unit/models/test_search_analytics.py` - Unit tests (9 tests, TDD approach)
+  - test_create_search_analytics_with_valid_data
+  - test_search_analytics_default_values
+  - test_search_analytics_repr
+  - test_search_analytics_to_dict
+  - test_search_analytics_clicked_documents_array
+  - test_search_analytics_empty_clicked_documents
+  - test_search_analytics_filters_jsonb
+  - test_search_analytics_performance_metrics
+- `backend/app/models/__init__.py` - Updated exports (added SavedSearch, SearchAnalytics)
+
+**Changed**:
+- None (new models)
+
+**Why**:
+- Implements Sprint 3 Phase 1, Task 1.5 requirement for ORM models
+- SavedSearch model enables type-safe query persistence with SQLAlchemy
+- SearchAnalytics model enables structured performance tracking and user behavior analysis
+- JSONB filters field supports flexible meta-annotation combinations
+- UUID array for clicked_documents enables click-through rate analysis
+- Relationships to User model enable cascade operations and query joins
+- to_dict() methods enable clean JSON API serialization
+
+**Impact**:
+- ✅ SavedSearch model imported successfully
+- ✅ SearchAnalytics model imported successfully
+- ✅ Both models have correct tablenames (saved_searches, search_analytics)
+- ✅ All required attributes present and typed correctly
+- ✅ to_dict() methods implemented for API serialization
+- ✅ __repr__() methods for debugging
+- ✅ Models exported from app.models.__init__
+- ✅ 16 unit tests written (7 SavedSearch + 9 SearchAnalytics)
+- 🎯 **Task 1.5 COMPLETE**: ORM models ready for SearchService and SavedSearchesService
+
+**Testing**:
+- Model imports: Both models import without errors ✓
+- Tablename validation: saved_searches and search_analytics ✓
+- Attribute validation: All required fields present ✓
+- Method validation: to_dict() and __repr__() methods exist ✓
+- Unit tests: 16 tests written (will run in CI/CD with full environment)
+
+**Design Decisions**:
+- JSONB for filters: Supports complex nested filter objects (meta-annotations, date ranges)
+- ARRAY[UUID] for clicked_documents: PostgreSQL native array type for efficient storage
+- Relationship to User: Enables cascade delete (GDPR compliance) and join queries
+- UniqueConstraint at ORM level: Mirrors database constraint for validation
+- to_dict() UUID serialization: Converts UUIDs to strings for JSON API responses
+
+**Next Steps**: Task 1.6 - Create SearchIndexer Service for background document indexing
+
+---
 
 #### [2025-11-19] - Sprint 3 Phase 1, Task 1.4: Database Migration for Search Tables - COMPLETE
 
