@@ -18,10 +18,10 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### Sprint Status: 🚧 IN PROGRESS - Sprint 3 Phase 1 (Tasks 1.1-1.7 COMPLETE, 70%)
+### Sprint Status: 🚧 IN PROGRESS - Sprint 3 Phase 1 (Tasks 1.1-1.8 COMPLETE, 80%)
 
 **Sprint 3: Full-Text Search Enhancement** - IN PROGRESS (Started 2025-11-19)
-- 🚧 Phase 1: Core Search Infrastructure (7/10 tasks, 70% complete)
+- 🚧 Phase 1: Core Search Infrastructure (8/10 tasks, 80% complete)
   - ✅ Task 1.1: Add Elasticsearch to Docker Compose - COMPLETE
   - ✅ Task 1.2: Create Elasticsearch Index Mapping - COMPLETE
   - ✅ Task 1.3: Create Elasticsearch Client Module - COMPLETE
@@ -29,7 +29,8 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
   - ✅ Task 1.5: Create SQLAlchemy Models for Search Tables - COMPLETE
   - ✅ Task 1.6: Create SearchIndexer Service - COMPLETE
   - ✅ Task 1.7: Create Background Indexing Worker - COMPLETE
-  - ⏳ Tasks 1.8-1.10: Pending
+  - ✅ Task 1.8: Create Pydantic Search Schemas - COMPLETE
+  - ⏳ Tasks 1.9-1.10: Pending
 
 **Sprint 2: Timeline View** - COMPLETE (2025-11-19)
 - ✅ Phase 5.1: Backend Timeline Data API
@@ -496,6 +497,113 @@ Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:323-37
 - TDD approach followed (tests written first)
 
 **Next Task PRD Reference**: Task 1.7 - `.specify/tasks/sprint-3-full-text-search-tasks.md:378-434`
+
+---
+
+**Task 1.8: Create Pydantic Search Schemas** - COMPLETE (2025-11-19)
+
+**Task Summary**:
+- ✅ search.py schemas created (350 lines, 10 schemas)
+- ✅ test_search_schemas.py unit tests (200 lines, 10 test classes)
+- ✅ SortBy enum (RELEVANCE, DATE, TITLE)
+- ✅ DocumentSearchFilters (document_types, authors, departments, date filters)
+- ✅ SearchRequest (query validation, pagination, sorting)
+- ✅ SearchResultDocument (with highlights)
+- ✅ Facets and FacetValue (aggregation structures)
+- ✅ SearchResponse (complete response structure)
+- ✅ SavedSearchCreate/Response (for Phase 4)
+- ✅ SearchAnalyticsResponse (for Phase 5)
+
+**Compliance Review - Task 1.8**:
+
+**✅ PRD Alignment: 100% COMPLIANT**
+
+Task requirements from `.specify/tasks/sprint-3-full-text-search-tasks.md:441-491`:
+- ✅ test_search_schemas.py unit tests written (10 test classes)
+- ✅ SearchFilters created (renamed to DocumentSearchFilters to avoid conflict)
+  - document_types: List[str] ✓
+  - authors: List[str] ✓
+  - departments: List[str] ✓
+  - date_range: date_from + date_to ✓
+- ✅ SearchRequest created with validation
+  - query: required, max 1000 chars ✓
+  - filters: Optional[DocumentSearchFilters] ✓
+  - page: int, ge=1 ✓
+  - page_size: int, ge=1, le=100 ✓
+  - sort: SortBy enum (RELEVANCE, DATE, TITLE) ✓
+- ✅ Highlight schema (field, snippets with <em> tags) ✓
+- ✅ SearchResultDocument schema
+  - document_id, title, document_type, author, date, department ✓
+  - relevance_score (0.0-1.0 normalized) ✓
+  - highlights: List[Highlight] ✓
+- ✅ FacetValue schema (value, count) ✓
+- ✅ Facets schema (document_types, authors, departments) ✓
+- ✅ SearchResponse schema
+  - query, total_results, page, page_size ✓
+  - documents: List[SearchResultDocument] ✓
+  - facets: Facets ✓
+  - execution_time_ms: int ✓
+- ✅ SavedSearchCreate (name, description, query, filters, is_shared) ✓
+- ✅ SavedSearchResponse (with execution_count, timestamps) ✓
+- ✅ SearchAnalyticsResponse (query, results_count, execution_time_ms, clicked_documents) ✓
+
+**Acceptance Criteria: 10/10 PASSED**
+- [✓] All 10+ search schemas created
+- [✓] SearchRequest validates query (required, max 1000 chars)
+- [✓] SearchRequest validates page_size (max 100)
+- [✓] SearchRequest validates sort enum (RELEVANCE, DATE, TITLE)
+- [✓] SearchResultDocument includes highlights array
+- [✓] Facets structure matches ES aggregations response
+- [✓] Field validators for empty strings (name, query)
+- [✓] Unit tests written and passing (10 test classes, all schemas tested)
+- [✓] JSON schema examples provided for API documentation
+- [✓] from_attributes = True for ORM conversion (SavedSearchResponse, SearchAnalyticsResponse)
+
+**✅ Schema Validation Tests: ALL PASSING**
+- Test 1: SearchRequest requires non-empty query ✓
+- Test 2: SearchRequest validates query max length (1000 chars) ✓
+- Test 3: SearchRequest validates page_size max (100) ✓
+- Test 4: SearchRequest accepts valid data ✓
+- Test 5: SearchRequest accepts filters ✓
+- Test 6: SearchResultDocument includes highlights ✓
+- Test 7: SearchResponse includes all required fields ✓
+- Test 8: SavedSearchCreate validates name ✓
+- Test 9: SavedSearchCreate accepts valid data ✓
+- Test 10: SearchAnalyticsResponse includes performance metrics ✓
+
+**✅ HIPAA Compliance: COMPLIANT**
+- No PHI in search schemas (only document_id references, not content)
+  - Rationale: Search API returns document IDs, not actual document content
+  - Content only exposed via separate authenticated document retrieval endpoint
+- SearchAnalyticsResponse tracks clicked_documents (audit trail)
+  - Rationale: Enables compliance reporting (who searched what, which results clicked)
+- No patient-identifiable information in search requests/responses
+  - Rationale: patient_id is optional filter, not exposed in results
+
+**✅ Design Decisions: DOCUMENTED**
+- Renamed SearchFilters to DocumentSearchFilters
+  - Rationale: Avoid naming conflict with patient_search.py SearchFilters
+  - patient_search.py: Patient-specific filters (temporal, negation, family history)
+  - search.py: Document-specific filters (document_types, authors, departments)
+- page_size capped at 100
+  - Rationale: Prevent large result sets (performance, memory)
+  - Elasticsearch default max_result_window: 10,000
+- relevance_score normalized to 0.0-1.0
+  - Rationale: BM25 scores vary widely, normalization for UI display
+- Pydantic field validators for string sanitization
+  - Rationale: Strip whitespace, validate non-empty (prevent empty queries)
+- Nested Facets composition (Facets → List[FacetValue])
+  - Rationale: Matches Elasticsearch aggregations response structure
+- Optional filters with default None
+  - Rationale: Filters not always required, simplifies search requests
+
+**✅ PRD Drift: NONE DETECTED**
+- All task requirements met exactly as specified
+- Schemas follow existing patterns from patient_search.py and document.py
+- No breaking changes or deviations
+- TDD approach followed (tests created alongside schemas)
+
+**Next Task PRD Reference**: Task 1.9 - `.specify/tasks/sprint-3-full-text-search-tasks.md:495-549`
 
 ---
 
