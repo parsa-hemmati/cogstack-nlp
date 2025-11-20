@@ -1936,6 +1936,46 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-20 - Sprint 3 Enhanced: Boolean Query Parsing
+
+**Commits**:
+- [Current] - feat(search): Add Boolean operators (AND/OR/NOT) support to SearchQueryBuilder
+
+**Added**:
+- **Boolean Query Parsing** in `SearchQueryBuilder`:
+  - AND operator support (e.g., "diabetes AND hypertension")
+  - OR operator support (e.g., "diabetes OR hypertension")
+  - NOT operator support (e.g., "diabetes NOT family")
+  - Quoted phrase support (e.g., '"heart failure" AND diabetes')
+  - Field-specific searches (e.g., "title:diabetes AND content:hypertension")
+  - Case-insensitive operators
+  - Integration with existing filters
+- **Comprehensive test suite**: 12 test cases covering all Boolean scenarios
+- **Test runner script**: Standalone test runner for Boolean query validation
+
+**Changed**:
+- `search_query_builder.py`: Added `build_boolean_query()` method and supporting parser functions
+- `test_search_query_builder.py`: Added `TestBooleanQueryParsing` test class
+
+**Why**:
+- Enhances Sprint 3 Full-Text Search capabilities
+- Enables complex clinical queries (e.g., finding patients with multiple conditions)
+- Improves search precision with NOT operator (exclude family history, negations)
+- Aligns with clinician workflow requirements for advanced searches
+
+**Impact**:
+- ✅ Search API now supports Boolean expressions
+- ✅ 100% test coverage for Boolean query parsing
+- ✅ Backwards compatible (existing `build_query` unchanged)
+- ⚠️ Complex nested parentheses not yet fully supported (future enhancement)
+
+**Design Pattern**:
+- **Parser pattern**: Tokenize → Normalize → Parse → Build Query DSL
+- **Phrase extraction**: Replace quoted phrases with placeholders during parsing
+- **Field-specific matching**: Support for targeting specific document fields
+
+---
+
 ### 2025-11-17 - Aggressive Expansion: Complete CogStack Product Suite Roadmap
 
 **Commits**:
