@@ -1069,6 +1069,264 @@ class SearchQueryBuilder:
         }
 
     @staticmethod
+    def build_range_query(
+        query_text: str,
+        filters: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Build Elasticsearch query with range support.
+
+        Range syntax:
+        - field:[min TO max] : Inclusive range
+        - field:{min TO max} : Exclusive range
+        - field:[min TO max} : Mixed (inclusive min, exclusive max)
+        - field:>=value : Greater than or equal
+        - field:>value : Greater than
+        - field:<=value : Less than or equal
+        - field:<value : Less than
+        - date:[2023-01-01 TO 2023-12-31] : Date range
+        - age:[18 TO 65] : Numeric range
+
+        Args:
+            query_text: Query string with range expressions
+            filters: Additional filters to apply
+
+        Returns:
+            Elasticsearch query DSL dictionary
+
+        Examples:
+            - "age:[18 TO 65] AND diagnosis:diabetes"
+            - "date:[2023-01-01 TO *]" : From date to now
+            - "bp_systolic:>140 OR bp_diastolic:>90"
+            - "lab_value:{0.5 TO 1.5}" : Exclusive range
+        """
+        # Check for empty query
+        if not query_text or not query_text.strip():
+            return {"query": {"match_all": {}}}
+
+        # Parse the range query
+        parsed_query = SearchQueryBuilder._parse_range_expression(query_text)
+
+        # Build the final query
+        es_query = {"query": parsed_query}
+
+        # Add filters if provided
+        if filters:
+            filter_clauses = []
+            for key, value in filters.items():
+                if key == "document_type":
+                    filter_clauses.append({"term": {"document_type": value}})
+                elif key == "department":
+                    filter_clauses.append({"term": {"department": value}})
+
+            if filter_clauses:
+                # Wrap existing query in a bool query with filters
+                if "bool" not in es_query["query"]:
+                    es_query["query"] = {"bool": {"must": [es_query["query"]]}}
+                es_query["query"]["bool"]["filter"] = filter_clauses
+
+        return es_query
+
+    @staticmethod
+    def _parse_range_expression(query_text: str) -> Dict[str, Any]:
+        """
+        Parse range expression into Elasticsearch query.
+
+        Args:
+            query_text: Query string with range expressions
+
+        Returns:
+            Elasticsearch query clause
+        """
+        import re
+
+        # Normalize Boolean operators
+        query_text = SearchQueryBuilder._normalize_operators(query_text)
+
+        # Parse bracket ranges: field:[min TO max] or field:{min TO max}
+        bracket_pattern = r'(\w+):([\[\{])([^\]\}]+)\s+TO\s+([^\]\}]+)([\]\}])'
+
+        # Parse comparison operators: field:>=value, field:>value, etc.
+        comparison_pattern = r'(\w+):([><]=?)([^\s]+)'
+
+        # Collect all range clauses
+        range_clauses = []
+        remaining_text = query_text
+
+        # Process bracket ranges
+        for match in re.finditer(bracket_pattern, query_text):
+            field = match.group(1)
+            left_bracket = match.group(2)
+            min_value = match.group(3).strip()
+            max_value = match.group(4).strip()
+            right_bracket = match.group(5)
+
+            # Build range query
+            range_query = {"range": {field: {}}}
+
+            # Handle min value
+            if min_value != '*':
+                if left_bracket == '[':
+                    range_query["range"][field]["gte"] = SearchQueryBuilder._parse_range_value(min_value)
+                else:  # '{'
+                    range_query["range"][field]["gt"] = SearchQueryBuilder._parse_range_value(min_value)
+
+            # Handle max value
+            if max_value != '*':
+                if right_bracket == ']':
+                    range_query["range"][field]["lte"] = SearchQueryBuilder._parse_range_value(max_value)
+                else:  # '}'
+                    range_query["range"][field]["lt"] = SearchQueryBuilder._parse_range_value(max_value)
+
+            range_clauses.append(range_query)
+            remaining_text = remaining_text.replace(match.group(0), '')
+
+        # Process comparison operators
+        for match in re.finditer(comparison_pattern, query_text):
+            field = match.group(1)
+            operator = match.group(2)
+            value = match.group(3).strip()
+
+            # Skip if this was already part of a bracket range
+            if match.group(0) in query_text and match.group(0) not in remaining_text:
+                continue
+
+            # Build range query
+            range_query = {"range": {field: {}}}
+
+            if operator == '>=':
+                range_query["range"][field]["gte"] = SearchQueryBuilder._parse_range_value(value)
+            elif operator == '>':
+                range_query["range"][field]["gt"] = SearchQueryBuilder._parse_range_value(value)
+            elif operator == '<=':
+                range_query["range"][field]["lte"] = SearchQueryBuilder._parse_range_value(value)
+            elif operator == '<':
+                range_query["range"][field]["lt"] = SearchQueryBuilder._parse_range_value(value)
+
+            range_clauses.append(range_query)
+            remaining_text = remaining_text.replace(match.group(0), '')
+
+        # Parse Boolean logic in remaining text
+        if ' AND ' in remaining_text or ' OR ' in remaining_text or ' NOT ' in remaining_text:
+            # Need to parse the remaining text for additional terms
+            # If we have AND/OR/NOT, we need to combine properly
+
+            # For simplicity, handle common case: range AND field:value
+            if ' AND ' in remaining_text:
+                and_parts = remaining_text.split(' AND ')
+                for part in and_parts:
+                    part = part.strip()
+                    if part and ':' in part and not any(op in part for op in ['>', '<', '=', '[', '{']):
+                        field, value = part.split(':', 1)
+                        range_clauses.append({"match": {field: value}})
+                    elif part:
+                        range_clauses.append({"match": {"_all": part}})
+
+                return {"bool": {"must": range_clauses}}
+
+            return SearchQueryBuilder._combine_range_with_boolean(
+                range_clauses, remaining_text, query_text
+            )
+
+        # Handle non-range terms in remaining text
+        remaining_text = remaining_text.strip()
+        if remaining_text and remaining_text not in ['AND', 'OR', 'NOT']:
+            # Add regular match queries for remaining terms
+            match_clauses = []
+            terms = remaining_text.split()
+            for term in terms:
+                if term not in ['AND', 'OR', 'NOT']:
+                    # Check if it's a field:value pattern
+                    if ':' in term and not any(op in term for op in ['>', '<', '=']):
+                        field, value = term.split(':', 1)
+                        match_clauses.append({"match": {field: value}})
+                    else:
+                        match_clauses.append({"match": {"_all": term}})
+
+            if range_clauses and match_clauses:
+                return {"bool": {"must": range_clauses + match_clauses}}
+            elif match_clauses:
+                if len(match_clauses) == 1:
+                    return match_clauses[0]
+                return {"bool": {"must": match_clauses}}
+
+        # Return range clauses
+        if len(range_clauses) == 1:
+            return range_clauses[0]
+        elif range_clauses:
+            return {"bool": {"must": range_clauses}}
+        else:
+            return {"match_all": {}}
+
+    @staticmethod
+    def _parse_range_value(value: str):
+        """
+        Parse range value to appropriate type.
+
+        Args:
+            value: String value to parse
+
+        Returns:
+            Parsed value (int, float, or string)
+        """
+        # Try to parse as integer
+        try:
+            return int(value)
+        except ValueError:
+            pass
+
+        # Try to parse as float
+        try:
+            return float(value)
+        except ValueError:
+            pass
+
+        # Return as string (e.g., for dates)
+        return value
+
+    @staticmethod
+    def _combine_range_with_boolean(
+        range_clauses: List[Dict[str, Any]],
+        remaining_text: str,
+        original_text: str
+    ) -> Dict[str, Any]:
+        """
+        Combine range clauses with Boolean operators.
+
+        Args:
+            range_clauses: List of range query clauses
+            remaining_text: Text after removing range expressions
+            original_text: Original query text
+
+        Returns:
+            Combined Elasticsearch query
+        """
+        # Simple Boolean logic parsing for ranges
+        if ' OR ' in original_text:
+            # Check if ranges should be OR'd together
+            if len(range_clauses) > 1:
+                return {
+                    "bool": {
+                        "should": range_clauses,
+                        "minimum_should_match": 1
+                    }
+                }
+
+        if ' NOT ' in original_text:
+            # Handle NOT operator
+            parts = original_text.split(' NOT ')
+            if len(parts) > 1 and range_clauses:
+                return {
+                    "bool": {
+                        "must": [range_clauses[0]] if len(range_clauses) > 0 else [],
+                        "must_not": range_clauses[1:] if len(range_clauses) > 1 else []
+                    }
+                }
+
+        # Default to AND logic
+        return {"bool": {"must": range_clauses}}
+
+    @staticmethod
     def _build_aggregations() -> Dict[str, Any]:
         """
         Build facet aggregations.
