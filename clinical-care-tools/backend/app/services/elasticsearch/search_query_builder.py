@@ -861,6 +861,214 @@ class SearchQueryBuilder:
         return {"match": {field: term}}
 
     @staticmethod
+    def build_proximity_query(
+        query_text: str,
+        filters: Optional[Dict[str, Any]] = None,
+        default_proximity: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Build Elasticsearch query with proximity search support.
+
+        Proximity operators:
+        - term1 NEAR term2 : Terms within default proximity (5 words)
+        - term1 NEAR/n term2 : Terms within n words
+        - term1 W/n term2 : Terms within n words (alternative syntax)
+        - "term1 term2"~n : Phrase with slop (alternative for phrases)
+
+        Args:
+            query_text: Query string with proximity operators
+            filters: Additional filters to apply
+            default_proximity: Default word distance for NEAR operator
+
+        Returns:
+            Elasticsearch query DSL dictionary
+
+        Examples:
+            - "diabetes NEAR complications" : Within 5 words
+            - "heart NEAR/3 failure" : Within 3 words
+            - "blood W/2 pressure" : Within 2 words
+        """
+        # Check for empty query
+        if not query_text or not query_text.strip():
+            return {"query": {"match_all": {}}}
+
+        # Normalize operators
+        query_text = SearchQueryBuilder._normalize_proximity_operators(query_text)
+
+        # Parse the proximity query
+        parsed_query = SearchQueryBuilder._parse_proximity_expression(
+            query_text, default_proximity
+        )
+
+        # Build the final query
+        es_query = {"query": parsed_query}
+
+        # Add filters if provided
+        if filters:
+            filter_clauses = []
+            for key, value in filters.items():
+                if key == "document_type":
+                    filter_clauses.append({"term": {"document_type": value}})
+                elif key == "department":
+                    filter_clauses.append({"term": {"department": value}})
+
+            if filter_clauses:
+                # Wrap existing query in a bool query with filters
+                if "bool" not in es_query["query"]:
+                    es_query["query"] = {"bool": {"must": [es_query["query"]]}}
+                es_query["query"]["bool"]["filter"] = filter_clauses
+
+        return es_query
+
+    @staticmethod
+    def _normalize_proximity_operators(query_text: str) -> str:
+        """Normalize proximity operators to consistent format."""
+        import re
+
+        # Normalize NEAR/n to standard format
+        query_text = re.sub(r'\bNEAR/(\d+)\b', r'NEAR/\1', query_text, flags=re.IGNORECASE)
+        query_text = re.sub(r'\bNEAR\b(?!/\d)', f'NEAR/{5}', query_text, flags=re.IGNORECASE)
+
+        # Normalize W/n (within) operator to NEAR/n
+        query_text = re.sub(r'\bW/(\d+)\b', r'NEAR/\1', query_text, flags=re.IGNORECASE)
+        query_text = re.sub(r'\bWITHIN/(\d+)\b', r'NEAR/\1', query_text, flags=re.IGNORECASE)
+
+        # Normalize ADJ (adjacent) operator to NEAR/1
+        query_text = re.sub(r'\bADJ\b', 'NEAR/1', query_text, flags=re.IGNORECASE)
+
+        return query_text
+
+    @staticmethod
+    def _parse_proximity_expression(
+        query_text: str,
+        default_proximity: int
+    ) -> Dict[str, Any]:
+        """
+        Parse proximity expression into Elasticsearch query.
+
+        Args:
+            query_text: Query string with proximity operators
+            default_proximity: Default proximity distance
+
+        Returns:
+            Elasticsearch query clause
+        """
+        import re
+
+        # Extract quoted phrases with slop (already handled by fuzzy)
+        phrases = {}
+        phrase_pattern = r'"([^"]+)"~(\d+)'
+
+        for match in re.finditer(phrase_pattern, query_text):
+            phrase_text = match.group(1)
+            slop = int(match.group(2))
+            placeholder = f"__PHRASE_{len(phrases)}__"
+            phrases[placeholder] = (phrase_text, slop)
+            query_text = query_text.replace(match.group(0), placeholder)
+
+        # Parse NEAR/n operators
+        near_pattern = r'(\S+)\s+NEAR/(\d+)\s+(\S+)'
+        matches = list(re.finditer(near_pattern, query_text, re.IGNORECASE))
+
+        if not matches and 'NEAR' not in query_text.upper():
+            # No proximity operators, check for phrase placeholders
+            if phrases:
+                # Build query with phrase placeholders
+                must_clauses = []
+                for placeholder, (phrase_text, slop) in phrases.items():
+                    must_clauses.append({
+                        "match_phrase": {
+                            "_all": {
+                                "query": phrase_text,
+                                "slop": slop
+                            }
+                        }
+                    })
+
+                if len(must_clauses) == 1:
+                    return must_clauses[0]
+                else:
+                    return {"bool": {"must": must_clauses}}
+
+            # No proximity operators, return simple match
+            return {"match": {"_all": query_text}}
+
+        # Build proximity queries
+        proximity_clauses = []
+
+        for match in matches:
+            term1 = match.group(1).strip()
+            proximity = int(match.group(2))
+            term2 = match.group(3).strip()
+
+            # Handle phrase placeholders in terms
+            if term1 in phrases:
+                phrase_text, _ = phrases[term1]
+                term1 = phrase_text
+            if term2 in phrases:
+                phrase_text, _ = phrases[term2]
+                term2 = phrase_text
+
+            # Create span_near query for proximity search
+            proximity_clauses.append(
+                SearchQueryBuilder._create_proximity_clause(term1, term2, proximity)
+            )
+
+        # Handle any remaining text not part of proximity expressions
+        remaining_text = query_text
+        for match in matches:
+            remaining_text = remaining_text.replace(match.group(0), '')
+
+        remaining_text = remaining_text.strip()
+
+        if remaining_text:
+            # Add remaining terms as regular matches
+            if proximity_clauses:
+                # Combine with proximity clauses
+                return {
+                    "bool": {
+                        "must": proximity_clauses + [{"match": {"_all": remaining_text}}]
+                    }
+                }
+            else:
+                return {"match": {"_all": remaining_text}}
+
+        # Return proximity clauses
+        if len(proximity_clauses) == 1:
+            return proximity_clauses[0]
+        else:
+            return {"bool": {"must": proximity_clauses}}
+
+    @staticmethod
+    def _create_proximity_clause(
+        term1: str,
+        term2: str,
+        proximity: int
+    ) -> Dict[str, Any]:
+        """
+        Create proximity search clause using span queries.
+
+        Args:
+            term1: First term
+            term2: Second term
+            proximity: Maximum distance between terms
+
+        Returns:
+            Elasticsearch span query
+        """
+        # Use span_near query for proximity search
+        return {
+            "span_near": {
+                "clauses": [
+                    {"span_term": {"_all": term1.lower()}},
+                    {"span_term": {"_all": term2.lower()}}
+                ],
+                "slop": proximity,
+                "in_order": False  # Terms can appear in any order
+            }
+        }
+
+    @staticmethod
     def _build_aggregations() -> Dict[str, Any]:
         """
         Build facet aggregations.
