@@ -1,16 +1,5 @@
 """
-Background jobs package.
-"""
-from app.jobs.document_processing_job import (
-    DocumentProcessingJob,
-    get_job_instance,
-    start_background_job,
-    stop_background_job,
-)
+Background jobs module.
 
-__all__ = [
-    "DocumentProcessingJob",
-    "get_job_instance",
-    "start_background_job",
-    "stop_background_job",
-]
+Contains background job scripts for continuous processing tasks.
+"""
