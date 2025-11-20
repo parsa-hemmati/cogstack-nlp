@@ -1881,8 +1881,19 @@ MEDCAT_TIMEOUT = 5  # seconds
 - 12 comprehensive test cases
 - Standalone test runner `test_regex_queries.py`
 
+**Task 2.10 - API Integration** ✅:
+- Extended search endpoint with query_type parameter
+- Support for all 6 advanced query types via REST API
+- Query validation endpoint (/search/validate)
+- Query help endpoint (/search/query-help)
+- Complete documentation and examples for each query type
+- Automatic aggregations and highlighting for advanced queries
+- Error handling and validation feedback
+
 **Changed**:
 - `search_query_builder.py`: Added 6 new query builder methods and supporting parsers
+- `search.py`: Extended API with query_type support and new endpoints
+- `search_service.py`: Router for different query builders based on type
 - Created 6 standalone test runners for validation
 
 **Why**:
