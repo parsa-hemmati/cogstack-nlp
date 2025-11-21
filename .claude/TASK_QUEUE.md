@@ -39,10 +39,11 @@
   - **Acceptance**: ✅ Completion report includes timing, ✅ success rates, ✅ agent metrics
   - **Completion**: Enhanced check_completion() with task summary, session timing, agent metrics, total spawns/commits
 
-- [🔄] (claimed: 14:09:31, PID: 27019) #23 `[debugger]` Fix task ID newline issue in log output **@system** (created: 14:10:00)
+- [✅] (completed) #23 `[debugger]` Fix task ID newline issue in log output **@system** (created: 14:10:00)
   - **Context**: Logs show "task #15\n15" - task ID appears twice with newline
-  - **Files**: .git-hooks/post-commit-agent-loop.sh (log statements)
-  - **Acceptance**: Logs show clean "task #15" without duplication or newlines
+  - **Files**: .git-hooks/post-commit-agent-loop.sh
+  - **Acceptance**: ✅ Logs show clean task IDs without duplication or interleaved output
+  - **Completion**: Removed log statement from inside flock subshell to prevent interleaved output during concurrent claims
 
 - [🔄] (claimed: 14:09:32, PID: 27019) #24 `[documentation]` Create autonomous loop tutorial with examples **@system** (created: 14:10:00)
   - **Context**: Need beginner-friendly guide showing how to use the loop

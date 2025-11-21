@@ -86,7 +86,7 @@ claim_next_task() {
             local timestamp=$(date +%H:%M:%S)
             # Fixed: Escape special characters and use simpler sed
             sed -i "/^- \[ \] #${task_id} \`\[${agent_type}\]\`/s/\[ \]/[🔄] (claimed: ${timestamp}, PID: $$)/" "$TASK_QUEUE"
-            log "INFO" "Claimed task #$task_id for $agent_type"
+            # NOTE: Logging moved outside subshell to prevent interleaved output
         fi
         echo "$task_id"
     ) 200>"$TASK_QUEUE.lock"
