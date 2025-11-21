@@ -6,11 +6,11 @@
   >
     <v-card-title class="d-flex justify-space-between align-start">
       <div class="flex-grow-1">
-        <!-- Title with highlights -->
+        <!-- Title with highlights (XSS-safe) -->
         <div
           v-if="result.highlights?.title"
           class="text-h6"
-          v-html="result.highlights.title[0]"
+          v-html="sanitizeHtml(result.highlights.title[0])"
         />
         <h3 v-else class="text-h6">
           {{ result.title }}
@@ -49,11 +49,11 @@
     </v-card-title>
 
     <v-card-text>
-      <!-- Content excerpt with highlights -->
+      <!-- Content excerpt with highlights (XSS-safe) -->
       <div
         v-if="result.highlights?.content"
         class="search-result-excerpt"
-        v-html="result.highlights.content[0]"
+        v-html="sanitizeHtml(result.highlights.content[0])"
       />
       <p v-else class="search-result-excerpt">
         {{ truncateContent(result.content, 250) }}
@@ -84,6 +84,8 @@
 </template>
 
 <script setup lang="ts">
+import { sanitizeHtml } from '@/utils/sanitize'
+
 interface SearchResult {
   id: string
   title: string
