@@ -1,26 +1,14 @@
 /**
  * Vitest setup file for global test configuration.
  *
- * Configures Vuetify, mocks, and global test utilities.
+ * Configures test utilities and mocks needed for composables.
  */
-import { config } from '@vue/test-utils'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
+import { vi } from 'vitest'
 
-// Create Vuetify instance for tests
-const vuetify = createVuetify({
-  components,
-  directives
-})
-
-// Configure global Vue Test Utils plugins
-config.global.plugins = [vuetify]
-
-// Mock window.matchMedia (required by Vuetify)
+// Mock window.matchMedia (required by some components)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -28,11 +16,11 @@ Object.defineProperty(window, 'matchMedia', {
     removeListener: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn()
-  }))
+    dispatchEvent: vi.fn(),
+  })),
 })
 
-// Mock IntersectionObserver (required by some Vuetify components)
+// Mock IntersectionObserver (required by some components)
 global.IntersectionObserver = class IntersectionObserver {
   constructor() {}
   disconnect() {}
@@ -43,7 +31,7 @@ global.IntersectionObserver = class IntersectionObserver {
   unobserve() {}
 } as any
 
-// Mock ResizeObserver (required by some Vuetify components)
+// Mock ResizeObserver (required by some components)
 global.ResizeObserver = class ResizeObserver {
   constructor() {}
   disconnect() {}
