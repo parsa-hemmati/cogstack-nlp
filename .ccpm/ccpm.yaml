@@ -67,6 +67,8 @@ agents:
       - vue3-component-reuse
       - document-management-patterns
       - medcat-ui-patterns
+      - elasticsearch-query-expert
+      - query-parsing-patterns
     reads:
       - .specify/tasks/
       - .specify/specifications/

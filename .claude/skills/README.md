@@ -108,9 +108,70 @@ Claude:
 
 ---
 
-### 🟢 Priority 3 (Quality Assurance)
+### 🟢 Priority 3 (Sprint 3 - Full-Text Search)
 
-#### 5. `prd-compliance-checker`
+#### 5. `elasticsearch-query-expert` ✨ NEW
+**When**: Building Elasticsearch queries, configuring analyzers, debugging relevance, optimizing search performance
+
+**What it does**:
+- Elasticsearch DSL query building patterns (match, multi_match, bool, phrase, term)
+- Query context vs filter context (relevance scoring vs exact matching)
+- Custom analyzers and tokenizers (clinical_analyzer with synonyms, stemming)
+- Relevance scoring and field boosting (title^10, content^1, author^2)
+- QueryBuilder class implementation patterns
+- Performance optimization (filter caching, source filtering, pagination)
+- Debugging relevance issues (explain API, validate API)
+
+**Why useful**: Essential for Sprint 3 Full-Text Search Enhancement. Provides battle-tested patterns for building complex Elasticsearch queries, configuring analyzers for clinical text, and optimizing search performance. Covers all query types used in Phase 2 (Advanced Query Parsing).
+
+**Key Patterns**:
+- Multi-field search with boosting (cross-field relevance)
+- Filter context for metadata (document_type, author, date ranges)
+- Custom clinical analyzer (MI → myocardial infarction synonyms)
+- Function score queries (recency boost, popularity)
+- Nested queries for concepts array
+
+**Performance**:
+- Filter context: Cached, no scoring overhead
+- Multi-match: Parallel field searching
+- _source filtering: Reduced network transfer
+- search_after: Efficient deep pagination (vs from/size)
+
+---
+
+#### 6. `query-parsing-patterns` ✨ NEW
+**When**: Implementing QueryParser with Lark, designing EBNF grammars, parsing complex boolean queries, handling parenthesized grouping
+
+**What it does**:
+- Lark parser implementation patterns (LALR parser, EBNF grammar)
+- Query grammar design (boolean operators with correct precedence)
+- Parse tree transformation to Elasticsearch DSL
+- Boolean logic parsing (AND/OR/NOT with operator precedence)
+- Parenthesized grouping: `(diabetes OR hypertension) AND medication`
+- Field query parsing: `author:"Dr. Smith"`
+- Error handling and fallback strategies
+- Performance optimization (parser caching, in-place transformation)
+
+**Why useful**: Critical for Sprint 3 Phase 2 (Advanced Query Parsing). Provides formal grammar-based parsing instead of fragile regex. Handles complex nested queries with correct operator precedence. Complements `elasticsearch-query-expert` (parsing input → building Elasticsearch DSL).
+
+**Key Patterns**:
+- EBNF grammar with operator precedence (NOT > AND > OR)
+- Parse tree transformer class (Lark Transformer)
+- Fallback to simple query on parse errors (graceful degradation)
+- Flattening nested bool queries (performance optimization)
+- QueryParser + QueryBuilder integration pattern
+
+**Advantages over regex**:
+- Correct operator precedence (formal grammar)
+- Handles arbitrary nesting (parentheses)
+- Better error messages (syntax validation)
+- Easier to extend (add wildcards, proximity, fuzzy)
+
+---
+
+### 🟢 Priority 4 (Quality Assurance)
+
+#### 7. `prd-compliance-checker`
 **When**: Modifying API endpoints, changing schemas, updating service layer for APIs, implementing Sprint PRDs
 
 **What it does**:
@@ -130,7 +191,7 @@ Claude:
 
 ---
 
-#### 6. `prd-test-generator` ✨ NEW
+#### 8. `prd-test-generator` ✨
 **When**: Starting new features (TDD), PRD updates, low test coverage, sprint completion
 
 **What it does**:
@@ -172,7 +233,7 @@ Claude:
 
 ---
 
-#### 7. `spec-kit-enforcer`
+#### 9. `spec-kit-enforcer`
 **When**: Starting new features, before writing code
 
 **What it does**:
@@ -187,7 +248,7 @@ Claude:
 
 ### 🔵 Implementation Workflow Skills
 
-#### 8. `spec-to-tech-plan`
+#### 10. `spec-to-tech-plan`
 **When**: Converting approved specifications to technical plans
 
 **What it does**:
@@ -203,7 +264,7 @@ Claude:
 
 ---
 
-#### 9. `tech-plan-to-tasks`
+#### 11. `tech-plan-to-tasks`
 **When**: Breaking down technical plans into implementable tasks
 
 **What it does**:
@@ -217,7 +278,7 @@ Claude:
 
 ---
 
-#### 10. `infrastructure-expert`
+#### 12. `infrastructure-expert`
 **When**: Implementing Docker, PostgreSQL, authentication, audit logging
 
 **What it does**:
@@ -232,7 +293,7 @@ Claude:
 
 ---
 
-#### 11. `document-management-patterns` (Phase 3)
+#### 13. `document-management-patterns` (Phase 3)
 **When**: Implementing document upload, file deduplication, async processing, patient aggregation
 
 **What it does**:
@@ -460,17 +521,22 @@ Complete Feature Implementation Flow:
 
 ## Metrics
 
-**Total Skills**: 8
-**Lines of Guidance**: ~6,500+ (compressed via progressive loading)
+**Total Skills**: 19 (13 documented + 6 specialized)
+**Lines of Guidance**: ~12,000+ (compressed via progressive loading)
 **Coverage**:
 - ✅ Compliance & Safety (healthcare-compliance-checker)
 - ✅ NLP Accuracy (medcat-meta-annotations)
 - ✅ Frontend Development (vue3-component-reuse)
 - ✅ Healthcare Standards (fhir-r4-mapper)
+- ✅ Elasticsearch & Search (elasticsearch-query-expert) ✨ NEW
+- ✅ Query Parsing (query-parsing-patterns) ✨ NEW
+- ✅ PRD Compliance (prd-compliance-checker)
+- ✅ Test Generation (prd-test-generator)
 - ✅ Workflow Enforcement (spec-kit-enforcer)
 - ✅ Technical Planning (spec-to-tech-plan)
 - ✅ Task Breakdown (tech-plan-to-tasks)
 - ✅ Infrastructure Implementation (infrastructure-expert)
+- ✅ Document Management (document-management-patterns)
 
 ---
 
