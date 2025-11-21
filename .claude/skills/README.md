@@ -35,7 +35,46 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ### 🟡 Priority 2 (Highly Recommended)
 
-#### 3. `vue3-component-reuse`
+#### 3. `elasticsearch-query-expert`
+**When**: Building Elasticsearch queries, implementing search features, optimizing query performance
+
+**What it does**:
+- Provides expertise on all 7 query types from Sprint 3 implementation
+- Shows optimization patterns that achieved 40% performance gains
+- Includes aggregation patterns for faceted search
+- Demonstrates proper index mapping and settings
+
+**Why useful**: Essential for building performant search features, achieved <500ms response times
+
+---
+
+#### 4. `redis-caching-patterns`
+**When**: Implementing caching layers, optimizing API response times, managing cache invalidation
+
+**What it does**:
+- Shows deterministic cache key generation patterns
+- Provides TTL strategies by data type
+- Demonstrates PHI-safe caching patterns
+- Includes cache invalidation strategies
+
+**Why useful**: Achieved 73% cache hit rate with <200ms cached response times
+
+---
+
+#### 5. `search-performance-optimizer`
+**When**: Diagnosing slow queries, optimizing search performance, scaling search infrastructure
+
+**What it does**:
+- Query optimization rules (wildcard, boolean, fuzzy, regex)
+- Performance benchmarks and profiling techniques
+- Monitoring and alerting patterns
+- Load testing strategies
+
+**Why useful**: Achieved 40% performance improvement through query optimization
+
+---
+
+#### 6. `vue3-component-reuse`
 **When**: Building UI features, implementing forms/tables/modals/charts
 
 **What it does**:
@@ -48,7 +87,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 4. `fhir-r4-mapper`
+#### 7. `fhir-r4-mapper`
 **When**: Implementing FHIR integration, clinical decision support, EHR interoperability
 
 **What it does**:
@@ -63,7 +102,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ### 🟢 Priority 3 (Quality Assurance)
 
-#### 5. `spec-kit-enforcer`
+#### 8. `spec-kit-enforcer`
 **When**: Starting new features, before writing code
 
 **What it does**:
@@ -76,9 +115,22 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
+#### 9. `test-coverage-analyzer`
+**When**: Writing tests, analyzing coverage gaps, planning test strategies, debugging failing tests
+
+**What it does**:
+- Analyzes current coverage (5% overall, 92% Sprint 3 new code)
+- Provides test pyramid strategy (60% unit, 30% integration, 10% E2E)
+- Shows pytest patterns and fixtures for healthcare testing
+- Creates coverage improvement plans
+
+**Why useful**: Essential for reaching 80% coverage target, includes patterns from Sprint 3 success
+
+---
+
 ### 🔵 Implementation Workflow Skills
 
-#### 6. `spec-to-tech-plan`
+#### 10. `spec-to-tech-plan`
 **When**: Converting approved specifications to technical plans
 
 **What it does**:
@@ -94,7 +146,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 7. `tech-plan-to-tasks`
+#### 11. `tech-plan-to-tasks`
 **When**: Breaking down technical plans into implementable tasks
 
 **What it does**:
@@ -108,7 +160,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 8. `infrastructure-expert`
+#### 12. `infrastructure-expert`
 **When**: Implementing Docker, PostgreSQL, authentication, audit logging
 
 **What it does**:
@@ -209,6 +261,10 @@ Expected: Skill checks for specification, plan, tasks before allowing code
 |-------|----------------|
 | healthcare-compliance-checker | Code involves: `Patient`, `auth`, `API`, `logs`, `/patients/` |
 | medcat-meta-annotations | Working with: NLP results, medical concepts, queries, filtering |
+| elasticsearch-query-expert | Building: Elasticsearch queries, search features, aggregations |
+| redis-caching-patterns | Implementing: caching, TTL strategies, cache invalidation |
+| search-performance-optimizer | Diagnosing: slow queries, timeouts, performance issues |
+| test-coverage-analyzer | Writing: tests, analyzing coverage, test strategies |
 | vue3-component-reuse | Building: UI components, forms, tables, frontend |
 | fhir-r4-mapper | Mentions: FHIR, EHR integration, clinical decision support |
 | spec-kit-enforcer | Requests: new feature, implementation, "build X" |
@@ -323,17 +379,25 @@ Complete Feature Implementation Flow:
 
 ## Metrics
 
-**Total Skills**: 8
-**Lines of Guidance**: ~6,500+ (compressed via progressive loading)
+**Total Skills**: 16 (4 new skills added from Sprint 3)
+**Lines of Guidance**: ~10,000+ (compressed via progressive loading)
 **Coverage**:
 - ✅ Compliance & Safety (healthcare-compliance-checker)
 - ✅ NLP Accuracy (medcat-meta-annotations)
+- ✅ Search & Query (elasticsearch-query-expert) **NEW**
+- ✅ Caching Strategy (redis-caching-patterns) **NEW**
+- ✅ Performance Tuning (search-performance-optimizer) **NEW**
+- ✅ Test Coverage (test-coverage-analyzer) **NEW**
 - ✅ Frontend Development (vue3-component-reuse)
 - ✅ Healthcare Standards (fhir-r4-mapper)
 - ✅ Workflow Enforcement (spec-kit-enforcer)
 - ✅ Technical Planning (spec-to-tech-plan)
 - ✅ Task Breakdown (tech-plan-to-tasks)
 - ✅ Infrastructure Implementation (infrastructure-expert)
+- ✅ Modular Architecture (modular-app-architect)
+- ✅ MedCAT Architecture (medcat-architecture)
+- ✅ UI Patterns (medcat-ui-patterns)
+- ✅ PRD Conversion (prd-to-spec)
 
 ---
 
