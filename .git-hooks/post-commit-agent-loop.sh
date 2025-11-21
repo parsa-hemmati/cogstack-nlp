@@ -1,6 +1,6 @@
 #!/bin/bash
 # Post-commit hook: Autonomous Agent Loop Orchestrator
-# Version: 1.5.0 - Fix deadlock detection to only trigger on crashed agents
+# Version: 1.6.0 - FINAL FIX: Handle set -e with check_deadlock return value
 
 set -e
 
@@ -246,7 +246,8 @@ log "INFO" "Checking task queue..."
 check_completion && exit 0
 
 # Check for deadlock (spawns 1 agent if detected, but doesn't exit)
-check_deadlock
+# Use || true to prevent set -e from exiting on return 1
+check_deadlock || true
 
 # Get clean count AFTER deadlock check (may have spawned 1 agent)
 active_agents=$(count_total_active)
