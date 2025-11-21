@@ -1,6 +1,6 @@
 #!/bin/bash
 # Post-commit hook: Autonomous Agent Loop Orchestrator
-# Version: 1.2.0 - COMPLETE FIX for concurrent spawning
+# Version: 1.3.0 - Fix deadlock detection to allow main loop continuation
 
 set -e
 
@@ -243,10 +243,13 @@ check_deadlock() {
 # Main orchestration
 log "INFO" "Checking task queue..."
 
+# Check if loop is complete
 check_completion && exit 0
-check_deadlock && exit 0
 
-# Fixed: Get clean count
+# Check for deadlock (spawns 1 agent if detected, but doesn't exit)
+check_deadlock
+
+# Get clean count AFTER deadlock check (may have spawned 1 agent)
 active_agents=$(count_total_active)
 log "INFO" "Active agents: $active_agents / $MAX_TOTAL_AGENTS"
 
