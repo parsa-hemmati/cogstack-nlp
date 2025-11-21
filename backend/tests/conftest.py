@@ -526,3 +526,265 @@ async def test_db_with_annotations(db: AsyncSession, test_user_clinician: User) 
 
     await db.commit()
     return db
+
+
+@pytest.fixture(scope="function")
+async def auth_headers_researcher(test_user_researcher: User) -> Dict[str, str]:
+    """
+    Generate JWT token for researcher user.
+
+    Returns:
+        Authorization headers dict with Bearer token
+    """
+    token_data = auth_service.create_access_token(
+        user_id=str(test_user_researcher.id),
+        role=test_user_researcher.role
+    )
+
+    return {
+        "Authorization": f"Bearer {token_data['access_token']}"
+    }
+
+
+@pytest.fixture(scope="function")
+async def test_db_with_timeline_data(db: AsyncSession, test_user_clinician: User) -> Dict:
+    """
+    Create test database with timeline events for POST /api/v1/timeline/patient/{patient_id}.
+
+    Creates sample data for timeline API tests:
+    - 1 patient with multiple clinical events
+    - Documents spanning 2023 with dates
+    - Extracted entities (diagnoses, medications, procedures, labs)
+    - Various event types and specialties
+
+    Returns:
+        Dict with patient_id and event metadata
+    """
+    from datetime import date as date_type
+
+    now = datetime.utcnow()
+
+    # Create patient
+    patient = Patient(
+        id=uuid4(),
+        nhs_number="9876543210",
+        full_name="Timeline Test Patient",
+        date_of_birth=date_type(1970, 6, 15),
+        first_seen_at=now,
+        last_seen_at=now,
+        document_count=5,
+    )
+    db.add(patient)
+
+    # Document 1: January 2023 - Diabetes diagnosis
+    doc1 = Document(
+        id=uuid4(),
+        patient_id=patient.id,
+        filename="jan_2023_note.rtf",
+        content_type="application/rtf",
+        content_hash="hash_jan_2023_" + "a" * 44,
+        encrypted_content=b"Patient diagnosed with Type 2 Diabetes.",
+        file_size=512,
+        uploaded_by=test_user_clinician.id,
+        processing_status=ProcessingStatus.COMPLETED,
+        document_date=datetime(2023, 1, 15, 10, 30, 0),
+        author="Dr. Smith"
+    )
+    db.add(doc1)
+
+    entity1 = ExtractedEntity(
+        id=uuid4(),
+        document_id=doc1.id,
+        patient_id=patient.id,
+        entity_type=EntityType.CLINICAL,
+        concept_type="condition",
+        cui="C0011849",
+        concept_cui="C0011849",
+        pretty_name="Diabetes Mellitus",
+        concept_name="Diabetes Mellitus",
+        start_char=25,
+        end_char=42,
+        accuracy=0.96,
+        meta_anns={
+            "Negation": "Affirmed",
+            "Temporality": "Current",
+            "Experiencer": "Patient",
+            "Certainty": "High",
+        },
+    )
+    db.add(entity1)
+
+    # Document 2: March 2023 - Hypertension diagnosis
+    doc2 = Document(
+        id=uuid4(),
+        patient_id=patient.id,
+        filename="mar_2023_note.rtf",
+        content_type="application/rtf",
+        content_hash="hash_mar_2023_" + "b" * 44,
+        encrypted_content=b"Patient has hypertension.",
+        file_size=512,
+        uploaded_by=test_user_clinician.id,
+        processing_status=ProcessingStatus.COMPLETED,
+        document_date=datetime(2023, 3, 10, 14, 0, 0),
+        author="Dr. Jones"
+    )
+    db.add(doc2)
+
+    entity2 = ExtractedEntity(
+        id=uuid4(),
+        document_id=doc2.id,
+        patient_id=patient.id,
+        entity_type=EntityType.CLINICAL,
+        concept_type="condition",
+        cui="C0020538",
+        concept_cui="C0020538",
+        pretty_name="Hypertension",
+        concept_name="Hypertension",
+        start_char=12,
+        end_char=24,
+        accuracy=0.98,
+        meta_anns={
+            "Negation": "Affirmed",
+            "Temporality": "Current",
+            "Experiencer": "Patient",
+            "Certainty": "High",
+        },
+    )
+    db.add(entity2)
+
+    # Document 3: June 2023 - Medication (Metformin)
+    doc3 = Document(
+        id=uuid4(),
+        patient_id=patient.id,
+        filename="jun_2023_prescription.rtf",
+        content_type="application/rtf",
+        content_hash="hash_jun_2023_" + "c" * 44,
+        encrypted_content=b"Prescribed Metformin 500mg BID.",
+        file_size=256,
+        uploaded_by=test_user_clinician.id,
+        processing_status=ProcessingStatus.COMPLETED,
+        document_date=datetime(2023, 6, 20, 9, 15, 0),
+        author="Dr. Smith"
+    )
+    db.add(doc3)
+
+    entity3 = ExtractedEntity(
+        id=uuid4(),
+        document_id=doc3.id,
+        patient_id=patient.id,
+        entity_type=EntityType.CLINICAL,
+        concept_type="medication",
+        cui="C0025598",
+        concept_cui="C0025598",
+        pretty_name="Metformin",
+        concept_name="Metformin",
+        start_char=11,
+        end_char=20,
+        accuracy=0.99,
+        meta_anns={
+            "Negation": "Affirmed",
+            "Temporality": "Current",
+            "Experiencer": "Patient",
+            "Certainty": "High",
+        },
+    )
+    db.add(entity3)
+
+    # Document 4: September 2023 - Lab result (HbA1c)
+    doc4 = Document(
+        id=uuid4(),
+        patient_id=patient.id,
+        filename="sep_2023_labs.rtf",
+        content_type="application/rtf",
+        content_hash="hash_sep_2023_" + "d" * 44,
+        encrypted_content=b"HbA1c: 7.2%",
+        file_size=128,
+        uploaded_by=test_user_clinician.id,
+        processing_status=ProcessingStatus.COMPLETED,
+        document_date=datetime(2023, 9, 5, 8, 0, 0),
+        author="Lab Tech"
+    )
+    db.add(doc4)
+
+    entity4 = ExtractedEntity(
+        id=uuid4(),
+        document_id=doc4.id,
+        patient_id=patient.id,
+        entity_type=EntityType.CLINICAL,
+        concept_type="lab_result",
+        cui="C0474680",
+        concept_cui="C0474680",
+        pretty_name="Hemoglobin A1c",
+        concept_name="Hemoglobin A1c",
+        start_char=0,
+        end_char=5,
+        accuracy=0.97,
+        meta_anns={
+            "Negation": "Affirmed",
+            "Temporality": "Current",
+            "Experiencer": "Patient",
+            "Certainty": "High",
+        },
+    )
+    db.add(entity4)
+
+    # Document 5: November 2023 - Procedure (blood pressure check)
+    doc5 = Document(
+        id=uuid4(),
+        patient_id=patient.id,
+        filename="nov_2023_visit.rtf",
+        content_type="application/rtf",
+        content_hash="hash_nov_2023_" + "e" * 44,
+        encrypted_content=b"Blood pressure check: 135/85 mmHg",
+        file_size=256,
+        uploaded_by=test_user_clinician.id,
+        processing_status=ProcessingStatus.COMPLETED,
+        document_date=datetime(2023, 11, 12, 15, 30, 0),
+        author="Nurse Williams"
+    )
+    db.add(doc5)
+
+    entity5 = ExtractedEntity(
+        id=uuid4(),
+        document_id=doc5.id,
+        patient_id=patient.id,
+        entity_type=EntityType.CLINICAL,
+        concept_type="procedure",
+        cui="C0005823",
+        concept_cui="C0005823",
+        pretty_name="Blood pressure measurement",
+        concept_name="Blood pressure measurement",
+        start_char=0,
+        end_char=20,
+        accuracy=0.94,
+        meta_anns={
+            "Negation": "Affirmed",
+            "Temporality": "Current",
+            "Experiencer": "Patient",
+            "Certainty": "High",
+        },
+    )
+    db.add(entity5)
+
+    await db.commit()
+
+    return {
+        "patient_id": patient.id,
+        "patient_name": patient.full_name,
+        "event_count": 5,
+        "date_range": {
+            "start": datetime(2023, 1, 1),
+            "end": datetime(2023, 12, 31)
+        }
+    }
+
+
+@pytest.fixture(scope="function")
+async def test_db(db: AsyncSession) -> AsyncSession:
+    """
+    Alias for db fixture for backwards compatibility.
+
+    Returns:
+        Database session
+    """
+    return db

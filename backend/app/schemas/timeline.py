@@ -5,6 +5,7 @@ This module defines Pydantic models for the Timeline View API endpoints,
 supporting timeline data retrieval, filtering, and export functionality.
 """
 
+from enum import Enum
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any
 from datetime import datetime
@@ -353,4 +354,203 @@ class TimelineExportResponse(BaseModel):
     expires_at: Optional[datetime] = Field(
         None,
         description="When this export will be automatically deleted (30 days for async exports)"
+    )
+
+
+# ========================================
+# POST Timeline Endpoint Schemas (Task #001)
+# ========================================
+
+
+class EventType(str, Enum):
+    """Event types for timeline filtering.
+
+    Represents different types of clinical events that can appear in a timeline.
+    """
+    DIAGNOSIS = "diagnosis"
+    PROCEDURE = "procedure"
+    MEDICATION = "medication"
+    LAB = "lab"
+    VISIT = "visit"
+
+
+class DateRangeSchema(BaseModel):
+    """Date range for timeline filtering (POST endpoint).
+
+    Similar to DateRange but with explicit naming for POST request schema.
+    """
+
+    start: datetime = Field(
+        ...,
+        description="Start date (inclusive, ISO 8601 format)"
+    )
+    end: datetime = Field(
+        ...,
+        description="End date (inclusive, ISO 8601 format)"
+    )
+
+
+class TimelineRequest(BaseModel):
+    """Request schema for POST /api/v1/timeline/patient/{patient_id}.
+
+    Supports filtering by date range, event types, specialty, and pagination.
+    """
+
+    date_range: DateRangeSchema = Field(
+        ...,
+        description="Date range to filter events"
+    )
+    event_types: List[EventType] = Field(
+        default=[EventType.DIAGNOSIS, EventType.PROCEDURE, EventType.MEDICATION, EventType.LAB, EventType.VISIT],
+        description="Types of events to include in timeline"
+    )
+    specialty_filter: Optional[str] = Field(
+        None,
+        description="Filter events by medical specialty (e.g., 'cardiology', 'neurology')",
+        example="cardiology"
+    )
+    page: int = Field(
+        default=1,
+        ge=1,
+        description="Page number (1-indexed)",
+        example=1
+    )
+    page_size: int = Field(
+        default=1000,
+        ge=1,
+        le=10000,
+        description="Number of events per page (max 10,000)",
+        example=1000
+    )
+
+
+class QueryMetadata(BaseModel):
+    """Metadata about the query execution.
+
+    Provides performance and pagination information about the query results.
+    """
+
+    query_time_ms: float = Field(
+        ...,
+        ge=0,
+        description="Query execution time in milliseconds",
+        example=245.3
+    )
+    total_pages: int = Field(
+        ...,
+        ge=0,
+        description="Total number of pages available",
+        example=5
+    )
+    current_page: int = Field(
+        ...,
+        ge=1,
+        description="Current page number",
+        example=1
+    )
+    page_size: int = Field(
+        ...,
+        ge=1,
+        description="Events per page",
+        example=1000
+    )
+    filters_applied: dict = Field(
+        ...,
+        description="Filters that were applied to this query",
+        example={
+            "date_range": {"start": "2023-01-01", "end": "2023-12-31"},
+            "event_types": ["diagnosis", "medication"],
+            "specialty_filter": "cardiology"
+        }
+    )
+
+
+class TimelineEvent(BaseModel):
+    """A single clinical event in the patient timeline.
+
+    Represents one event (diagnosis, procedure, etc.) with associated metadata.
+    """
+
+    id: str = Field(
+        ...,
+        description="Unique event identifier",
+        example="event-abc123"
+    )
+    event_type: EventType = Field(
+        ...,
+        description="Type of clinical event"
+    )
+    date: datetime = Field(
+        ...,
+        description="Date of the event (ISO 8601 format)"
+    )
+    title: str = Field(
+        ...,
+        description="Event title or description",
+        example="Type 2 Diabetes Mellitus diagnosis"
+    )
+    description: Optional[str] = Field(
+        None,
+        description="Detailed description of the event",
+        example="Patient diagnosed with Type 2 Diabetes. HbA1c 8.5%. Started on Metformin 500mg BID."
+    )
+    specialty: Optional[str] = Field(
+        None,
+        description="Medical specialty associated with this event",
+        example="endocrinology"
+    )
+    provider: Optional[str] = Field(
+        None,
+        description="Healthcare provider name",
+        example="Dr. Jane Smith"
+    )
+    location: Optional[str] = Field(
+        None,
+        description="Location where event occurred",
+        example="Main Hospital - Endocrinology Clinic"
+    )
+    concept_cui: Optional[str] = Field(
+        None,
+        description="SNOMED-CT Concept Unique Identifier (if applicable)",
+        example="C0011849"
+    )
+    concept_name: Optional[str] = Field(
+        None,
+        description="Human-readable concept name (if applicable)",
+        example="Diabetes Mellitus"
+    )
+
+
+class TimelineResponse(BaseModel):
+    """Response schema for POST /api/v1/timeline/patient/{patient_id}.
+
+    Contains patient timeline events with pagination and metadata.
+    """
+
+    patient_id: str = Field(
+        ...,
+        description="UUID of the patient"
+    )
+    patient_name: str = Field(
+        ...,
+        description="Patient's full name",
+        example="John Doe"
+    )
+    date_range: DateRangeSchema = Field(
+        ...,
+        description="Date range that was queried"
+    )
+    events: List[TimelineEvent] = Field(
+        ...,
+        description="List of clinical events in chronological order"
+    )
+    total_events: int = Field(
+        ...,
+        ge=0,
+        description="Total number of events matching the filter criteria",
+        example=1250
+    )
+    metadata: QueryMetadata = Field(
+        ...,
+        description="Query execution metadata (performance, pagination)"
     )
