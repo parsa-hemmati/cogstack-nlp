@@ -13245,3 +13245,36 @@ Format:
 **Why**: Task #004 requirement - interactive filtering, event detail viewing, meta-annotation visualization
 
 **Impact**: ✅ Complete filter UI with presets, debounced updates, URL state persistence, responsive design, meta-annotation badges with color coding
+
+### Task #004 Status Update [2025-11-22T00:20:00Z]
+
+**Progress**: 20% complete (6/32 estimated hours)
+**Status**: in_progress → Continue in fresh session
+
+**Completed**:
+- ✅ API schemas (deidentification_api.py): 281 lines, 8 models
+- ✅ Database migration (012): deidentification_jobs table with indexes
+
+**Remaining Work** (26 hours estimated):
+- ⏳ API endpoints (4 endpoints): 12 hours
+  - POST /api/v1/deidentify (single note)
+  - POST /api/v1/deidentify/batch
+  - GET /api/v1/deidentify/job/{job_id}
+  - POST /api/v1/deidentify/job/{job_id}/cancel
+- ⏳ Celery task implementation: 8 hours  
+- ⏳ Job manager service: 4 hours
+- ⏳ Error handling & cancellation: 4 hours
+- ⏳ Unit tests (20 tests): 2 hours
+- ⏳ Integration tests (5 tests): 2 hours
+
+**Deliverables Ready**:
+- backend/app/schemas/deidentification_api.py
+- backend/alembic/versions/012_create_deidentification_jobs_table.py
+
+**Next Session TODO**:
+1. Create DeidentificationJob SQLAlchemy model
+2. Implement job_manager service (CRUD for jobs)
+3. Implement POST /api/v1/deidentify endpoint
+4. Implement Celery task: deidentify_batch_task
+5. Write tests (TDD approach)
+
