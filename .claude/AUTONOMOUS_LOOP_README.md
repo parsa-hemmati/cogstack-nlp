@@ -1,7 +1,7 @@
 # Autonomous Agent Loop - Quick Reference
 
-**Version**: 1.0.0
-**Status**: ✅ Implemented
+**Version**: 1.6.0
+**Status**: ✅ Production-Ready (All bugs fixed, 6/6 agents validated)
 
 ---
 
@@ -400,6 +400,54 @@ git commit -m "chore: start Sprint 5"
 # 5. Loop continues for days until all 12 tasks complete
 # 6. Completion report generated
 ```
+
+---
+
+## 📋 Version History & Bug Fixes
+
+### v1.6.0 (2025-11-21) - Production Ready ✅
+
+**Status**: All critical bugs fixed, 6/6 agents validated, production-ready
+
+**Bug Fixes (v1.2.0 → v1.6.0)**:
+
+1. **v1.2.0 (commit a7a3b47)** - Fixed grep count and task ID bugs
+   - **Bug**: `grep -c` returning "0\n0" instead of "0"
+   - **Fix**: Changed to `|| true` with `${count:-0}` fallback
+   - **Bug**: Task IDs captured with trailing newlines
+   - **Fix**: Added `head -1 | tr -d '\n'` pipeline
+
+2. **v1.3.0 (commit 2bf2a47)** - Fixed early exit bug
+   - **Bug**: Only 1 agent spawned per commit (expected up to 6)
+   - **Fix**: Removed `&& exit 0` after `check_deadlock`, allowing main loop to run
+
+3. **v1.4.0 (commit 6b93d3a)** - Fixed task counting bug
+   - **Bug**: Counted 7 tasks instead of 6 (including documentation templates)
+   - **Fix**: Changed regex from `^- \[ \]` to `^- \[ \] #[0-9]` (requires numeric ID)
+
+4. **v1.5.0 (commit 8159584)** - Fixed deadlock false positives
+   - **Bug**: Normal startup counted as deadlock
+   - **Fix**: Only trigger deadlock on crashed agents: `in_progress > 0 && active == 0`
+
+5. **v1.6.0 (commit f773887)** - **CRITICAL FIX** - Fixed set -e compatibility
+   - **Bug**: Script stopped at "Checking task queue..." with no further output (BLOCKING)
+   - **Fix**: Added `|| true` to prevent `set -e` from exiting on `check_deadlock` return 1
+   - **Impact**: Without this fix, ZERO agents spawned (loop completely non-functional)
+
+**Validation Results**:
+- ✅ Commit f773887: 4 agents spawned concurrently (developer, tester, debugger, documentation)
+- ✅ Commit 189b286: +1 agent spawned (5 total active)
+- ✅ Commit d1662cb: +1 agent spawned (6/6 maximum concurrent reached)
+- ✅ Commit 2d58981: 4 real development tasks auto-spawned (production validation)
+- ✅ Success rate: 100% (all spawned agents executed successfully)
+
+**Production Status**:
+- ✅ All 6 critical bugs fixed
+- ✅ Concurrent spawning validated (6/6 agents working simultaneously)
+- ✅ Real development started (transitioned from simulation to actual work)
+- ✅ Currently running with active agents (tasks #19-24)
+
+**See**: CONTEXT.md ADR-012 for complete technical details
 
 ---
 
