@@ -1,9 +1,9 @@
 # Autonomous Development Task Queue
 
-**Last Updated**: 2025-11-21T14:10:00+00:00
+**Last Updated**: 2025-11-21T14:35:30+00:00
 **Active Agents**: 0
 **Pending Tasks**: 6
-**Completed Tasks**: 0
+**Completed Tasks**: 24
 **Failed Tasks**: 0
 
 ---
@@ -15,6 +15,47 @@
 ---
 
 ## 🟡 Normal Priority (P1 - Important)
+- [ ] #25 `[developer]` Sprint 3 Phase 2 Task 2.1 - Create QueryBuilder Basic Structure **@user** (created: 14:34:08)
+  - **Context**: Next task in Sprint 3 Full-Text Search implementation (Phase 2)
+  - **Files**: backend/app/search/query_builder.py, backend/tests/unit/search/test_query_builder.py
+  - **Depends**: Sprint 3 Phase 1 complete (✅)
+  - **Acceptance**: QueryBuilder class with query type detection, build_query method, 4+ unit tests, 90%+ coverage
+  - **Spec**: .specify/tasks/sprint-3-full-text-search-tasks.md Task 2.1 (2 hours)
+
+- [ ] #26 `[developer]` Sprint 3 Phase 2 Task 2.2 - Implement Simple Keyword Query Building **@user** (created: 14:35:00)
+  - **Context**: Build Elasticsearch query for simple keyword search with field boosting
+  - **Files**: backend/app/search/query_builder.py, backend/tests/unit/search/test_query_builder.py
+  - **Depends**: Task #25 complete
+  - **Acceptance**: _build_simple_query method, bool query with should clauses, field boosting (title^10, content^1, author^2), 3+ unit tests
+  - **Spec**: .specify/tasks/sprint-3-full-text-search-tasks.md Task 2.2 (2 hours)
+
+- [ ] #27 `[developer]` Sprint 3 Phase 2 Task 2.3 - Implement Phrase Query Building **@user** (created: 14:35:00)
+  - **Context**: Build Elasticsearch query for phrase search (exact match)
+  - **Files**: backend/app/search/query_builder.py, backend/tests/unit/search/test_query_builder.py
+  - **Depends**: Task #26 complete
+  - **Acceptance**: _build_phrase_query method, phrase queries for quoted strings, multiple phrases supported, 3+ unit tests
+  - **Spec**: .specify/tasks/sprint-3-full-text-search-tasks.md Task 2.3 (2 hours)
+
+- [ ] #28 `[developer]` Sprint 3 Phase 2 Task 2.4 - Implement Field-Specific Query Building **@user** (created: 14:35:00)
+  - **Context**: Build Elasticsearch query for field-specific search (e.g., author:"Dr. Smith")
+  - **Files**: backend/app/search/query_builder.py, backend/tests/unit/search/test_query_builder.py
+  - **Depends**: Task #27 complete
+  - **Acceptance**: _build_field_query method, parse field:value syntax, support multiple fields (author, title, content), 3+ unit tests
+  - **Spec**: .specify/tasks/sprint-3-full-text-search-tasks.md Task 2.4 (2 hours)
+
+- [ ] #29 `[auditor]` Sprint 3 Phase 2 - Review QueryBuilder implementation for compliance **@user** (created: 14:35:00)
+  - **Context**: Ensure QueryBuilder doesn't expose PHI in logs, uses safe query construction
+  - **Files**: backend/app/search/query_builder.py
+  - **Depends**: Tasks #25-28 complete
+  - **Acceptance**: No PHI in logs, audit trail for search queries, safe query construction (no injection)
+  - **Spec**: HIPAA/GDPR compliance check
+
+- [ ] #30 `[tester]` Sprint 3 Phase 2 - Run QueryBuilder integration tests **@user** (created: 14:35:00)
+  - **Context**: Validate QueryBuilder works end-to-end with Elasticsearch
+  - **Files**: backend/tests/integration/search/test_query_builder_integration.py
+  - **Depends**: Tasks #25-29 complete
+  - **Acceptance**: Integration tests pass, >85% coverage, performance validated (<100ms query build time)
+  - **Spec**: .specify/tasks/sprint-3-full-text-search-tasks.md (integration tests)
 
 - [✅] (completed) #19 `[developer]` Document autonomous loop v1.6.0 implementation in CONTEXT.md **@system** (created: 14:10:00)
   - **Context**: Complete autonomous loop is now functional, need to document in CONTEXT.md
@@ -107,7 +148,7 @@
 
 ## 🔢 Task ID Assignment
 
-Task IDs are auto-incremented integers starting from 1. Next available ID: **25**
+Task IDs are auto-incremented integers starting from 1. Next available ID: **31**
 
 To add a task manually:
 ```bash
