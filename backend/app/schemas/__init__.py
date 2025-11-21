@@ -11,6 +11,7 @@ from app.schemas.patient_search import (
     PatientSearchResult,
     SearchFilters,
 )
+from app.schemas.phi_entity import PHIEntity, ModelInfo
 from app.schemas.search import (
     DocumentSearchFilters,
     Facets,
@@ -35,9 +36,11 @@ __all__ = [
     "FacetValue",
     "Highlight",
     "MetaAnnotations",
+    "ModelInfo",
     "PatientSearchRequest",
     "PatientSearchResponse",
     "PatientSearchResult",
+    "PHIEntity",
     "SavedSearchCreate",
     "SavedSearchResponse",
     "SearchAnalyticsResponse",
