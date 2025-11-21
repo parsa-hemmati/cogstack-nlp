@@ -33,10 +33,11 @@
   - **Files**: .claude/scripts/test-loop.sh (new)
   - **Acceptance**: Test script can validate all hook functions work
 
-- [ ] #22 `[developer]` Add completion report generation to post-commit hook **@system** (created: 14:10:00)
+- [✅] (completed) #22 `[developer]` Add completion report generation to post-commit hook **@system** (created: 14:10:00)
   - **Context**: Loop completion report exists but needs metrics tracking
-  - **Files**: .git-hooks/post-commit-agent-loop.sh
-  - **Acceptance**: Completion report includes timing, success rates, agent metrics
+  - **Files**: .git-hooks/post-commit-agent-loop-v2.sh
+  - **Acceptance**: ✅ Completion report includes timing, ✅ success rates, ✅ agent metrics
+  - **Completion**: Enhanced check_completion() with task summary, session timing, agent metrics, total spawns/commits
 
 - [🔄] (claimed: 14:09:31, PID: 27019) #23 `[debugger]` Fix task ID newline issue in log output **@system** (created: 14:10:00)
   - **Context**: Logs show "task #15\n15" - task ID appears twice with newline

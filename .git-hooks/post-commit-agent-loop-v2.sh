@@ -180,9 +180,25 @@ check_completion() {
     if [ "$pending" -eq 0 ] && [ "$in_progress" -eq 0 ]; then
         log "INFO" "✅ AUTONOMOUS LOOP COMPLETE!"
 
+        # Calculate metrics
         local total=$((completed + failed))
         local success_rate=0
         [ "$total" -gt 0 ] && success_rate=$((100 * completed / total))
+
+        # Calculate session duration
+        local start_time=$(head -1 "$LOOP_LOG" | grep -oP '\[\K[^\]]+' | head -1)
+        local end_time=$(date -Iseconds)
+
+        # Calculate per-agent metrics
+        local dev_tasks=$(grep -c '✅.*\`\[developer\]\`' "$TASK_QUEUE" 2>/dev/null || echo "0")
+        local audit_tasks=$(grep -c '✅.*\`\[auditor\]\`' "$TASK_QUEUE" 2>/dev/null || echo "0")
+        local test_tasks=$(grep -c '✅.*\`\[tester\]\`' "$TASK_QUEUE" 2>/dev/null || echo "0")
+        local debug_tasks=$(grep -c '✅.*\`\[debugger\]\`' "$TASK_QUEUE" 2>/dev/null || echo "0")
+        local doc_tasks=$(grep -c '✅.*\`\[documentation\]\`' "$TASK_QUEUE" 2>/dev/null || echo "0")
+
+        # Count total spawns from logs
+        local total_spawns=$(grep -c "Agent .* spawned" "$LOOP_LOG" 2>/dev/null || echo "0")
+        local total_commits=$(grep -c "Post-commit hook: Agent loop starting" "$LOOP_LOG" 2>/dev/null || echo "0")
 
         cat << EOF | tee -a "$LOOP_LOG"
 
@@ -190,16 +206,31 @@ check_completion() {
 ║  AUTONOMOUS DEVELOPMENT LOOP - COMPLETION REPORT          ║
 ╚════════════════════════════════════════════════════════════╝
 
-✅ Tasks Completed: $completed
-❌ Tasks Failed: $failed
-📊 Success Rate: ${success_rate}%
-⏱️  Session: $(head -1 "$LOOP_LOG" | cut -d']' -f1 | tr -d '[') to $(date -Iseconds)
+📊 TASK SUMMARY
+  ✅ Tasks Completed: $completed
+  ❌ Tasks Failed:    $failed
+  📈 Success Rate:    ${success_rate}%
+  🎯 Total Tasks:     $total
 
-All agents IDLE. Loop terminated.
+⏱️  SESSION TIMING
+  🚀 Started:  $start_time
+  🏁 Ended:    $end_time
+  📝 Commits:  $total_commits
+  🤖 Spawns:   $total_spawns
 
-To resume:
-1. Add tasks to .claude/TASK_QUEUE.md
-2. Commit to trigger loop
+👥 AGENT METRICS
+  developer:      $dev_tasks tasks
+  auditor:        $audit_tasks tasks
+  tester:         $test_tasks tasks
+  debugger:       $debug_tasks tasks
+  documentation:  $doc_tasks tasks
+
+🔄 LOOP STATUS
+  All agents IDLE. Loop terminated successfully.
+
+💡 TO RESUME
+  1. Add tasks: bash .claude/scripts/add-task.sh "agent-type" "description" "priority"
+  2. Commit to trigger loop: git commit -m "chore: add task"
 
 EOF
         return 0
