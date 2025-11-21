@@ -374,7 +374,7 @@ export function useSearch() {
       }
 
       // Cache result
-      cache.set(q, f, response)
+      cache.set(q, f, sort.value, response)
 
     } catch (err: any) {
       // Error handling

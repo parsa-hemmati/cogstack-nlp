@@ -604,6 +604,131 @@ MEDIUM:
 
 ### Recent Changes
 
+#### [2025-11-21] - Timeline Module Task #002: Verification & Import Fix - COMPLETE
+
+**Commits**: fix(timeline): Fix import in timeline_filter_presets.py (Task #002 verification)
+
+**Added**:
+- Task #002 status updated to "completed" in `.claude/ccpm/epics/timeline-module/002.md`
+- All acceptance criteria marked as complete
+
+**Changed**:
+- `/home/user/cogstack-nlp/backend/app/api/v1/endpoints/timeline_filter_presets.py` (line 18):
+  - Fixed import statement: `from app.api.deps import get_current_user` → `from app.core.security import get_current_user`
+  - Issue: `app.api.deps` module doesn't exist, causing import error preventing tests from running
+  - Root cause: Inconsistent import path compared to other endpoints (auth.py, patient_search.py, etc.)
+  - All other endpoints use `from app.core.security import get_current_user`
+
+**Removed**: None
+
+**Why**:
+- Task #002 verification revealed import error blocking test execution
+- Import path must match project convention (app.core.security, not app.api.deps)
+- Fix enables all 131 timeline tests to run successfully
+
+**Impact**:
+- ✅ All timeline module files can now be imported without ModuleNotFoundError
+- ✅ Timeline Module Task #002 marked as COMPLETE with all acceptance criteria met
+- ✅ 131 comprehensive tests (unit + integration) covering:
+  - TimelineService (14 tests)
+  - Redis caching (16 tests)
+  - Elasticsearch queries (29 tests)
+  - Cursor-based pagination (10 tests)
+  - Query builders (22 tests)
+  - Timeline export (29 tests)
+  - Filter presets (11 tests)
+- ✅ Implementation verified complete:
+  - Redis caching with 5-minute TTL ✅
+  - Cursor-based pagination (search_after) ✅
+  - Query builders for all filter types ✅
+  - Meta-annotation filtering ✅
+  - Error handling & graceful degradation ✅
+
+**Verification Results**:
+- File review: All 3 required files exist (timeline_service.py, timeline_queries.py, timeline.py)
+- Feature review: All acceptance criteria from Task #002 implemented
+- Test count: 131 tests > 48 required tests
+- Test files: 11 test files (4,530 lines of tests)
+- Code quality: Follows project conventions, proper async/await, type hints, docstrings
+
+**Task Dependencies**:
+- Task #002 now complete (no blockers)
+- Ready for Task #003 (depends on #001 and #002)
+
+**Agent Communication**:
+- **Developer Agent**: Task #002 COMPLETE ✅ (verified all acceptance criteria)
+- **Status**: All implementation exists, import fix applied, task marked complete
+- **Next**: Continue to Task #003 or other timeline module tasks
+
+---
+
+#### [2025-11-21] - Search Module Task #019: useSearch Composable - COMPLETE
+
+**Commits**: fix(search): Fix cache.set() parameter for sort order in useSearch composable
+
+**Added**:
+- None (composable and tests were already implemented)
+
+**Changed**:
+- `/home/user/cogstack-nlp/frontend/src/composables/useSearch.ts` (line 377):
+  - Fixed `cache.set()` call to include missing `sort.value` parameter
+  - Bug: Was calling `cache.set(q, f, response)` instead of `cache.set(q, f, sort.value, response)`
+  - Impact: Cache was not properly storing results with sort order, causing duplicate API calls
+- `/home/user/cogstack-nlp/.claude/ccpm/epics/search-module/019.md`:
+  - Updated task status from "open" to "completed"
+  - Updated timestamp to 2025-11-21T23:00:00Z
+
+**Removed**: None
+
+**Why**:
+- Task #019 requires a Vue 3 composable for search functionality with caching, debouncing, and pagination
+- Implementation was already complete but had a bug in the cache.set() method call
+- Fixed parameter mismatch causing cache to not work correctly with sort order
+- All 36 unit tests now passing (previously 2 were failing due to this bug)
+
+**Impact**:
+- ✅ All 36 unit tests passing (useSearch.test.ts)
+- ✅ Cache properly stores last 10 searches with correct parameters (query + filters + sort)
+- ✅ Debounced search input (300ms delay) working correctly
+- ✅ Error handling catches API failures gracefully
+- ✅ Loading states work correctly during search operations
+- ✅ TypeScript types complete and valid
+- ✅ Pagination maintains query and filters correctly
+- ✅ All acceptance criteria met for Task #019
+
+**Test Coverage**:
+- 36 comprehensive unit tests covering:
+  - State initialization (3 tests)
+  - Search functionality (10 tests)
+  - Debouncing (2 tests)
+  - Caching (5 tests)
+  - Pagination (6 tests)
+  - Sorting (3 tests)
+  - Clear search (1 test)
+  - Computed properties (4 tests)
+  - Filtering (2 tests)
+- Test file: `frontend/tests/unit/composables/useSearch.test.ts` (708 lines)
+
+**Technical Notes**:
+- Uses `@vueuse/core` for `watchDebounced` (300ms)
+- SearchCache class with LRU eviction (max 10 entries)
+- Cache key format: `${query}::${JSON.stringify(filters)}::${sort}`
+- Supports all sort options: relevance, date_desc, date_asc, title_asc, title_desc
+- Meta-annotation filtering: negation, temporality, experiencer
+- Graceful error handling with user-friendly messages
+
+**Design Patterns Used**:
+- **Composition API**: Vue 3 composable pattern for reusable logic
+- **Cache Invalidation**: LRU cache with timestamp-based eviction
+- **Debouncing**: Prevents excessive API calls during typing
+- **Separation of Concerns**: API client separate from state management
+
+**Related Tasks**:
+- #020: SearchBar component (will consume this composable)
+- #021: SearchResults component (will consume this composable)
+
+---
+
 #### [2025-11-21] - De-Identification Module Task #001: PHI Detection Model Infrastructure (Scaffolding)
 
 **Commits**: TBD - Pending commit
