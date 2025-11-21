@@ -1,8 +1,8 @@
 # Autonomous Development Task Queue
 
-**Last Updated**: 2025-11-21T14:46:00+00:00
+**Last Updated**: 2025-11-21T15:25:46+00:00
 **Active Agents**: 0
-**Pending Tasks**: 0
+**Pending Tasks**: 5
 **Completed Tasks**: 37
 **Failed Tasks**: 0
 
@@ -15,6 +15,10 @@
 ---
 
 ## 🟡 Normal Priority (P1 - Important)
+- [ ] #22 `[architecture-designer]` Design Sprint 4 De-Identification Module Architecture **@user** (created: 15:25:46)
+- [ ] #21 `[developer]` Sprint 3 Phase 3 Task 3.3 - Create SearchResults Component **@user** (created: 15:25:45)
+- [ ] #20 `[developer]` Sprint 3 Phase 3 Task 3.2 - Create SearchBar Component **@user** (created: 15:25:45)
+- [ ] #19 `[developer]` Sprint 3 Phase 3 Task 3.1 - Create useSearch Composable **@user** (created: 15:25:34)
 - [✅] (already complete) #25 `[developer]` Sprint 3 Phase 2 Task 2.1 - Create QueryBuilder Basic Structure **@user** (created: 14:34:08)
   - **Context**: Sprint 3 Phase 2 was already implemented in previous sessions (commits 431774c-a624475)
   - **Files**: backend/app/search/query_builder.py (21KB), backend/tests/unit/search/test_query_builder.py (30KB)
