@@ -124,3 +124,22 @@ export interface TimelineExportResponse {
   completedAt: string | null
   error: string | null
 }
+
+/**
+ * Timeline event (Task #001 POST endpoint schema)
+ */
+export interface TimelineEvent {
+  id: string
+  event_type: 'diagnosis' | 'procedure' | 'medication' | 'lab' | 'visit'
+  date: string            // ISO 8601 timestamp
+  title: string
+  description?: string | null
+  specialty?: string | null
+  provider?: string | null
+  location?: string | null
+  concept_cui?: string | null
+  concept_name?: string | null
+  meta_annotations?: MetaAnnotations
+  source_document_id?: string
+  confidence?: number
+}
