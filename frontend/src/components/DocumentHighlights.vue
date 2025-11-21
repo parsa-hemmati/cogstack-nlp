@@ -64,7 +64,7 @@
 
             <!-- Snippet (with concept highlighted) -->
             <v-list-item-subtitle class="text-body-2 mt-2">
-              <div class="snippet-container" v-html="doc.snippet"></div>
+              <div class="snippet-container" v-html="sanitizeHtml(doc.snippet)"></div>
             </v-list-item-subtitle>
 
             <!-- Meta-Annotations Chips -->
@@ -124,6 +124,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { getConceptHighlights } from '@/api/patientSearch'
+import { sanitizeHtml } from '@/utils/sanitize'
 import DocumentModal from './DocumentModal.vue'
 import type { SearchFilters, DocumentHighlight } from '@/api/patientSearch'
 

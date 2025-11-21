@@ -69,7 +69,7 @@
 
       <!-- Document Content -->
       <v-card-text class="pa-6" style="max-height: 600px; overflow-y: auto;">
-        <div class="document-content" v-html="document.snippet"></div>
+        <div class="document-content" v-html="sanitizeHtml(document.snippet)"></div>
       </v-card-text>
 
       <!-- Footer with Actions -->
@@ -104,6 +104,7 @@
 </template>
 
 <script setup lang="ts">
+import { sanitizeHtml } from '@/utils/sanitize'
 import type { DocumentHighlight } from '@/api/patientSearch'
 
 // Props
