@@ -1,11 +1,6 @@
 #!/bin/bash
 # Post-commit hook: Autonomous Agent Loop Orchestrator
-# Version: 1.0.0
-#
-# This hook spawns Claude Code agents automatically after each commit
-# based on pending tasks in TASK_QUEUE.md
-#
-# Usage: Automatically triggered by git post-commit hook
+# Version: 1.2.0 - COMPLETE FIX for concurrent spawning
 
 set -e
 
@@ -14,205 +9,100 @@ PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 CLAUDE_DIR="$PROJECT_ROOT/.claude"
 TASK_QUEUE="$CLAUDE_DIR/TASK_QUEUE.md"
 AGENT_STATUS="$CLAUDE_DIR/AGENT_STATUS.md"
-COORDINATION="$CLAUDE_DIR/COORDINATION.md"
 CONFIG_FILE="$CLAUDE_DIR/agent-loop-config.yaml"
 LOOP_LOG="$CLAUDE_DIR/logs/agent-loop.log"
-METRICS_DIR="$CLAUDE_DIR/metrics"
 
-# Create directories if they don't exist
-mkdir -p "$CLAUDE_DIR/logs" "$METRICS_DIR"
-
-# Initialize log file
+mkdir -p "$CLAUDE_DIR/logs"
 touch "$LOOP_LOG"
 
-# Utility functions
 log() {
     local level=$1
     shift
-    local message="$@"
-    local timestamp=$(date -Iseconds)
-    echo "[$timestamp] [$level] $message" >> "$LOOP_LOG"
-
-    # Also echo to stdout for INFO level in non-background mode
-    if [ "$level" = "INFO" ] && [ "${AGENT_LOOP_BACKGROUND:-0}" -eq 0 ]; then
-        echo "[$level] $message"
-    fi
+    echo "[$(date -Iseconds)] [$level] $@" >> "$LOOP_LOG"
+    [ "$level" = "INFO" ] && echo "[$level] $@"
 }
 
-# Load configuration from YAML (simple parser)
 load_config() {
     local key=$1
     local default=$2
-
     if [ ! -f "$CONFIG_FILE" ]; then
         echo "$default"
         return
     fi
-
-    # Simple YAML parser (handles key: value format)
-    local value=$(grep "^${key}:" "$CONFIG_FILE" | sed 's/^[^:]*:[[:space:]]*//' | tr -d '"' | tr -d "'")
-
-    if [ -z "$value" ]; then
-        echo "$default"
-    else
-        echo "$value"
-    fi
+    local value=$(grep "^${key}:" "$CONFIG_FILE" 2>/dev/null | sed 's/^[^:]*:[[:space:]]*//' | tr -d '"' | tr -d "'" | head -1)
+    echo "${value:-$default}"
 }
 
-# Configuration values
 MAX_TOTAL_AGENTS=$(load_config "max_total_agents" "6")
-HEARTBEAT_INTERVAL=$(load_config "heartbeat_interval" "30")
 ENABLED=$(load_config "git_hooks.post_commit.enabled" "true")
 DRY_RUN=$(load_config "debug.dry_run" "false")
 
 log "INFO" "========================================"
 log "INFO" "Post-commit hook: Agent loop starting"
 log "INFO" "Commit: $(git rev-parse --short HEAD)"
-log "INFO" "Author: $(git log -1 --format='%an')"
 log "INFO" "Config: max_agents=$MAX_TOTAL_AGENTS, dry_run=$DRY_RUN"
 
-# Check if hook is enabled
-if [ "$ENABLED" != "true" ]; then
-    log "INFO" "Post-commit hook disabled in config. Exiting."
-    exit 0
-fi
+[ "$ENABLED" != "true" ] && { log "INFO" "Hook disabled. Exiting."; exit 0; }
+[ ! -f "$TASK_QUEUE" ] && { log "WARN" "TASK_QUEUE.md not found. Exiting."; exit 0; }
 
-# Check if shared state files exist
-if [ ! -f "$TASK_QUEUE" ]; then
-    log "WARN" "TASK_QUEUE.md not found. Autonomous loop not initialized. Exiting."
-    exit 0
-fi
-
-# Function: Update agent status
-update_agent_status() {
-    local agent=$1
-    local status=$2
-    local task_id=$3
-    local pid=$4
-
-    local timestamp=$(date +%H:%M:%S)
-
-    # Use flock for concurrency safety
-    (
-        flock -x 200
-
-        # Update the agent's status section
-        # This is a simplified version - full implementation would use proper markdown parsing
-        sed -i "/^### $agent/,/^---/{
-            s/Status: .*/Status: $status (Task #$task_id)/;
-            s/Last Heartbeat: .*/Last Heartbeat: $timestamp/;
-        }" "$AGENT_STATUS" 2>/dev/null || true
-
-    ) 200>"$AGENT_STATUS.lock"
-
-    log "DEBUG" "Updated status for $agent: $status (Task #$task_id, PID: $pid)"
-}
-
-# Function: Get max instances for agent type
 get_max_instances() {
     local agent_type=$1
     load_config "agent_limits.$agent_type" "1"
 }
 
-# Function: Get timeout for agent type
 get_timeout() {
     local agent_type=$1
     load_config "timeouts.$agent_type" "3600"
 }
 
-# Function: Count active agents of specific type
+# FIX: grep -c already returns 0 when no matches, don't add || echo "0"
 count_active_agents() {
     local agent_type=$1
-
-    if [ ! -f "$AGENT_STATUS" ]; then
-        echo "0"
-        return
-    fi
-
-    # Count how many instances of this agent type are WORKING
-    local count=$(grep -c "^### $agent_type.*PID:" "$AGENT_STATUS" 2>/dev/null || echo "0")
-    echo "$count"
+    local count=$(grep -c "Status: WORKING.*$agent_type" "$AGENT_STATUS" 2>/dev/null || true)
+    echo "${count:-0}"
 }
 
-# Function: Count total active agents
-count_total_active_agents() {
-    if [ ! -f "$AGENT_STATUS" ]; then
-        echo "0"
-        return
-    fi
-
-    # Count all WORKING agents
-    local count=$(grep -c "Status: WORKING" "$AGENT_STATUS" 2>/dev/null || echo "0")
-    echo "$count"
+count_total_active() {
+    local count=$(grep -c "Status: WORKING" "$AGENT_STATUS" 2>/dev/null || true)
+    echo "${count:-0}"
 }
 
-# Function: Get pending tasks for agent type
 get_pending_tasks() {
     local agent_type=$1
-
-    if [ ! -f "$TASK_QUEUE" ]; then
-        echo ""
-        return
-    fi
-
-    # Find all unclaimed tasks for this agent type
-    # Format: - [ ] #ID `[agent-type]` ...
     grep "^- \[ \] #[0-9]* \`\[$agent_type\]\`" "$TASK_QUEUE" 2>/dev/null || echo ""
 }
 
-# Function: Get task priority
-get_task_priority() {
-    local task_line=$1
-
-    # Check which section the task is in
-    # This is simplified - full implementation would parse markdown properly
-    echo "P1"  # Default to P1
-}
-
-# Function: Claim next task atomically
 claim_next_task() {
     local agent_type=$1
-
     local task_id=""
 
-    # Use flock to prevent race conditions
     (
         flock -x 200
-
-        # Find first unclaimed task for this agent type
-        task_id=$(grep -m 1 "^- \[ \] #[0-9]* \`\[$agent_type\]\`" "$TASK_QUEUE" 2>/dev/null | sed -E 's/.*#([0-9]*).*/\1/')
+        # Fixed: Use head -1 and tr to remove newlines
+        task_id=$(grep -m 1 "^- \[ \] #[0-9]* \`\[$agent_type\]\`" "$TASK_QUEUE" 2>/dev/null | \
+                  sed -E 's/.*#([0-9]+).*/\1/' | head -1 | tr -d '\n')
 
         if [ -n "$task_id" ]; then
-            # Mark task as in progress
             local timestamp=$(date +%H:%M:%S)
-            local pid=$$
-
-            sed -i "s/^- \[ \] #$task_id \`\[$agent_type\]\`/- [🔄] #$task_id \`[$agent_type]\` (claimed: $timestamp, PID: $pid)/" "$TASK_QUEUE"
-
+            # Fixed: Escape special characters and use simpler sed
+            sed -i "/^- \[ \] #${task_id} \`\[${agent_type}\]\`/s/\[ \]/[🔄] (claimed: ${timestamp}, PID: $$)/" "$TASK_QUEUE"
             log "INFO" "Claimed task #$task_id for $agent_type"
         fi
-
         echo "$task_id"
-
     ) 200>"$TASK_QUEUE.lock"
 }
 
-# Function: Check if should spawn agent
 should_spawn_agent() {
     local agent_type=$1
-
-    # Check if agent already has max instances
     local active_count=$(count_active_agents "$agent_type")
     local max_instances=$(get_max_instances "$agent_type")
 
     if [ "$active_count" -ge "$max_instances" ]; then
-        log "DEBUG" "Skipping $agent_type: $active_count/$max_instances instances active"
+        log "DEBUG" "Skipping $agent_type: $active_count/$max_instances active"
         return 1
     fi
 
-    # Check if tasks exist for this agent
     local pending=$(get_pending_tasks "$agent_type")
-
     if [ -z "$pending" ]; then
         log "DEBUG" "Skipping $agent_type: No pending tasks"
         return 1
@@ -221,36 +111,22 @@ should_spawn_agent() {
     return 0
 }
 
-# Function: Extract task context
 get_task_context() {
     local task_id=$1
-
-    # Extract full task details from TASK_QUEUE.md
-    # This is simplified - full implementation would parse markdown properly
-    local context=$(sed -n "/^- \[🔄\] #$task_id/,/^$/p" "$TASK_QUEUE")
-
-    echo "$context"
+    grep -A 5 "^- \[🔄\] #$task_id" "$TASK_QUEUE" 2>/dev/null | head -6
 }
 
-# Function: Spawn agent
 spawn_agent() {
     local agent_type=$1
     local task_id=$2
 
-    if [ "$DRY_RUN" = "true" ]; then
-        log "INFO" "[DRY RUN] Would spawn $agent_type for task #$task_id"
-        return 0
-    fi
+    [ "$DRY_RUN" = "true" ] && { log "INFO" "[DRY RUN] Would spawn $agent_type for #$task_id"; return 0; }
 
     log "INFO" "Spawning $agent_type for task #$task_id..."
 
-    # Extract task details
     local task_context=$(get_task_context "$task_id")
-
-    # Get timeout for this agent type
     local timeout=$(get_timeout "$agent_type")
 
-    # Create agent prompt
     local agent_prompt="You are the $agent_type agent in a continuous autonomous development loop.
 
 **Your Task**: #$task_id from TASK_QUEUE.md
@@ -258,211 +134,160 @@ spawn_agent() {
 $task_context
 
 **Instructions**:
-1. Read .claude/TASK_QUEUE.md completely to understand task #$task_id
-2. Read .claude/COORDINATION.md for any messages directed to you
+1. Read .claude/TASK_QUEUE.md to understand task #$task_id
+2. Read .claude/COORDINATION.md for messages directed to you
 3. Read your agent definition: .claude/agents/$agent_type.md
-4. Execute the task following your agent definition
-5. Update your progress in .claude/AGENT_STATUS.md (heartbeat every 30s)
+4. Execute the task following TDD approach
+5. Update .claude/AGENT_STATUS.md every 30s (heartbeat)
 6. When complete:
-   - Update TASK_QUEUE.md (move #$task_id from [🔄] → [✅])
-   - Add new tasks for other agents if needed (use proper format)
-   - Update COORDINATION.md with messages for other agents
-   - Update CONTEXT.md with technical changes (if applicable)
-   - Commit your work with proper commit message
-7. The post-commit hook will spawn the next agent automatically
+   - Mark task [✅] in TASK_QUEUE.md
+   - Create follow-up tasks if needed
+   - Update COORDINATION.md with messages
+   - Update CONTEXT.md if applicable
+   - Commit with proper message
+7. Post-commit hook spawns next agents automatically
 
 **Critical Rules**:
-- DO NOT wait for user acknowledgment
-- DO mark task as complete when done
-- DO create tasks for other agents if their work is needed
-- DO update all shared files (TASK_QUEUE, AGENT_STATUS, COORDINATION, CONTEXT if needed)
-- DO commit immediately when task complete
-- DO NOT ask the user questions unless you have a blocker requiring a decision
+- Work independently (no user questions unless blocked)
+- Mark task complete when done
+- Create tasks for other agents as needed
+- Update all shared files
+- Commit immediately when complete
 
-**Autonomous Mode**: You are working independently. No status reporting to user unless you encounter a blocker that requires user decision.
+**Timeout**: $timeout seconds
 
-**Timeout**: You have $timeout seconds to complete this task. After timeout, you will be killed and task marked as failed.
+Begin task #$task_id now."
 
-Begin working on task #$task_id now."
-
-    # Create temporary file with agent prompt
     local prompt_file="$CLAUDE_DIR/logs/agent-${agent_type}-${task_id}.prompt"
     echo "$agent_prompt" > "$prompt_file"
 
-    # Spawn agent in background using agent wrapper
     local agent_script="$CLAUDE_DIR/scripts/agent-wrapper.sh"
-
-    # If wrapper doesn't exist, use simple spawning
     if [ ! -f "$agent_script" ]; then
-        log "WARN" "Agent wrapper not found, using simple spawn"
-
-        # Simple spawning (not recommended for production)
-        (
-            # This is a placeholder - actual implementation would invoke Claude Code agent
-            # For now, just log that agent would be spawned
-            log "INFO" "Agent $agent_type (task #$task_id) would execute here"
-
-            # Update agent status to WORKING
-            update_agent_status "$agent_type" "WORKING" "$task_id" "$$"
-
-            # Simulate work (remove this in production)
-            sleep 5
-
-            # Update agent status to IDLE
-            update_agent_status "$agent_type" "IDLE" "$task_id" "$$"
-
-            log "INFO" "Agent $agent_type completed task #$task_id (simulated)"
-
-        ) &
-
-        local agent_pid=$!
-
-        log "INFO" "Agent $agent_type spawned (PID: $agent_pid, task #$task_id)"
-
-        # Store PID for monitoring
-        echo "$agent_pid" > "$CLAUDE_DIR/logs/agent-${agent_type}-${task_id}.pid"
-
-        return 0
+        log "ERROR" "Agent wrapper not found at $agent_script"
+        return 1
     fi
 
-    # Use agent wrapper (recommended)
-    bash "$agent_script" "$agent_type" "$task_id" "$timeout" "$prompt_file" &
-
+    bash "$agent_script" "$agent_type" "$task_id" "$timeout" "$prompt_file" >> "$LOOP_LOG" 2>&1 &
     local agent_pid=$!
 
     log "INFO" "Agent $agent_type spawned (PID: $agent_pid, task #$task_id)"
-
-    # Store PID for monitoring
     echo "$agent_pid" > "$CLAUDE_DIR/logs/agent-${agent_type}-${task_id}.pid"
 }
 
-# Function: Check for completion
 check_completion() {
-    local pending_count=$(grep -c "^- \[ \]" "$TASK_QUEUE" 2>/dev/null || echo "0")
-    local in_progress_count=$(grep -c "^- \[🔄\]" "$TASK_QUEUE" 2>/dev/null || echo "0")
-    local completed_count=$(grep -c "^- \[✅\]" "$TASK_QUEUE" 2>/dev/null || echo "0")
-    local failed_count=$(grep -c "^- \[❌\]" "$TASK_QUEUE" 2>/dev/null || echo "0")
+    local pending=$(grep -c "^- \[ \]" "$TASK_QUEUE" 2>/dev/null || true)
+    local in_progress=$(grep -c "^- \[🔄\]" "$TASK_QUEUE" 2>/dev/null || true)
+    local completed=$(grep -c "^- \[✅\]" "$TASK_QUEUE" 2>/dev/null || true)
+    local failed=$(grep -c "^- \[❌\]" "$TASK_QUEUE" 2>/dev/null || true)
 
-    if [ "$pending_count" -eq 0 ] && [ "$in_progress_count" -eq 0 ]; then
-        log "INFO" "✅ AUTONOMOUS LOOP COMPLETE: All tasks finished!"
+    pending=${pending:-0}
+    in_progress=${in_progress:-0}
+    completed=${completed:-0}
+    failed=${failed:-0}
 
-        # Calculate success rate
-        local total=$((completed_count + failed_count))
+    if [ "$pending" -eq 0 ] && [ "$in_progress" -eq 0 ]; then
+        log "INFO" "✅ AUTONOMOUS LOOP COMPLETE!"
+
+        local total=$((completed + failed))
         local success_rate=0
+        [ "$total" -gt 0 ] && success_rate=$((100 * completed / total))
 
-        if [ "$total" -gt 0 ]; then
-            success_rate=$((100 * completed_count / total))
-        fi
+        cat << EOF | tee -a "$LOOP_LOG"
 
-        # Generate completion report
-        local report="
 ╔════════════════════════════════════════════════════════════╗
 ║  AUTONOMOUS DEVELOPMENT LOOP - COMPLETION REPORT          ║
 ╚════════════════════════════════════════════════════════════╝
 
-✅ Total Tasks Completed: $completed_count
-❌ Failed Tasks: $failed_count
+✅ Tasks Completed: $completed
+❌ Tasks Failed: $failed
 📊 Success Rate: ${success_rate}%
-⏱️  Session Start: $(head -1 "$LOOP_LOG" | cut -d']' -f1 | tr -d '[')
-⏱️  Session End: $(date -Iseconds)
+⏱️  Session: $(head -1 "$LOOP_LOG" | cut -d']' -f1 | tr -d '[') to $(date -Iseconds)
 
-All agents are now IDLE. Development loop has terminated.
+All agents IDLE. Loop terminated.
 
-To resume autonomous development:
-1. Add new tasks to .claude/TASK_QUEUE.md
-2. Commit any file (triggers post-commit hook)
-3. Loop will resume automatically
+To resume:
+1. Add tasks to .claude/TASK_QUEUE.md
+2. Commit to trigger loop
 
-For details, see:
-- Task history: .claude/TASK_QUEUE.md
-- Agent metrics: .claude/AGENT_STATUS.md
-- Loop log: .claude/logs/agent-loop.log
-"
-
-        echo "$report" | tee -a "$LOOP_LOG"
-
+EOF
         return 0
     fi
-
     return 1
 }
 
-# Function: Check for deadlock
 check_deadlock() {
-    local pending_count=$(grep -c "^- \[ \]" "$TASK_QUEUE" 2>/dev/null || echo "0")
-    local in_progress_count=$(grep -c "^- \[🔄\]" "$TASK_QUEUE" 2>/dev/null || echo "0")
-    local active_agents=$(count_total_active_agents)
+    local pending=$(grep -c "^- \[ \]" "$TASK_QUEUE" 2>/dev/null || true)
+    local in_progress=$(grep -c "^- \[🔄\]" "$TASK_QUEUE" 2>/dev/null || true)
+    local active=$(count_total_active)
 
-    # Deadlock: pending tasks exist but no agents working and no in-progress tasks
-    if [ "$pending_count" -gt 0 ] && [ "$in_progress_count" -eq 0 ] && [ "$active_agents" -eq 0 ]; then
-        log "WARN" "⚠️ DEADLOCK DETECTED: $pending_count tasks pending but no agents working"
+    pending=${pending:-0}
+    in_progress=${in_progress:-0}
+    active=${active:-0}
 
-        # Try to break deadlock by spawning agent for first pending task
+    if [ "$pending" -gt 0 ] && [ "$in_progress" -eq 0 ] && [ "$active" -eq 0 ]; then
+        log "WARN" "⚠️ DEADLOCK: $pending tasks pending, no agents working"
+
         local first_task=$(grep -m 1 "^- \[ \]" "$TASK_QUEUE")
-        local agent_type=$(echo "$first_task" | sed -E 's/.*`\[([a-z-]+)\]`.*/\1/')
-        local task_id=$(echo "$first_task" | sed -E 's/.*#([0-9]*).*/\1/')
-
-        log "INFO" "Breaking deadlock: Spawning $agent_type for task #$task_id"
-
-        # Claim and spawn
-        local claimed_id=$(claim_next_task "$agent_type")
-
-        if [ -n "$claimed_id" ]; then
-            spawn_agent "$agent_type" "$claimed_id"
-            return 0
-        else
-            log "ERROR" "Failed to claim task #$task_id for deadlock recovery"
-            return 1
-        fi
-    fi
-
-    return 1
-}
-
-# Main orchestration logic
-
-log "INFO" "Checking task queue status..."
-
-# Check for completion first
-if check_completion; then
-    exit 0
-fi
-
-# Check for deadlock
-if check_deadlock; then
-    exit 0
-fi
-
-# Get current active agent count
-active_agents=$(count_total_active_agents)
-
-log "INFO" "Active agents: $active_agents / $MAX_TOTAL_AGENTS"
-
-# Spawn agents for pending tasks (up to max concurrent limit)
-for agent_type in developer auditor tester debugger documentation task-definer architecture-designer test-generator; do
-
-    # Break if max concurrent agents reached
-    if [ "$active_agents" -ge "$MAX_TOTAL_AGENTS" ]; then
-        log "INFO" "Max concurrent agents ($MAX_TOTAL_AGENTS) reached. Deferring remaining tasks."
-        break
-    fi
-
-    # Check if should spawn this agent type
-    if should_spawn_agent "$agent_type"; then
-        # Claim next task for this agent
-        task_id=$(claim_next_task "$agent_type")
+        local agent_type=$(echo "$first_task" | sed -E 's/.*`\[([a-z-]+)\]`.*/\1/' | head -1 | tr -d '\n')
+        local task_id=$(claim_next_task "$agent_type")
 
         if [ -n "$task_id" ]; then
+            log "INFO" "Breaking deadlock: spawning $agent_type for #$task_id"
             spawn_agent "$agent_type" "$task_id"
-            active_agents=$((active_agents + 1))
-
-            # Small delay between spawns to avoid thundering herd
-            sleep 1
+            return 0
         fi
     fi
+    return 1
+}
+
+# Main orchestration
+log "INFO" "Checking task queue..."
+
+check_completion && exit 0
+check_deadlock && exit 0
+
+# Fixed: Get clean count
+active_agents=$(count_total_active)
+log "INFO" "Active agents: $active_agents / $MAX_TOTAL_AGENTS"
+
+# Spawn agents up to max concurrent limit
+spawned=0
+for agent_type in developer auditor tester debugger documentation task-definer architecture-designer test-generator; do
+
+    # Break if max reached
+    [ "$active_agents" -ge "$MAX_TOTAL_AGENTS" ] && {
+        log "INFO" "Max agents ($MAX_TOTAL_AGENTS) reached. Deferring."
+        break
+    }
+
+    # Spawn multiple instances if agent type allows
+    # FIX: Don't use 'local' outside functions
+    max_instances=$(get_max_instances "$agent_type")
+    current_count=$(count_active_agents "$agent_type")
+    can_spawn=$((max_instances - current_count))
+
+    # Spawn up to max instances for this agent type
+    for ((i=0; i<can_spawn; i++)); do
+        [ "$active_agents" -ge "$MAX_TOTAL_AGENTS" ] && break
+
+        if should_spawn_agent "$agent_type"; then
+            task_id=$(claim_next_task "$agent_type")
+
+            if [ -n "$task_id" ]; then
+                spawn_agent "$agent_type" "$task_id"
+                active_agents=$((active_agents + 1))
+                spawned=$((spawned + 1))
+                sleep 0.5  # Small delay between spawns
+            else
+                break  # No more tasks for this agent type
+            fi
+        else
+            break
+        fi
+    done
 done
 
-log "INFO" "Post-commit hook complete. $active_agents agents working."
+log "INFO" "Post-commit complete. Spawned: $spawned, Total active: $active_agents"
 log "INFO" "========================================"
 
 exit 0
