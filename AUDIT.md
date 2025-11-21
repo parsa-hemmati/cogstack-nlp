@@ -4158,3 +4158,30 @@ Both perspectives required for complete project memory.
 
 ---
 
+
+### ⏱️ Timeline Module Task #005: Timeline Composables & State Management - COMPLETE (2025-11-21)
+
+**Change Type**: New Feature (Composables)
+
+**Summary**:
+- ✅ useTimeline - State management with caching, debouncing, retry logic
+- ✅ useTimelineEvents - API integration
+- ✅ useTimelineCache - LocalStorage caching (5-min TTL)
+- ✅ 15+ unit tests
+
+**Files Added**:
+- `frontend/src/composables/useTimeline.ts` (200 lines)
+- `frontend/src/composables/useTimelineEvents.ts` (60 lines)
+- `frontend/src/composables/useTimelineCache.ts` (100 lines)
+- `frontend/tests/unit/composables/useTimeline.test.ts` (15+ tests)
+
+**✅ PRD Compliance: ALIGNED**
+- Debounced filter changes (300ms)
+- Cache TTL (5 minutes)
+- Retry logic (3 attempts)
+- URL state persistence
+- Optimistic updates
+- Fallback to cache on error
+
+---
+
