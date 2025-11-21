@@ -1,8 +1,8 @@
 # Autonomous Development Task Queue
 
-**Last Updated**: 2025-11-21T00:00:00Z
+**Last Updated**: 2025-11-21T13:10:35+00:00
 **Active Agents**: 0
-**Pending Tasks**: 0
+**Pending Tasks**: 7
 **Completed Tasks**: 0
 **Failed Tasks**: 0
 
@@ -16,6 +16,12 @@
 ---
 
 ## 🟡 Normal Priority (P1 - Important)
+- [ ] #6 `[documentation]` Update README.md with current project status and Sprint 3 features **@user** (created: 13:10:34)
+- [ ] #5 `[tester]` Run full backend test suite and report coverage metrics **@user** (created: 13:10:25)
+- [ ] #4 `[auditor]` Review all API endpoints in backend/app/api/v1/endpoints/ for HIPAA compliance **@user** (created: 13:10:17)
+- [ ] #3 `[developer]` Add comprehensive docstrings to all functions in backend/app/services/patient_search_service.py **@user** (created: 13:10:07)
+- [ ] #2 `[developer]` Implement test cases for QueryParser in backend/tests/unit/test_query_parser.py **@user** (created: 13:09:58)
+- [ ] #1 `[developer]` Review and enhance QueryBuilder class in backend/app/services/query_builder.py **@user** (created: 13:09:48)
 
 <!-- Features, bug fixes, improvements -->
 
