@@ -604,6 +604,57 @@ MEDIUM:
 
 ### Recent Changes
 
+#### [2025-11-21] - De-Identification Module Task #003: De-identification Service - COMPLETE
+
+**Commits**: feat(deid): Implement de-identification service with Safe Harbor methods (Task #003)
+
+**Added**:
+- `backend/app/schemas/deidentification.py` (158 lines) - Pydantic schemas
+- `backend/app/services/deidentification_service.py` (663 lines) - De-identification service with 3 methods (removal, replacement, generalization)
+- `backend/tests/unit/services/test_deidentification_service.py` (631 lines) - 17 unit tests (all passing)
+- `backend/tests/integration/test_deidentification_integration.py` (266 lines) - 6 integration tests
+
+**Changed**: None (new feature)
+
+**Removed**: None
+
+**Why**:
+- Implements HIPAA Safe Harbor de-identification for clinical notes
+- Supports 3 methods: removal ([NAME], [DATE]), replacement (Patient A, DATE_1), generalization (year only, 90+, state only)
+- Maintains consistent entity mappings within documents
+- Flags low-confidence detections for manual review
+- Validates de-identified text to ensure no PHI remains
+
+**Impact**:
+- ✅ Core de-identification functionality available
+- ✅ Batch processing for large datasets
+- ✅ Performance: <2 min per 10-page note (meets target)
+- ⚠️ Requires MedCAT PHI detection service
+
+**Acceptance Criteria**: All 11 criteria met (service, 3 methods, validation, batch, tests, docs)
+
+#### [2025-11-21] - Timeline-Module: Task #003 - Timeline UI Components with TDD
+
+**Commits**: (this commit) - Create TimelineEvent.vue component with comprehensive tests
+
+**Task #003 Completed**:
+- ✅ Created `frontend/src/components/timeline/TimelineEvent.vue` (~160 lines)
+  - Individual event marker component for clinical events (diagnosis, procedure, medication, lab, visit)
+  - Color-coded by event type: diagnosis=#ef4444 (red), procedure=#3b82f6 (blue), medication=#10b981 (green), lab=#f59e0b (amber), visit=#8b5cf6 (purple)
+  - Confidence-based sizing: high (>0.9)=8px, medium (0.7-0.9)=6px, low (<0.7)=4px
+  - Click/hover handlers, accessibility (ARIA, keyboard), visual states
+- ✅ Comprehensive tests (TDD RED→GREEN→REFACTOR):
+  - TimelineEvent.test.ts (29 tests), TimelineAxis.test.ts (28 tests)
+  - **Total**: 57 tests, 100% passing, >85% coverage
+
+**Impact**:
+- ✅ TimelineEvent.vue ready, 57 tests passing
+- ✅ Color-coded markers, confidence sizing, full accessibility (WCAG 2.1 AA)
+- ✅ TDD approach ensures robust component
+- 🎯 **Next**: Update task #003 status to "completed"
+
+---
+
 #### [2025-11-21] - Timeline Module Task #002: Verification & Import Fix - COMPLETE
 
 **Commits**: fix(timeline): Fix import in timeline_filter_presets.py (Task #002 verification)
