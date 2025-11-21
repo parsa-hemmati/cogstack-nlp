@@ -14,6 +14,7 @@ A comprehensive, modular platform that leverages MedCAT's NLP capabilities to tr
 - **Clinical Document Storage**: PostgreSQL metadata + Elasticsearch full-text
 - **MedCAT NLP Integration**: Clinical concept extraction with meta-annotations
 - **Break-the-Glass Access**: Emergency access with strict auditing
+- **Advanced Search**: 7 query types (standard, boolean, wildcard, fuzzy, proximity, range, regex) with caching and optimization
 
 ### Compliance
 - ✅ HIPAA compliant audit logging (8-year retention)
@@ -236,6 +237,63 @@ alembic history
 
 ---
 
+## Search Capabilities
+
+### Query Types
+
+The search API supports 7 different query types for flexible clinical document searching:
+
+| Query Type | Syntax | Example | Use Case |
+|------------|--------|---------|----------|
+| **Standard** | Keywords | `diabetes mellitus` | General searches |
+| **Boolean** | AND/OR/NOT | `diabetes AND hypertension NOT family` | Precise criteria |
+| **Wildcard** | * and ? | `diab*`, `wom?n` | Pattern matching |
+| **Fuzzy** | ~ | `diabets~2` | Typo tolerance |
+| **Proximity** | NEAR/W/ADJ | `heart NEAR/3 failure` | Related terms |
+| **Range** | [ ] or { } | `age:[18 TO 65]` | Numeric/date filtering |
+| **Regex** | /pattern/ | `/diabet.*/` | Complex patterns |
+
+### Search Features
+
+- **Result Caching**: Redis-based caching with TTL per query type
+- **Query Optimization**: Automatic rewriting for better performance
+- **Faceted Search**: Filter by document type, department, date
+- **Highlighting**: Relevant text snippets with match highlights
+- **Autocomplete**: Search suggestions based on partial queries
+- **Query Validation**: Pre-flight validation before execution
+
+### Example Search Queries
+
+```bash
+# Standard search
+GET /api/v1/search?q=diabetes
+
+# Boolean logic
+GET /api/v1/search?q=diabetes+AND+hypertension&query_type=boolean
+
+# Wildcard patterns
+GET /api/v1/search?q=card*&query_type=wildcard
+
+# Fuzzy matching
+GET /api/v1/search?q=hyprtension~&query_type=fuzzy
+
+# Proximity search
+GET /api/v1/search?q=heart+NEAR/2+failure&query_type=proximity
+
+# Range queries
+GET /api/v1/search?q=age:[50+TO+70]&query_type=range
+
+# Regular expressions
+GET /api/v1/search?q=/diabet.*/&query_type=regex
+```
+
+### Performance
+
+- Query response time: <500ms (cached: <200ms)
+- Automatic query optimization for expensive patterns
+- Filter context caching for repeated filters
+- Configurable result size and pagination
+
 ## API Documentation
 
 ### Authentication
@@ -296,6 +354,36 @@ Update patient.
 
 **DELETE /api/v1/patients/{patient_id}**
 Delete patient (cascade deletes documents).
+
+### Search
+
+**GET /api/v1/search**
+```
+Parameters:
+- q: Search query (required)
+- query_type: Type of query (standard, boolean, wildcard, fuzzy, proximity, range, regex)
+- document_type: Filter by document type
+- department: Filter by department
+- date_from: Start date (ISO format)
+- date_to: End date (ISO format)
+- page: Page number (default: 1)
+- page_size: Results per page (default: 20, max: 100)
+```
+
+**GET /api/v1/search/query-help**
+Get syntax help and examples for query types.
+
+**POST /api/v1/search/validate**
+Validate query syntax before execution.
+
+**GET /api/v1/search/suggest**
+Get autocomplete suggestions (min 2 chars).
+
+**GET /api/v1/search/cache/stats** (Admin only)
+View cache statistics and hit rates.
+
+**POST /api/v1/search/cache/invalidate** (Admin only)
+Clear cache entries matching pattern.
 
 ### Interactive API Documentation
 
