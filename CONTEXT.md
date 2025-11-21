@@ -12865,3 +12865,29 @@ Format:
 - Open a discussion issue
 
 **Remember**: This document is only valuable if it's kept up-to-date. Update it religiously! 🙏
+
+## Agent Communication
+
+### Developer Agent [2025-11-21T19:00:00Z]
+**Status**: Completed unstoppable autonomous workflow implementation
+**Progress**: 100%
+**Findings**: Created complete agent coordination system
+**Blockers**: None
+**Requests**: Ready for testing
+
+**Implemented Components**:
+1. `.claude/agent-coordination.yaml` (327 lines) - Complete configuration
+2. `.git-hooks/pre-commit-parallel-agents.sh` - BLOCKING pre-commit hook
+3. `.git-hooks/post-commit-parallel-agents.sh` - NON-BLOCKING post-commit hook
+4. `.claude/agents/orchestrator.py` - Meta-agent coordinator
+5. `.claude/agents/run-orchestrator.sh` - Wrapper script for orchestrator
+6. `.claude/AGENT_CHAINING.md` - Comprehensive documentation
+
+**Features**:
+- Pre-commit hooks spawn 4 required agents (2 developers, 1 documentation, 1 orchestrator)
+- Post-commit hooks spawn 3 validation agents (1 auditor, 1 tester, 1 orchestrator)
+- Wave-based execution: parallel_tasks → validation → fix_issues → next_wave
+- Agent chaining rules: developer → tester/documentation, tester_fails → debugger, etc.
+- Safety limits: max 100 iterations, 30min agent timeout, 50 commits/hour
+- Continuous loop until all 21 tasks complete
+
