@@ -1,6 +1,6 @@
 #!/bin/bash
 # Post-commit hook: Autonomous Agent Loop Orchestrator
-# Version: 1.3.0 - Fix deadlock detection to allow main loop continuation
+# Version: 1.4.0 - Fix task counting regex to exclude template tasks
 
 set -e
 
@@ -175,10 +175,10 @@ Begin task #$task_id now."
 }
 
 check_completion() {
-    local pending=$(grep -c "^- \[ \]" "$TASK_QUEUE" 2>/dev/null || true)
-    local in_progress=$(grep -c "^- \[🔄\]" "$TASK_QUEUE" 2>/dev/null || true)
-    local completed=$(grep -c "^- \[✅\]" "$TASK_QUEUE" 2>/dev/null || true)
-    local failed=$(grep -c "^- \[❌\]" "$TASK_QUEUE" 2>/dev/null || true)
+    local pending=$(grep -c "^- \[ \] #[0-9]" "$TASK_QUEUE" 2>/dev/null || true)
+    local in_progress=$(grep -c "^- \[🔄\] " "$TASK_QUEUE" 2>/dev/null || true)
+    local completed=$(grep -c "^- \[✅\] " "$TASK_QUEUE" 2>/dev/null || true)
+    local failed=$(grep -c "^- \[❌\] " "$TASK_QUEUE" 2>/dev/null || true)
 
     pending=${pending:-0}
     in_progress=${in_progress:-0}
@@ -216,8 +216,8 @@ EOF
 }
 
 check_deadlock() {
-    local pending=$(grep -c "^- \[ \]" "$TASK_QUEUE" 2>/dev/null || true)
-    local in_progress=$(grep -c "^- \[🔄\]" "$TASK_QUEUE" 2>/dev/null || true)
+    local pending=$(grep -c "^- \[ \] #[0-9]" "$TASK_QUEUE" 2>/dev/null || true)
+    local in_progress=$(grep -c "^- \[🔄\] " "$TASK_QUEUE" 2>/dev/null || true)
     local active=$(count_total_active)
 
     pending=${pending:-0}
