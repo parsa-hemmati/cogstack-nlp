@@ -9799,6 +9799,247 @@ curl http://localhost:8000/api/health
 
 ---
 
+### 2025-11-21 - Claude Code Subagents - CCPM Multi-Agent Architecture
+
+**Commits**: [Pending]
+
+**Added**:
+- **8 Specialized Claude Code Subagents** (`.claude/agents/`):
+  1. **architecture-designer.md** (12KB, 420 lines)
+     - Purpose: System architecture design, technical plan generation from specifications
+     - Tools: Read, Grep, Glob, Write
+     - Model: Sonnet (complex reasoning required)
+     - Skills: spec-kit-enforcer, modular-app-architect, medcat-architecture
+     - Workflow: Read spec → Analyze system → Design architecture (API, DB, ES) → Create ADRs → Output technical plan
+     - Success criteria: Technical plan in `.specify/plans/`, ADRs in CONTEXT.md, ready for task breakdown
+
+  2. **task-definer.md** (14KB, 480 lines)
+     - Purpose: Break technical plans into 1-2 hour implementable tasks with TDD approach
+     - Tools: Read, Grep, Glob, Write
+     - Model: Sonnet (task breakdown requires planning)
+     - Skills: prd-to-spec, tech-plan-to-tasks
+     - Workflow: Read plan → Identify phases → Break into tasks → Map dependencies → Add acceptance criteria → Output task list
+     - Success criteria: Tasks in `.specify/tasks/`, each 1-2 hours, TDD approach, dependencies mapped
+
+  3. **developer.md** (3.5KB, 120 lines)
+     - Purpose: Primary code builder implementing tasks following TDD
+     - Tools: Read, Write, Edit, Bash, Grep, Glob
+     - Model: Sonnet (implementation requires reasoning)
+     - Skills: infrastructure-expert, vue3-component-reuse, document-management-patterns, medcat-ui-patterns, elasticsearch-query-expert, query-parsing-patterns (6 skills)
+     - Workflow: Read task → Write tests FIRST → Run tests (fail) → Implement code → Run tests (pass) → Refactor → Update CONTEXT.md → Commit
+     - Success criteria: Tests passing, code committed, CONTEXT.md updated, no regressions
+
+  4. **test-generator.md** (2.3KB, 90 lines)
+     - Purpose: Generate comprehensive tests from PRD requirements (TDD)
+     - Tools: Read, Write, Bash, Grep, Glob
+     - Model: Haiku (cost-optimized for test generation)
+     - Skills: prd-test-generator
+     - Workflow: Read PRD → Map to test categories → Generate tests (unit, integration, security) → Create TEST_REPORT.md
+     - Success criteria: Tests generated for all PRD requirements, coverage tracked, executed successfully
+
+  5. **auditor.md** (10.5KB, 385 lines) - ENHANCED (was PRD-only, now dual-purpose)
+     - Purpose: **DUAL RESPONSIBILITY** - (1) HIPAA/GDPR/21 CFR Part 11 compliance + (2) PRD drift detection (BLOCKING POWER)
+     - Tools: Read, Grep, Glob (read-only for safety - cannot modify code)
+     - Model: Sonnet (compliance requires deep analysis)
+     - Skills: healthcare-compliance-checker, prd-compliance-checker, medcat-meta-annotations
+     - Workflow: Read all PRD/specs → Read implementation → Compare character-by-character → Categorize findings (✅/⚠️/❌) → Update AUDIT.md → Block merges if critical
+     - Blocking criteria: PHI in logs, no audit trail, missing auth, breaking API changes
+     - Success criteria: AUDIT.md updated with compliance scores, drift items logged, blocking issues escalated
+
+  6. **tester.md** (2.8KB, 90 lines)
+     - Purpose: Test execution specialist - run suites, track coverage, report failures, trigger debugger
+     - Tools: Read, Bash, Grep, Glob, Write
+     - Model: Haiku (cost-optimized for execution)
+     - Skills: None (execution-focused, not knowledge-intensive)
+     - Workflow: Read TESTING.md → Run backend tests (pytest) → Run frontend tests (vitest) → Run benchmarks → Analyze results → Update TESTING.md → Trigger debugger if failures
+     - Success criteria: All tests executed, results in TESTING.md, debugger triggered if needed, coverage trends tracked
+
+  7. **debugger.md** (3.6KB, 125 lines)
+     - Purpose: Bug fixing specialist - analyze failures, diagnose root causes, implement fixes, re-validate
+     - Tools: Read, Write, Edit, Bash, Grep, Glob
+     - Model: Sonnet (debugging requires complex reasoning)
+     - Skills: None (debugging is reasoning-intensive)
+     - Workflow: Read TESTING.md failure report → Analyze root cause → Reproduce locally → Implement fix (code/test/fixture/environment) → Re-run tests → Max 3 attempts → Escalate if stuck
+     - Success criteria: Tests passing, no regressions, fix committed, TESTING.md updated
+
+  8. **documentation.md** (4.2KB, 145 lines)
+     - Purpose: Documentation generation specialist - auto-generate API docs, README, CHANGELOG, user guides
+     - Tools: Read, Write, Grep, Glob
+     - Model: Haiku (straightforward documentation)
+     - Skills: None (documentation is straightforward)
+     - Workflow: Read CONTEXT.md changes → Generate/update API docs → Update README → Add CHANGELOG entries → Extract ADRs → Validate quality → Commit
+     - Success criteria: All features documented, coverage ≥90%, no broken links, examples tested
+
+**Changed**:
+- **auditor.md** - Enhanced from PRD-only to dual-purpose:
+  - **Before**: Only PRD compliance checking (API contract drift detection)
+  - **After**: HIPAA/GDPR compliance + PRD compliance (comprehensive audit)
+  - Added "Dual Responsibility" section explaining both roles
+  - Added healthcare compliance patterns (PHI in logs, audit logging, encryption, RBAC)
+  - Maintained BLOCKING POWER for critical violations
+  - Updated skills: healthcare-compliance-checker, prd-compliance-checker, medcat-meta-annotations
+  - Frontend description updated to reflect dual responsibility
+
+**Removed**:
+- None
+
+**Why**:
+- **Gap Analysis**: CCPM configuration (.ccpm/ccpm.yaml) defined 8 agent types, but no corresponding Claude Code subagent definitions existed
+- **Skills Alignment**: New skills (elasticsearch-query-expert, query-parsing-patterns) created for Sprint 3, but agents needed skill assignments
+- **Multi-Agent Workflow**: CONTEXT.md described parallel multi-agent collaboration (Developer, Auditor, Test) but lacked operational guidance
+- **Autonomous Development**: Subagents enable true autonomous operation with specialized expertise and clear responsibilities
+- **Communication Protocol**: Shared documents (CONTEXT.md, AUDIT.md, TESTING.md) allow inter-agent coordination
+- **Quality Gates**: Auditor (blocking power), Tester (quality validation), Debugger (auto-fix) create robust validation pipeline
+
+**CCPM Architecture (8-Agent System)**:
+```
+Planning Layer:
+  architecture-designer → task-definer
+
+Implementation Layer:
+  developer (3 instances in parallel) + test-generator (concurrent)
+
+Validation Layer:
+  auditor (BLOCKING, concurrent) + tester (concurrent)
+
+Support Layer:
+  debugger (reactive, triggered by tester) + documentation (concurrent)
+
+Communication:
+  All agents read/write CONTEXT.md, AUDIT.md, TESTING.md
+  Agent Communication section tracks status, progress, blockers, requests
+```
+
+**Agent Priority Order** (conflict resolution):
+1. Auditor (compliance non-negotiable)
+2. Tester (quality gates must pass)
+3. Debugger (fixes take precedence)
+4. Developer (implementation decisions)
+5. Task-definer, Architecture-designer (planning decisions)
+6. Documentation (docs updated last)
+
+**Git Hooks Integration**:
+- **pre-commit** (PARALLEL, BLOCKING): Developer validation + Auditor quick check + Tester smoke tests → All must approve
+- **post-commit** (PARALLEL, NON-BLOCKING): Auditor full audit + Tester full suite → Background work, updates docs
+- **pre-push** (PARALLEL, BLOCKING): Developer final check + Auditor final validation + Tester full validation + benchmarks → 0 blocking issues required
+
+**Shared Context Files** (Inter-Agent Communication):
+- **CONTEXT.md** = Technical memory (architecture, ADRs, recent changes, agent communication)
+- **AUDIT.md** = Compliance memory (HIPAA/GDPR status, PRD drift, blocking issues)
+- **TESTING.md** = Quality memory (test results, coverage, failures, benchmarks)
+
+**Impact**:
+- ✅ **Complete CCPM Implementation**: All 8 agents now have operational definitions (was 0/8, now 8/8)
+- ✅ **Autonomous Capability**: Agents can work independently with clear responsibilities and success criteria
+- ✅ **Parallel Efficiency**: Multiple agents work simultaneously (3 developers + auditor + tester + documentation = 6 agents in parallel)
+- ✅ **Continuous Validation**: Auditor and Tester run concurrently with development (issues caught early)
+- ✅ **Specialized Expertise**: Each agent has specific skills and tools (e.g., developer has 6 skills, auditor has 3 compliance skills)
+- ✅ **Communication Protocol**: Agent Communication section in CONTEXT.md enables coordination without conflicts
+- ✅ **Quality Gates**: Auditor can block merges (critical issues), Tester validates quality, Debugger auto-fixes failures
+- ✅ **Blocking Power**: Auditor has authority to prevent merges on HIPAA violations, PHI exposure, API breaking changes
+- ✅ **TDD Enforcement**: developer, test-generator, tester, debugger all enforce Test-Driven Development workflow
+- ✅ **Documentation Automation**: Documentation agent keeps docs current (API, README, CHANGELOG, user guides)
+
+**Skills Distribution** (19 total skills → 8 agents):
+- **Architecture-designer**: spec-kit-enforcer, modular-app-architect, medcat-architecture (3 skills)
+- **Task-definer**: prd-to-spec, tech-plan-to-tasks (2 skills)
+- **Developer**: infrastructure-expert, vue3-component-reuse, document-management-patterns, medcat-ui-patterns, elasticsearch-query-expert, query-parsing-patterns (6 skills)
+- **Test-generator**: prd-test-generator (1 skill)
+- **Auditor**: healthcare-compliance-checker, prd-compliance-checker, medcat-meta-annotations (3 skills)
+- **Tester**: None (execution-focused)
+- **Debugger**: None (reasoning-focused)
+- **Documentation**: None (straightforward generation)
+
+**Workflow Example** (Task 5.4.1 - Filter UI Component):
+```
+1. Architecture-designer: Create technical plan for Sprint 5
+2. Task-definer: Break into Task 5.4.1 (Filter UI) + Task 5.4.2 (API) + ...
+3. Developer: Implement Task 5.4.1 (TDD: tests → code → refactor)
+4. Test-generator (concurrent): Generate additional edge case tests
+5. Auditor (concurrent): Check for HIPAA compliance + PRD alignment
+6. Documentation (concurrent): Generate FilterPanel.md component docs
+7. [Commit triggers pre-commit hook]
+8. Tester: Run full test suite → 143/143 passing, 86.5% coverage
+9. [All passing → commit proceeds]
+10. [Post-commit hook]
+11. Auditor: Full compliance audit → 0 blocking issues, 2 warnings (RBAC missing)
+12. Developer: Fix RBAC warnings from auditor
+13. Tester: Re-run tests → All passing
+14. Debugger: (Not triggered, tests passing)
+15. Documentation: Update CHANGELOG, README
+16. [Ready for next task]
+```
+
+**Autonomous Mode** (User Request: "Build Sprint 3 autonomously"):
+```
+1. Architecture-designer reads Sprint 3 spec
+2. Creates technical plan (API design, DB schema, ES index, testing strategy)
+3. Task-definer breaks into 12 tasks (1-2 hours each)
+4. Developer picks Task 1, implements with TDD
+5. Auditor + Tester + Documentation run concurrently
+6. [All agents approve → commit]
+7. Developer picks Task 2 (no status reporting to user)
+8. ... continuous development loop ...
+9. [Auditor detects blocking issue → pause, escalate to user]
+10. User fixes issue
+11. [Agents resume]
+12. ... continues until all 12 tasks complete ...
+13. [Sprint 3 complete, report to user]
+```
+
+**Migration Notes**:
+- **For Developers**:
+  - Subagents activate automatically based on context (no manual invocation needed in most cases)
+  - Use `Task` tool to explicitly spawn subagent: `Task({subagent_type: "auditor", description: "Audit for HIPAA compliance", model: "sonnet", prompt: "..."})`
+  - Always update CONTEXT.md "Agent Communication" section when agent completes work
+  - Check AUDIT.md and TESTING.md after commits for agent findings
+  - Address blocking issues from auditor immediately (merge prevention)
+
+- **For Auditor Agent**:
+  - Run BEFORE every code commit (git hook enforces)
+  - Use "quick" mode for pre-commit, "full" mode for post-commit, "comprehensive" mode for pre-push
+  - Update AUDIT.md with compliance scores, drift items, blocking issues
+  - BLOCK merges if: PHI in logs, no audit trail, missing auth, API breaking changes
+
+- **For Tester Agent**:
+  - Run full suite post-commit (10-15 min)
+  - Update TESTING.md with results, coverage, failures
+  - Trigger debugger on ANY test failure
+  - Track coverage trends (Sprint 1: 82% → Sprint 2: 85% → Sprint 3: 86.5%)
+
+- **For All Agents**:
+  - Read CONTEXT.md at start of every session
+  - Write to "Agent Communication" section after every action
+  - Use shared docs for coordination (don't modify others' code without reason)
+  - Respect priority order: Auditor > Tester > Debugger > Developer
+
+**Verification**:
+```bash
+# Verify all 8 subagents exist
+ls -lh .claude/agents/*.md
+
+# Expected output:
+# architecture-designer.md (12KB)
+# task-definer.md (14KB)
+# developer.md (3.5KB)
+# test-generator.md (2.3KB)
+# auditor.md (10.5KB)
+# tester.md (2.8KB)
+# debugger.md (3.6KB)
+# documentation.md (4.2KB)
+
+# Total: 8 agents, ~53KB of operational guidance
+```
+
+**Next Steps**:
+1. ✅ Commit subagent definitions
+2. Test multi-agent workflow with Sprint 3 Task 2.4 (Boolean Query Parsing)
+3. Monitor agent communication in CONTEXT.md
+4. Validate blocking power (auditor can prevent merges)
+5. Measure parallel efficiency (how much faster with concurrent agents?)
+
+---
+
 ### 2025-11-18 - Mission 0.6: Setup MedCAT Service (Autonomous)
 
 **Commits**:
