@@ -604,6 +604,70 @@ MEDIUM:
 
 ### Recent Changes
 
+#### [2025-11-21] - De-Identification Module Task #001: PHI Detection Model Infrastructure (Scaffolding)
+
+**Commits**: TBD - Pending commit
+
+**Added**:
+- `/home/user/cogstack-nlp/backend/tests/unit/test_phi_detection.py` (500+ lines) - Comprehensive test suite for PHI detection model
+  - Test coverage for 18 HIPAA Safe Harbor identifiers
+  - Precision/recall/F1 metric tests (targets: >95%, >90%, >0.92)
+  - Performance benchmark tests (target: <2 min per 10-page note)
+  - Integration tests for MedCAT-ModelServe connectivity
+  - False positive/negative detection tests
+- `/home/user/cogstack-nlp/models/medcat_phi_model_card.md` - Model card template documenting PHI detection model architecture, training data, metrics, limitations, and ethical considerations
+- `/home/user/cogstack-nlp/reports/phi_model_training_report.md` - Training report template for documenting fine-tuning process, hyperparameters, and validation results
+- `/home/user/cogstack-nlp/scripts/ml/train_phi_model.py` - Training script scaffolding for MedCAT PHI detection fine-tuning
+- `/home/user/cogstack-nlp/scripts/ml/evaluate_phi_model.py` - Evaluation script scaffolding for model validation on i2b2 2014 test set
+
+**Changed**:
+- `/home/user/cogstack-nlp/.claude/ccpm/epics/de-identification-module/001.md` - Updated task status from "open" to "scaffolding_complete"
+
+**Removed**: None
+
+**Why**:
+- Task #001 requires 120 hours of ML engineering work (dataset acquisition from PhysioNet, GPU training infrastructure, model fine-tuning)
+- Following TDD principles: Create test infrastructure FIRST before implementation
+- Provides scaffolding for future ML engineer to complete the actual model training
+- Documents blockers and requirements for model training (PhysioNet access, CITI training, GPU infrastructure)
+
+**Impact**:
+- ✅ Test infrastructure ready for PHI detection model validation
+- ✅ Clear documentation of model requirements and training process
+- ✅ Scaffolding provides roadmap for ML engineering work
+- ⚠️ **BLOCKED**: Actual model training requires:
+  1. i2b2 2014 corpus (PhysioNet account + CITI training)
+  2. GPU infrastructure (8-16GB VRAM)
+  3. 120 hours of ML engineering time
+- ⚠️ Existing `medcat_deid.zip` model (33MB) may already provide basic PHI detection - needs evaluation
+
+**Migration Notes**:
+- No migration required (scaffolding only)
+- To complete Task #001 (actual model training):
+  1. Obtain PhysioNet account: https://physionet.org/register/
+  2. Complete CITI training (research ethics certification)
+  3. Download i2b2 2014 corpus: https://portal.dbmi.hms.harvard.edu/projects/n2c2-nlp/
+  4. Run training script: `python scripts/ml/train_phi_model.py --data-dir /path/to/i2b2_2014`
+  5. Run evaluation script: `python scripts/ml/evaluate_phi_model.py --model /models/medcat_phi_v1.0.model`
+  6. Update model card and training report with actual metrics
+
+**Technical Debt**:
+- Training/evaluation scripts have placeholder implementations (marked with TODO comments)
+- i2b2 XML parsing logic not implemented (awaiting dataset)
+- MedCAT model loading/inference code not implemented (awaiting trained model)
+- Performance benchmarking logic not implemented
+
+**Design Patterns Introduced**:
+- **Test-Driven Development (TDD)**: Tests written first to define expected behavior
+- **Model Card Documentation**: Following ML best practices for model transparency and ethical considerations
+- **Separation of Concerns**: Training scripts separate from inference/production code
+
+**HIPAA/GDPR Compliance Notes**:
+- PHI detection is CRITICAL for de-identification (HIPAA Safe Harbor requirement)
+- False negatives (missed PHI) = HIGH RISK privacy breach
+- Human review REQUIRED for all automated de-identification
+- Model must meet minimum F1 score >0.92 before production use
+
 #### [2025-11-21] - Timeline Module Task #002: Redis Caching & Cursor-Based Pagination
 
 **Commits**: feat(timeline): Add Redis caching & pagination (Task #002)
