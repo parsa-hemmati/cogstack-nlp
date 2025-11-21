@@ -1,6 +1,6 @@
 #!/bin/bash
 # Post-commit hook: Autonomous Agent Loop Orchestrator
-# Version: 1.4.0 - Fix task counting regex to exclude template tasks
+# Version: 1.5.0 - Fix deadlock detection to only trigger on crashed agents
 
 set -e
 
@@ -216,23 +216,22 @@ EOF
 }
 
 check_deadlock() {
-    local pending=$(grep -c "^- \[ \] #[0-9]" "$TASK_QUEUE" 2>/dev/null || true)
     local in_progress=$(grep -c "^- \[🔄\] " "$TASK_QUEUE" 2>/dev/null || true)
     local active=$(count_total_active)
 
-    pending=${pending:-0}
     in_progress=${in_progress:-0}
     active=${active:-0}
 
-    if [ "$pending" -gt 0 ] && [ "$in_progress" -eq 0 ] && [ "$active" -eq 0 ]; then
-        log "WARN" "⚠️ DEADLOCK: $pending tasks pending, no agents working"
+    # TRUE deadlock: Tasks marked in-progress but no agents actually working (crashed agents)
+    if [ "$in_progress" -gt 0 ] && [ "$active" -eq 0 ]; then
+        log "WARN" "⚠️ DEADLOCK: $in_progress tasks in-progress but no agents running (crashed?)"
 
-        local first_task=$(grep -m 1 "^- \[ \]" "$TASK_QUEUE")
+        local first_task=$(grep -m 1 "^- \[🔄\] " "$TASK_QUEUE")
         local agent_type=$(echo "$first_task" | sed -E 's/.*`\[([a-z-]+)\]`.*/\1/' | head -1 | tr -d '\n')
-        local task_id=$(claim_next_task "$agent_type")
+        local task_id=$(echo "$first_task" | sed -E 's/.*#([0-9]+).*/\1/' | head -1 | tr -d '\n')
 
-        if [ -n "$task_id" ]; then
-            log "INFO" "Breaking deadlock: spawning $agent_type for #$task_id"
+        if [ -n "$task_id" ] && [ -n "$agent_type" ]; then
+            log "INFO" "Breaking deadlock: re-spawning $agent_type for #$task_id"
             spawn_agent "$agent_type" "$task_id"
             return 0
         fi
