@@ -20,7 +20,7 @@
 - [🔄] (claimed: 13:58:23, PID: 18509) #17 `[tester]` Create integration test for concurrent agent spawning **@system** (created: 13:55:00)
 - [🔄] (claimed: 13:58:24, PID: 18509) #16 `[debugger]` Debug task ID newline issue in log output **@system** (created: 13:55:00)
 - [🔄] (claimed: 13:58:23, PID: 18509) #15 `[developer]` Replace agent simulation mode with real Claude Code integration **@system** (created: 13:55:00)
-- [ ] #14 `[developer]` Add metrics collection for agent performance tracking **@system** (created: 13:55:00)
+- [🔄] (claimed: 14:01:34, PID: 22834) #14 `[developer]` Add metrics collection for agent performance tracking **@system** (created: 13:55:00)
 - [ ] #13 `[developer]` Implement agent crash recovery with retry logic **@system** (created: 13:55:00)
 
 <!-- Features, bug fixes, improvements -->
