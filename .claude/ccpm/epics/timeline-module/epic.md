@@ -347,15 +347,52 @@ graph TD
 - Clinical Impact: 20% more care gaps identified
 - NPS: >40
 
+## Tasks Created
+
+- [ ] 001.md - Create Timeline API Endpoint (parallel: true, P0, 6h)
+- [ ] 002.md - Implement Timeline Service & Elasticsearch Integration (parallel: true, P0, 8h)
+- [ ] 003.md - Create Frontend Timeline Components (parallel: false, P0, 10h)
+- [ ] 004.md - Implement Timeline Filters & Event Detail Modal (parallel: false, P1, 8h)
+- [ ] 005.md - Create Timeline Composables & State Management (parallel: true, P1, 6h)
+- [ ] 006.md - Integration Testing & API Contract Tests (parallel: false, P1, 10h)
+- [ ] 007.md - E2E Tests, Performance Testing & Accessibility Audit (parallel: false, P1, 12h)
+- [ ] 008.md - Production Deployment, Monitoring & Documentation (parallel: false, P0, 10h)
+
+**Total tasks**: 8
+**Parallel tasks**: 3 (001, 002, 005)
+**Sequential tasks**: 5 (003, 004, 006, 007, 008)
+**Estimated total effort**: 70 hours (~9 working days)
+
+## Parallelization Strategy
+
+**Phase 1 (Week 1)**: Tasks 001 + 002 can run in parallel
+- Task 001: API endpoint skeleton (6h)
+- Task 002: Service layer & Elasticsearch (8h)
+
+**Phase 2 (Week 2-3)**: Tasks 003 + 005 can run in parallel after 001/002 complete
+- Task 003: Frontend components (10h) - depends on 001, 002
+- Task 005: Composables (6h) - depends on 003
+
+**Phase 3 (Week 3)**: Task 004 runs after 003
+- Task 004: Filters & modal (8h) - depends on 003
+
+**Phase 4 (Week 4)**: Task 006 runs after all components ready
+- Task 006: Integration tests (10h) - depends on 001-005
+
+**Phase 5 (Week 5)**: Task 007 runs after integration tests
+- Task 007: E2E & performance tests (12h) - depends on 006
+
+**Phase 6 (Week 6)**: Task 008 runs after all tests pass
+- Task 008: Production deployment (10h) - depends on 007
+
 ## Next Steps
 
-1. **Design Review**: Schedule technical architecture review with team
-2. **Task Breakdown**: Run `/pm:epic-decompose timeline-module` to create task files
-3. **GitHub Sync** (optional): Run `/pm:epic-sync timeline-module` to create GitHub issues
-4. **Start Development**: Assign tasks to developers and begin Phase 1
+1. **GitHub Sync** (optional): Run `/pm:epic-sync timeline-module` to create GitHub issues
+2. **Start Development**: Assign tasks to developers and begin Phase 1
+3. **Parallel Execution**: Developers can work on tasks 001 and 002 simultaneously
 
 ---
 
 **Created**: 2025-11-21T16:34:47Z
 **Status**: Backlog
-**Next Command**: `/pm:epic-decompose timeline-module`
+**Last Decomposed**: 2025-11-21T18:34:00Z
