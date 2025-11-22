@@ -23,7 +23,7 @@
 
 ## 📝 Recent Changes
 
-### 2025-11-22 - Sprint 2: Timeline View Module - Tasks 1.1-4.2 Complete
+### 2025-11-22 - Sprint 2: Timeline View Module - Tasks 1.1-4.4 Complete (Full Stack)
 
 **Commits**:
 - d585be2 - Tasks 1.1-1.2: Database foundation (timeline tables, Pydantic models)
@@ -33,7 +33,8 @@
 - 166019a - Task 2.3: Timeline API Router (7 endpoints, 26 integration tests)
 - 58898f2 - Tasks 3.1-3.3: Timeline Export Service (PDF, FHIR R4, JSON)
 - 2b6d1e6 - Task 4.1: Timeline Pinia Store (Vue 3 frontend state management)
-- [pending] - Task 4.2: D3.js Timeline Visualization Component
+- 96b9fb3 - Task 4.2: D3.js Timeline Visualization Component
+- [pending] - Tasks 4.3-4.4: Timeline Filters Component + Timeline View Page (complete frontend)
 
 **Added**:
 - Task 1.1: Timeline database tables (migration `004_add_timeline_tables.py`)
@@ -104,6 +105,29 @@
   - Loading/empty states: proper UI feedback
   - 13 unit tests covering rendering, markers, axes, legend, zoom, tooltip, event handling
   - Requires d3@7.9.0, @types/d3@7.4.3 (documented dependency)
+- Task 4.3: Timeline Filters Component (`frontend/src/components/timeline/TimelineFilters.vue`)
+  - Vuetify-based filter sidebar with v-card, v-autocomplete, v-text-field, v-checkbox, v-select, v-btn
+  - Concept search autocomplete (multi-select with chips)
+  - Date range pickers (start_date, end_date with type="date")
+  - Document type multi-select (discharge, clinic, pathology, radiology, lab)
+  - Meta-annotation filters: Negation (Affirmed checkbox), Experiencer (Patient checkbox), Temporality (Current/Recent/Historical checkboxes)
+  - Load saved filter presets (v-select dropdown)
+  - Save preset dialog (v-dialog with name, description, is_default)
+  - Action buttons: Apply (emits apply event), Clear (resets filters), Save Preset (opens dialog)
+  - v-model two-way binding for TimelineFilters type
+  - 10 unit tests covering rendering, date filters, meta-annotations, actions, v-model binding
+- Task 4.4: Timeline View Page (`frontend/src/views/TimelineView.vue`)
+  - Main timeline page assembling TimelineChart + TimelineFilters components
+  - Route: /timeline/:patientId (requires auth, view_patients permission)
+  - Filter drawer (v-navigation-drawer, temporary, 400px width)
+  - Toolbar (v-toolbar): filter toggle button, export menu (PDF/FHIR/JSON), title
+  - Timeline loading on mount via store.fetchTimeline(patientId, filters)
+  - Export functionality with polling: store.exportTimeline → check status every 2s → download when completed
+  - Concept details dialog (v-dialog): shows concept name, CUI, type, mentions with sentences
+  - Document details dialog (v-dialog): shows title, type, date, author, concept count
+  - Timeline statistics card: total documents, total concepts, date range
+  - Loading state (v-progress-circular), error alerts (v-alert)
+  - Route registered in router/index.ts (path: '/timeline/:patientId', requiresAuth: true, permissions: ['view_patients'])
 
 **Changed**:
 - Fixed UUID type annotations in `app/models/timeline.py` (TimelineView.id, task_id, user_id)

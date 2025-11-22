@@ -47,6 +47,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/timeline/:patientId',
+    name: 'timeline',
+    component: () => import('@/views/TimelineView.vue'),
+    meta: {
+      requiresAuth: true,
+      title: 'Patient Timeline',
+      permissions: ['view_patients']
+    }
+  },
+  {
     path: '/search',
     name: 'search',
     component: () => import('@/views/SearchView.vue'),
