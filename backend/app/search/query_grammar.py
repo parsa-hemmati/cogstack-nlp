@@ -4,7 +4,7 @@ Lark grammar for advanced search query parsing.
 Supports:
 - Simple terms: diabetes
 - Phrases: "chest pain"
-- Boolean operators: AND, OR, NOT
+- Boolean operators: AND, OR, NOT (both unary and binary)
 - Parentheses: (diabetes OR hypertension) AND medication
 - Field queries: author:"Dr. Smith", document_type:clinical_note
 - Operator precedence: NOT > AND > OR (standard boolean logic)
@@ -19,7 +19,7 @@ from lark import Lark
 # Priority levels (higher number = higher precedence):
 # 1. OR (lowest)
 # 2. AND (medium)
-# 3. NOT (highest)
+# 3. NOT (highest - both unary and binary)
 # 4. Parentheses, terms, phrases (atomic)
 
 QUERY_GRAMMAR = r"""
@@ -32,7 +32,8 @@ QUERY_GRAMMAR = r"""
              | and_expr "AND"i not_expr   -> and_op
 
     ?not_expr: atom
-             | "NOT"i atom                -> not_op
+             | "NOT"i atom                -> unary_not_op
+             | not_expr "NOT"i atom       -> binary_not_op
 
     ?atom: "(" or_expr ")"                            -> group
          | FIELD_NAME ":" (ESCAPED_STRING | TERM)     -> field_query

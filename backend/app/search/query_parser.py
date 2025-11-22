@@ -95,29 +95,56 @@ class QueryTransformer(Transformer):
         """
         Transform AND operation into bool must query.
 
+        Flattens nested bool queries and combines must/must_not clauses.
+
         Args:
             left: Left operand query
             right: Right operand query
 
         Returns:
-            Bool query with must clauses
+            Bool query with must clauses (and must_not if present)
         """
         # Flatten nested AND operations
         must_clauses = []
+        must_not_clauses = []
 
-        # Extract must clauses from left operand
-        if isinstance(left, dict) and "bool" in left and "must" in left["bool"]:
-            must_clauses.extend(left["bool"]["must"])
+        # Extract clauses from left operand
+        if isinstance(left, dict) and "bool" in left:
+            if "must" in left["bool"]:
+                must_clauses.extend(left["bool"]["must"])
+            elif "must_not" in left["bool"]:
+                # Unary NOT on left side
+                must_not_clauses.extend(left["bool"]["must_not"])
+            else:
+                must_clauses.append(left)
+
+            # Also carry forward any existing must_not
+            if "must_not" in left["bool"] and "must" in left["bool"]:
+                must_not_clauses.extend(left["bool"]["must_not"])
         else:
             must_clauses.append(left)
 
-        # Extract must clauses from right operand
-        if isinstance(right, dict) and "bool" in right and "must" in right["bool"]:
-            must_clauses.extend(right["bool"]["must"])
+        # Extract clauses from right operand
+        if isinstance(right, dict) and "bool" in right:
+            if "must" in right["bool"]:
+                must_clauses.extend(right["bool"]["must"])
+            elif "must_not" in right["bool"]:
+                # Unary NOT on right side
+                must_not_clauses.extend(right["bool"]["must_not"])
+            else:
+                must_clauses.append(right)
+
+            # Also carry forward any existing must_not
+            if "must_not" in right["bool"] and "must" in right["bool"]:
+                must_not_clauses.extend(right["bool"]["must_not"])
         else:
             must_clauses.append(right)
 
-        return {"bool": {"must": must_clauses}}
+        result = {"bool": {"must": must_clauses}}
+        if must_not_clauses:
+            result["bool"]["must_not"] = must_not_clauses
+
+        return result
 
     @v_args(inline=True)
     def or_op(self, left, right):
@@ -154,13 +181,11 @@ class QueryTransformer(Transformer):
         }
 
     @v_args(inline=True)
-    def not_op(self, operand):
+    def unary_not_op(self, operand):
         """
-        Transform NOT operation into bool must_not query.
+        Transform unary NOT operation (NOT term) into bool must_not query.
 
-        For "A NOT B", this creates: {bool: {must: [A], must_not: [B]}}
-        However, since Lark parses "NOT B" as a single expression,
-        we need to handle context differently.
+        For "NOT B", this creates: {bool: {must_not: [B]}}
 
         Args:
             operand: Operand to negate
@@ -168,9 +193,45 @@ class QueryTransformer(Transformer):
         Returns:
             Bool query with must_not clause
         """
-        # NOT is unary, but in "A NOT B", the parser sees "A" and "NOT B" separately
-        # The AND operation will combine them
         return {"bool": {"must_not": [operand]}}
+
+    @v_args(inline=True)
+    def binary_not_op(self, left, right):
+        """
+        Transform binary NOT operation (A NOT B) into bool with must and must_not.
+
+        For "A NOT B", this creates: {bool: {must: [A], must_not: [B]}}
+        This is equivalent to "A AND NOT B".
+
+        Args:
+            left: Left operand (what to include)
+            right: Right operand (what to exclude)
+
+        Returns:
+            Bool query with must and must_not clauses
+        """
+        must_clauses = []
+        must_not_clauses = [right]
+
+        # Extract must clauses from left operand
+        if isinstance(left, dict) and "bool" in left:
+            if "must" in left["bool"]:
+                must_clauses.extend(left["bool"]["must"])
+            else:
+                must_clauses.append(left)
+
+            # Carry forward any existing must_not clauses
+            if "must_not" in left["bool"]:
+                must_not_clauses.extend(left["bool"]["must_not"])
+        else:
+            must_clauses.append(left)
+
+        return {
+            "bool": {
+                "must": must_clauses,
+                "must_not": must_not_clauses
+            }
+        }
 
     @v_args(inline=True)
     def group(self, expr):
