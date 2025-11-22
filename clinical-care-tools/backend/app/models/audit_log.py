@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Index, String, Text, func, JSON
+from sqlalchemy import DateTime, Index, String, Text, func, JSON, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.models import Base
@@ -52,7 +52,7 @@ class AuditLog(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
 
     # References (optional - NULL for system actions)
-    user_id: Mapped[Optional[UUID]] = mapped_column(nullable=True, index=True)
+    user_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
 
     # Denormalized username (immutable record of who performed action)
     username: Mapped[str] = mapped_column(String(100), nullable=False)

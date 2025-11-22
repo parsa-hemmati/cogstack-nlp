@@ -76,7 +76,7 @@ class Project(Base):
 
     # Audit
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=func.now())
-    created_by: Mapped[UUID] = mapped_column(nullable=False, index=True)
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -152,9 +152,9 @@ class ProjectMember(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
 
     # Foreign Keys
-    project_id: Mapped[UUID] = mapped_column(nullable=False, index=True)
-    user_id: Mapped[UUID] = mapped_column(nullable=False, index=True)
-    added_by: Mapped[UUID] = mapped_column(nullable=False)
+    project_id: Mapped[UUID] = mapped_column(ForeignKey("projects.id"), nullable=False, index=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    added_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     # Membership Details
     role: Mapped[str] = mapped_column(
@@ -226,10 +226,10 @@ class Task(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
 
     # Foreign Keys
-    project_id: Mapped[UUID] = mapped_column(nullable=False, index=True)
-    assigned_to: Mapped[UUID] = mapped_column(nullable=False, index=True)
-    created_by: Mapped[UUID] = mapped_column(nullable=False, index=True)
-    updated_by: Mapped[UUID] = mapped_column(nullable=False)
+    project_id: Mapped[UUID] = mapped_column(ForeignKey("projects.id"), nullable=False, index=True)
+    assigned_to: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    updated_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     # Task Details
     name: Mapped[str] = mapped_column(String(255), nullable=False)

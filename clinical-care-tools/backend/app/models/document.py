@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Index, String, LargeBinary, Integer, ARRAY, func, JSON
+from sqlalchemy import DateTime, Index, String, LargeBinary, Integer, ARRAY, func, JSON, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.models import Base
@@ -54,8 +54,8 @@ class Document(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
 
     # Foreign Keys
-    project_id: Mapped[UUID] = mapped_column(nullable=False, index=True)
-    uploaded_by: Mapped[UUID] = mapped_column(nullable=False, index=True)
+    project_id: Mapped[UUID] = mapped_column(ForeignKey("projects.id"), nullable=False, index=True)
+    uploaded_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
 
     # File Storage
     filename: Mapped[str] = mapped_column(String(255), nullable=False)

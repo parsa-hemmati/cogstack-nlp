@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Index, String, func, Boolean
+from sqlalchemy import DateTime, Index, String, func, Boolean, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.models import Base
@@ -52,6 +52,7 @@ class Session(Base):
     # Foreign Keys
     user_id: Mapped[str] = mapped_column(
         String(36),
+        ForeignKey("users.id"),
         nullable=False,
         index=True,
     )
