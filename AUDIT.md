@@ -18,6 +18,44 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
+### ✅ Critical Bug Fix: require_role Decorator Misuse - FIXED (2025-11-22)
+
+**Change Type**: Bug Fix (Audit API + Manual Annotations API)
+
+**Summary**:
+- ✅ Fixed incorrect use of `@require_role("admin")` as decorator
+- ✅ Changed to `dependencies=[Depends(require_role("admin"))]` pattern
+- ✅ 2 files fixed, 3 endpoints corrected
+- ✅ All backend tests now importable (conftest.py loads successfully)
+- ✅ 17/17 audit service unit tests passing
+
+**Files Modified**: 2 files
+- `backend/app/api/v1/endpoints/audit.py` (2 endpoints)
+- `backend/app/api/v1/endpoints/manual_annotations.py` (1 endpoint)
+
+**Compliance Impact**: ✅ POSITIVE (Fixed blocking test issue, admin role checking now works correctly)
+
+**✅ Security Compliance**: ALIGNED
+- Admin-only endpoints now properly enforce role checking via FastAPI dependencies
+- Role checks happen before endpoint execution (correct security pattern)
+- No bypass possible (role check in dependencies, not just function parameter)
+
+**API Compliance**:
+- ✅ POST /api/v1/audit/search - Admin role check now works correctly
+- ✅ POST /api/v1/audit/export - Admin role check now works correctly
+- ✅ GET /api/v1/deidentify/analytics - Admin role check now works correctly
+
+**Testing Impact**:
+- ✅ Backend test imports fixed (conftest.py no longer crashes)
+- ✅ 17 audit service unit tests passing
+- ⚠️ 8 integration tests still failing (JSONB/SQLite incompatibility - test infrastructure issue)
+
+**Root Cause**: Misunderstanding of FastAPI dependency injection system
+
+**Prevention**: Added proper usage pattern to security.py docstring
+
+---
+
 ### ✅ De-Identification Module Task #007: Manual Annotation Tool - COMPLETE (2025-11-22)
 
 **Change Type**: Full-Stack Implementation (Database + API + Frontend + Tests)

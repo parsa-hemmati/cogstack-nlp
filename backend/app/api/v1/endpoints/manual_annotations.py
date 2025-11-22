@@ -268,13 +268,12 @@ async def delete_annotation(
     }
 
 
-@router.get("/analytics", response_model=JobAnalytics)
-@require_role("admin")  # Analytics restricted to admins
+@router.get("/analytics", response_model=JobAnalytics, dependencies=[Depends(require_role("admin"))])
 async def get_job_analytics(
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("admin")),
 ):
     """
     Get de-identification job analytics.

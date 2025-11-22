@@ -292,7 +292,7 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 - **Audit API** (`backend/app/api/v1/endpoints/audit.py`):
   - Line 53: Fixed `@require_role("admin")` decorator → `dependencies=[Depends(require_role("admin"))]`
   - Line 132: Fixed `@require_role("admin")` decorator → `dependencies=[Depends(require_role("admin"))]`
-  - Line 135: Changed `Depends(get_current_user)` → `Depends(require_role("admin"))` for consistency
+  - Line 135: Kept `Depends(get_current_user)` (needed for audit logging, role check in dependencies)
   - Removed `current_user` parameter from `search_audit_logs` (not used in function)
 
 - **Manual Annotations API** (`backend/app/api/v1/endpoints/manual_annotations.py`):
