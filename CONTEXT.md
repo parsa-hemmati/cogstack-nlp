@@ -23,9 +23,11 @@
 
 ## 📝 Recent Changes
 
-### 2025-11-22 - Sprint 2: Timeline View Module - Phase 1 (Database Foundation)
+### 2025-11-22 - Sprint 2: Timeline View Module - Phase 1-2 (Database & Backend Services)
 
-**Commits**: Pending - Tasks 1.1 and 1.2 complete
+**Commits**:
+- d585be2 - Tasks 1.1-1.2: Database foundation
+- Pending - Task 2.1: Elasticsearch repository
 
 **Added**:
 - Task 1.1: Timeline database tables (migration `004_add_timeline_tables.py`)
@@ -38,9 +40,16 @@
   - Meta-annotation filters (Negation, Experiencer, Temporality, Certainty enums)
   - Export models (ExportRequest, TimelineExport with format/status validation)
   - 23 unit tests with 97.67% coverage (exceeds 90% target)
+- Task 2.1: Elasticsearch Timeline Repository (`app/modules/timeline/repository.py`)
+  - ElasticsearchTimelineRepository class for temporal concept queries
+  - query_patient_concepts method with patient_id, CUI, date range, meta-annotation, document type filters
+  - aggregate_concept_frequency method with date histogram (day/week/month/year granularity)
+  - Async Elasticsearch client integration (elasticsearch==8.11.1)
+  - 12 unit tests with 95.88% coverage (exceeds 85% target)
 
 **Changed**:
 - Fixed UUID import conflict in `patient.py` (separated Python UUID from SQLAlchemy UUID)
+- Added elasticsearch==8.11.1 and elasticsearch-dsl==8.11.0 to requirements.txt
 
 **Why**: Implements Sprint 2 database foundation per technical plan (ADR-013: Modular timeline architecture)
 

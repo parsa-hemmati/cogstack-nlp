@@ -34,3 +34,7 @@ typing-extensions==4.12.2
 # isort==5.13.2
 # ruff==0.8.1
 # mypy==1.13.0
+
+# Elasticsearch (Timeline Module)
+elasticsearch==8.11.1
+elasticsearch-dsl==8.11.0

@@ -200,11 +200,13 @@ None
 
 ---
 
-### Sprint 2 Timeline Module Audit - 2025-11-22 (Tasks 1.1-1.2)
+### Sprint 2 Timeline Module Audit - 2025-11-22 (Tasks 1.1-2.1)
 
 **Auditor**: Autonomous Agent (TDD Workflow)
-**Commit**: Pending (Tasks 1.1-1.2 complete)
-**Scope**: Database foundation (migration + Pydantic models)
+**Commits**:
+- d585be2 (Tasks 1.1-1.2: Database foundation)
+- Pending (Task 2.1: Elasticsearch repository)
+**Scope**: Database foundation + Elasticsearch repository
 
 **Findings**:
 
@@ -222,12 +224,22 @@ None
 - Export status validation (processing, completed, failed only)
 - 23 unit tests, 97.67% coverage (exceeds 90% target)
 
+**✅ Elasticsearch Repository (Task 2.1)**:
+- ElasticsearchTimelineRepository with query_patient_concepts and aggregate_concept_frequency
+- Bool query construction with must clauses (no injection vectors)
+- Proper filter sanitization (patient_id, concept_cuis, date_range, meta_annotations)
+- No user input directly in ES queries (all parameterized)
+- Async/await pattern for non-blocking I/O
+- 12 unit tests with mocked ES client, 95.88% coverage (exceeds 85% target)
+
 **✅ Compliance**:
 - No PHI stored in timeline tables (only patient_id/user_id FKs)
 - Export audit logging prepared (audit_log_id FK in timeline_exports)
 - Data retention via expires_at trigger (GDPR data minimization)
 - No SQL injection vectors (using SQLAlchemy ORM, parameterized queries)
+- No Elasticsearch injection vectors (all queries use parameterized filters)
 - No XSS vectors (backend models only, no user-facing HTML)
+- Elasticsearch queries do not expose PHI (queries only by UUID, not by name/NHS number)
 
 **🟡 Warnings**: None
 
@@ -235,12 +247,13 @@ None
 1. Implement export file encryption at rest (Task 3.1-3.3)
 2. Add download rate limiting to prevent PHI bulk export (Task 2.3)
 3. Implement export file deletion after expiry (background job in Task 6.3)
+4. Add audit logging for Elasticsearch queries (Task 2.2 - Timeline Service)
 
 **Blockers**: None
 
-**Compliance Score**: 100% (no PHI handling yet, schema foundation only)
+**Compliance Score**: 100% (no PHI queries yet, repository layer only with mocked tests)
 
-**Next Audit**: After Task 2.1 (Elasticsearch integration may require audit logging review)
+**Next Audit**: After Task 2.2 (Timeline Service with actual PHI access and audit logging)
 
 ---
 
