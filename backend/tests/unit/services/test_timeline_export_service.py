@@ -70,7 +70,7 @@ def sample_mentions(sample_patient_id, sample_meta_annotations):
 
 
 @pytest.fixture
-def sample_concepts(sample_mentions):
+def sample_concepts(sample_mentions, sample_meta_annotations):
     """Sample timeline concepts."""
     return [
         TimelineConcept(

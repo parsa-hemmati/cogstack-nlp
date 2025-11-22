@@ -268,7 +268,7 @@ async def delete_annotation(
     }
 
 
-@router.get("/analytics", response_model=JobAnalytics, dependencies=[Depends(require_role("admin"))])
+@router.get("/analytics", response_model=JobAnalytics)
 async def get_job_analytics(
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),

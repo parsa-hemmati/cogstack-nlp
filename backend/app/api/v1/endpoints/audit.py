@@ -50,9 +50,10 @@ class AuditLogSearchResponse(BaseModel):
     offset: int = Field(..., description="Page offset")
 
 
-@router.get("/search", response_model=AuditLogSearchResponse, dependencies=[Depends(require_role("admin"))])
+@router.get("/search", response_model=AuditLogSearchResponse)
 async def search_audit_logs(
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
     user_id: Optional[str] = Query(None, description="Filter by user ID"),
     action: Optional[str] = Query(None, description="Filter by action"),
     resource_type: Optional[str] = Query(None, description="Filter by resource type"),
@@ -129,10 +130,10 @@ async def search_audit_logs(
     )
 
 
-@router.get("/export", dependencies=[Depends(require_role("admin"))])
+@router.get("/export")
 async def export_audit_logs(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("admin")),
     start_date: str = Query(..., description="Start date (ISO format)"),
     end_date: str = Query(..., description="End date (ISO format)"),
     format: str = Query("csv", regex="^(csv|json)$", description="Export format (csv or json)"),
