@@ -114,6 +114,8 @@ def create_application() -> FastAPI:
 
     # Include API routers
     from app.routers import auth, sessions, users, projects, tasks, documents, patients
+    from app.modules.timeline import router as timeline_router
+
     app.include_router(auth.router, tags=["Authentication"])
     app.include_router(sessions.router, tags=["Session Management"])
     app.include_router(users.router, tags=["User Management"])
@@ -121,6 +123,7 @@ def create_application() -> FastAPI:
     app.include_router(tasks.router, tags=["Task Management"])
     app.include_router(patients.router, tags=["Patients"])
     app.include_router(documents.router, tags=["Documents"])
+    app.include_router(timeline_router.router, tags=["Timeline"])
     # app.include_router(fhir.router, prefix=f"{settings.API_V1_STR}/fhir", tags=["FHIR"])
     # app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["Admin"])
 

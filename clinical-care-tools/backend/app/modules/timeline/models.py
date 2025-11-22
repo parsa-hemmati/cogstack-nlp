@@ -564,3 +564,57 @@ class TimelineFilter(BaseModel):
             }
         }
     }
+
+
+# ==============================================================================
+# Filter Preset Models (API)
+# ==============================================================================
+
+class FilterPresetRequest(BaseModel):
+    """Request model for saving timeline filter preset."""
+    
+    name: str = Field(..., min_length=3, max_length=100, description="Filter name (3-100 characters)")
+    description: Optional[str] = Field(None, max_length=500, description="Filter description")
+    filters: Dict[str, Any] = Field(..., description="Filter configuration (concept CUIs, dates, meta-annotations)")
+    is_default: bool = Field(False, description="Set as default filter for user")
+    
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "name": "Diabetes Filter",
+            "description": "Filter for diabetes-related concepts",
+            "filters": {
+                "concept_cuis": ["C0011860", "C0011849"],
+                "meta_annotations": {
+                    "negation": "Affirmed",
+                    "experiencer": "Patient"
+                }
+            },
+            "is_default": False
+        }
+    })
+
+
+class FilterPresetResponse(BaseModel):
+    """Response model for timeline filter preset."""
+    
+    id: UUID = Field(..., description="Filter UUID")
+    name: str = Field(..., description="Filter name")
+    description: Optional[str] = Field(None, description="Filter description")
+    filters: Dict[str, Any] = Field(..., description="Filter configuration")
+    is_default: bool = Field(..., description="Whether this is user's default filter")
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+    
+    model_config = ConfigDict(from_attributes=True, json_schema_extra={
+        "example": {
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "name": "Diabetes Filter",
+            "description": "Filter for diabetes-related concepts",
+            "filters": {
+                "concept_cuis": ["C0011860"]
+            },
+            "is_default": False,
+            "created_at": "2024-01-15T10:30:00Z",
+            "updated_at": "2024-01-15T10:30:00Z"
+        }
+    })

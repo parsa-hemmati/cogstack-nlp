@@ -23,13 +23,14 @@
 
 ## 📝 Recent Changes
 
-### 2025-11-22 - Sprint 2: Timeline View Module - Tasks 1.1-2.2 Complete
+### 2025-11-22 - Sprint 2: Timeline View Module - Tasks 1.1-2.3 Complete
 
 **Commits**:
 - d585be2 - Tasks 1.1-1.2: Database foundation (timeline tables, Pydantic models)
 - 7f509e3 - Task 2.1: Elasticsearch repository (temporal concept queries)
 - 9ce902a - Task 2.2: Timeline Service (get_patient_timeline, 86.75% coverage, 9 FK fixes)
-- [pending] - Task 2.3: Timeline API Endpoints (prep: directory structure)
+- 504a9c5 - Task 2.3 prep: Integration test structure
+- [pending] - Task 2.3: Timeline API Router (7 endpoints, 26 integration tests)
 
 **Added**:
 - Task 1.1: Timeline database tables (migration `004_add_timeline_tables.py`)
@@ -50,6 +51,15 @@
   - export_timeline method (creates export record, logs audit - TESTED IN INTEGRATION)
   - Helper methods: _get_patient_or_404, _fetch_documents, _group_concepts
   - 5 unit tests with 86.75% coverage (exceeds 85% target)
+- Task 2.3: Timeline API Router (`app/modules/timeline/router.py`)
+  - 7 REST endpoints (GET timeline, GET concept details, POST export, GET/download export, GET/POST filters)
+  - JWT authentication + RBAC (clinician/researcher/admin required on all endpoints)
+  - IP address and user-agent extraction for audit logging
+  - Request/response validation using Pydantic models
+  - Error handling (400, 401, 403, 404, 409, 500)
+  - 26 integration tests covering auth, authorization, error cases, filters
+  - FilterPresetRequest/Response models added to timeline/models.py
+  - Router registered in main.py
 
 **Changed**:
 - Fixed UUID type annotations in `app/models/timeline.py` (TimelineView.id, task_id, user_id)

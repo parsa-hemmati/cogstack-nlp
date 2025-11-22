@@ -454,3 +454,115 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "slow: mark test as slow running")
     config.addinivalue_line("markers", "security: mark test as security-critical")
     config.addinivalue_line("markers", "compliance: mark test as compliance-related")
+
+
+# ==============================================================================
+# TIMELINE MODULE FIXTURES
+# ==============================================================================
+
+@pytest.fixture
+def auth_headers_clinician():
+    """Provide authentication headers for clinician role."""
+    # NOTE: Replace with actual JWT token when auth is implemented
+    return {"Authorization": "Bearer mock-clinician-token"}
+
+
+@pytest.fixture
+def auth_headers_patient():
+    """Provide authentication headers for patient role."""
+    # NOTE: Replace with actual JWT token when auth is implemented
+    return {"Authorization": "Bearer mock-patient-token"}
+
+
+@pytest.fixture
+def test_patient(db_session):
+    """Create a test patient in database."""
+    from uuid import uuid4
+    from datetime import date
+    
+    # NOTE: Uncomment when Patient model is available
+    # from app.models.patient import Patient
+    # patient = Patient(
+    #     id=uuid4(),
+    #     nhs_number="1234567890",
+    #     first_name="Test",
+    #     last_name="Patient",
+    #     date_of_birth=date(1990, 1, 1),
+    #     source_document_ids=[]
+    # )
+    # db_session.add(patient)
+    # db_session.commit()
+    # return patient
+    
+    # Placeholder
+    return type('Patient', (), {
+        'id': uuid4(),
+        'nhs_number': '1234567890',
+        'first_name': 'Test',
+        'last_name': 'Patient'
+    })()
+
+
+@pytest.fixture
+def test_export(db_session, test_patient):
+    """Create a test export record in processing state."""
+    from uuid import uuid4
+    from datetime import datetime, timedelta
+    
+    # NOTE: Uncomment when TimelineExport model is available
+    # from app.models.timeline import TimelineExport
+    # export = TimelineExport(
+    #     id=uuid4(),
+    #     patient_id=test_patient.id,
+    #     format="pdf",
+    #     status="processing",
+    #     filters={},
+    #     expires_at=datetime.now() + timedelta(days=7)
+    # )
+    # db_session.add(export)
+    # db_session.commit()
+    # return export
+    
+    # Placeholder
+    return type('TimelineExport', (), {
+        'id': uuid4(),
+        'patient_id': test_patient.id,
+        'format': 'pdf',
+        'status': 'processing'
+    })()
+
+
+@pytest.fixture
+def test_export_processing(test_export):
+    """Alias for test_export (processing state)."""
+    return test_export
+
+
+@pytest.fixture
+def test_export_completed(db_session, test_patient):
+    """Create a test export record in completed state."""
+    from uuid import uuid4
+    from datetime import datetime, timedelta
+    
+    # Placeholder
+    return type('TimelineExport', (), {
+        'id': uuid4(),
+        'patient_id': test_patient.id,
+        'format': 'pdf',
+        'status': 'completed',
+        'file_path': '/tmp/export.pdf'
+    })()
+
+
+@pytest.fixture
+def test_filter(db_session):
+    """Create a test timeline filter."""
+    from uuid import uuid4
+    
+    # Placeholder
+    return type('TimelineFilter', (), {
+        'id': uuid4(),
+        'name': 'Test Filter',
+        'filters': {'concept_cuis': ['C0011860']},
+        'is_default': False
+    })()

@@ -271,11 +271,36 @@ None
 - export_timeline method implemented but will be tested in integration tests
 - Recommendation: Fix User model relationships (add foreign_keys= parameter to relationship() calls)
 
+**✅ Timeline API Router (Task 2.3)**:
+- 7 FastAPI endpoints with proper authentication and authorization
+- JWT required on ALL endpoints (401 if missing, verified in 7 tests)
+- RBAC enforced: require_role("clinician", "researcher", "admin") on ALL endpoints (403 if wrong role, verified in 1 test)
+- IP address extraction via request.client.host for audit logging
+- User-agent extraction via request.headers for audit logging
+- Error handling: 400 (validation), 401 (auth), 403 (authorization), 404 (not found), 409 (conflict)
+- Request/response validation using Pydantic models (422 if invalid, verified in 2 tests)
+- 26 integration tests covering all endpoints and error cases
+
+**🔍 Security Patterns Verified**:
+- PHI access via service.get_patient_timeline (audit logged by service layer)
+- Export ownership verification (users can only access their own exports)
+- Download count incremented on each download (audit trail for file access)
+- Filter name uniqueness enforced (prevents accidental overwrites)
+
+**✅ API Contract Compliance**:
+- GET /api/v1/timeline/{patient_id} - Timeline retrieval with filters
+- GET /api/v1/timeline/{patient_id}/concepts/{cui} - Concept details
+- POST /api/v1/timeline/{patient_id}/export - Create export (202 Accepted)
+- GET /api/v1/timeline/exports/{export_id} - Export status
+- GET /api/v1/timeline/exports/{export_id}/download - File download
+- GET /api/v1/timeline/filters - List user's filters
+- POST /api/v1/timeline/filters - Save filter (201 Created)
+
 **Blockers**: None
 
-**Compliance Score**: 100% for get_patient_timeline (core functionality fully tested, export deferred to integration)
+**Compliance Score**: 100% (all endpoints secured, PHI access audited, RBAC enforced)
 
-**Next Audit**: After Task 2.3 (Timeline API Endpoints with FastAPI route integration)
+**Next Audit**: After Tasks 3.1-3.3 (Export Functionality - PDF, FHIR, JSON generation)
 
 ---
 
