@@ -142,6 +142,8 @@ graph TB
 ```
 docs/features/search/
 ├── README.md                    # Overview and quick start (this file)
+├── api.md                       # REST API endpoint documentation
+├── developer.md                 # Developer guide for extending search
 ├── components/
 │   ├── SearchBar.md             # SearchBar component API documentation
 │   ├── SearchResults.md         # SearchResults component API documentation
@@ -256,6 +258,8 @@ Response:
 }
 ```
 
+See [api.md](./api.md) for complete API documentation.
+
 ### Highlights Endpoint
 
 ```
@@ -282,7 +286,7 @@ Response:
 
 ### XSS Prevention
 
-The search module prevents XSS attacks through:
+The search module prevents XSS attacks by:
 
 1. **Input sanitization**: All HTML from Elasticsearch is sanitized with DOMPurify
 2. **Allowed tags**: Only `<mark>` tags are allowed in highlights
@@ -337,21 +341,37 @@ The search module meets WCAG 2.1 Level AA standards:
 
 ## Related Documentation
 
-- [Component API Docs](./components/)
-- [Composable Documentation](./composables/useSearch.md)
-- [Security Guidelines](./security.md)
-- [Usage Examples](./examples.md)
-- [Troubleshooting Guide](./troubleshooting.md)
+### For Users
+
+- [Usage Examples](./examples.md) - 8 practical examples
+- [Troubleshooting Guide](./troubleshooting.md) - Common issues and solutions
+
+### For Frontend Developers
+
+- [Component API Docs](./components/) - SearchBar, SearchResults, SearchResultItem
+- [Composable Documentation](./composables/useSearch.md) - usePatientSearch state management
+- [Security Guidelines](./security.md) - XSS prevention and safe rendering
+
+### For Backend Developers
+
+- [API Documentation](./api.md) - REST endpoint specifications
+- [Developer Guide](./developer.md) - Architecture patterns and extending search
+
+### For System Administrators
+
+- [Security Guidelines](./security.md) - Security configuration
+- [Troubleshooting Guide](./troubleshooting.md) - Debugging and monitoring
 
 ## Contributing
 
 When contributing to the search module:
 
-1. Read the [security.md](./security.md) guidelines
-2. Follow the component patterns in existing components
-3. Add TypeScript types for all props and events
-4. Test with XSS payloads (see security.md)
-5. Update documentation with your changes
+1. Read the [developer.md](./developer.md) guide for architecture and patterns
+2. Read the [security.md](./security.md) guidelines for XSS prevention
+3. Follow the component patterns in existing components
+4. Add TypeScript types for all props and events
+5. Test with XSS payloads (see security.md)
+6. Update documentation with your changes
 
 ## Support
 
@@ -360,10 +380,22 @@ For issues or questions:
 1. Check [troubleshooting.md](./troubleshooting.md)
 2. Review [examples.md](./examples.md) for usage patterns
 3. See [Component API Docs](./components/) for prop/event details
-4. Check backend logs: `/var/log/cogstack/search.log`
+4. Read [Developer Guide](./developer.md) for architecture questions
+5. Check [API Documentation](./api.md) for endpoint details
+6. Check backend logs: `/var/log/cogstack/search.log`
+
+## Quick Links
+
+- **Frontend Components**: `frontend/src/components/search/`
+- **Composables**: `frontend/src/composables/usePatientSearch.ts`
+- **Backend Endpoints**: `backend/app/api/v1/endpoints/search.py`
+- **Search Service**: `backend/app/services/search_service.py`
+- **Unit Tests**: `backend/tests/unit/` and `frontend/tests/unit/`
+- **Integration Tests**: `backend/tests/integration/`
 
 ---
 
-**Last Updated**: 2025-11-21
+**Last Updated**: 2025-11-22
 **Search Module Version**: 1.0.0
 **API Version**: v1
+**Documentation Version**: 1.0.0

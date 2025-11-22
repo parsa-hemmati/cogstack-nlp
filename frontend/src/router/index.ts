@@ -42,6 +42,30 @@ const router = createRouter({
       name: 'timeline',
       component: () => import('../views/TimelineView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/deidentify',
+      name: 'deidentify-upload',
+      component: () => import('../views/DeidentifyUploadView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/deidentify/jobs/:jobId',
+      name: 'deidentify-job-status',
+      component: () => import('../views/DeidentifyJobStatusView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/deidentify/jobs/:jobId/review',
+      name: 'deidentify-review',
+      component: () => import('../views/DeidentifyReviewView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/deidentify/jobs/:jobId/results',
+      name: 'deidentify-results',
+      component: () => import('../views/DeidentifyResultsView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
