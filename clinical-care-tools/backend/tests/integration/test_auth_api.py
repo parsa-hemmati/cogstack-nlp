@@ -5,7 +5,7 @@ Tests login endpoint with database and JWT token generation.
 """
 
 import pytest
-from httpx import AsyncClient
+import httpx
 from fastapi import status
 import sys
 from pathlib import Path
@@ -52,7 +52,9 @@ async def test_user(test_db):
 @pytest.fixture
 async def client():
     """Create async HTTP client for testing."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         yield ac
 
 
