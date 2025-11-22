@@ -4,8 +4,8 @@ HIPAA-compliant audit logging for PHI access and system actions
 """
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Text, Index
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, DateTime, Text, Index, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from app.db.base_class import Base
 
 
@@ -30,8 +30,8 @@ class AuditLog(Base):
     resource_type = Column(String(50), nullable=False, index=True)  # e.g., "patient", "document"
     resource_id = Column(String(255), nullable=True, index=True)  # ID of affected resource
 
-    # Details (JSON for flexibility)
-    details = Column(JSONB, nullable=True)  # Additional context (e.g., search query, changes made)
+    # Details (JSON for flexibility - uses JSONB in PostgreSQL, JSON in SQLite)
+    details = Column(JSON, nullable=True)  # Additional context (e.g., search query, changes made)
 
     # When
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
