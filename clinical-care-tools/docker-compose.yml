@@ -42,6 +42,42 @@ services:
       - clinical-network
     restart: unless-stopped
 
+  # Elasticsearch (Timeline Concepts Index)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: clinical-care-elasticsearch
+    environment:
+      - node.name=es-node-1
+      - cluster.name=clinical-care-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - clinical-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
   # CogStack-ModelServe (NLP Service)
   cogstack-modelserve:
     image: cogstacksystems/medcat-service:latest
@@ -90,6 +126,16 @@ services:
       - COGSTACK_MODELSERVE_URL=http://cogstack-modelserve:8001
       - COGSTACK_TIMEOUT=30
 
+      # Elasticsearch (Timeline Concepts)
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_INDEX=clinical_concepts
+      - ELASTICSEARCH_TIMEOUT=30
+
+      # Timeline Module
+      - TIMELINE_ENABLED=true
+      - TIMELINE_EXPORT_DIR=/app/exports
+      - TIMELINE_EXPORT_RETENTION_DAYS=7
+
       # JWT & Security
       - SECRET_KEY=${SECRET_KEY:-changeme-in-production}
       - JWT_ALGORITHM=HS256
@@ -117,6 +163,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
       cogstack-modelserve:
         condition: service_healthy
@@ -162,6 +210,8 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  elasticsearch_data:
     driver: local
   audit_logs:
     driver: local
