@@ -1233,6 +1233,144 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+
+---
+
+### 2025-11-22 - Phase 0: Environment Setup (Web-Adapted Implementation)
+
+**Commits**: [Pending] - feat(phase-0): Setup clinical care tools environment (web-adapted)
+
+**Environment**: Claude Code on Web (no Docker)
+
+**Added**:
+- **Project Structure** (`clinical-care-tools/` directory):
+  - Backend: FastAPI application structure with 11 Python modules
+  - __init__.py files for all Python packages
+  - Directory structure: app/api/v1/{endpoints,routers}, app/{core,models,schemas,services,clients,db}
+
+- **Backend Core Files**:
+  - `requirements.txt` - 25 Python dependencies (FastAPI, SQLAlchemy, Redis, Pydantic, etc.)
+  - `app/core/config.py` - Environment-aware configuration (Pydantic Settings)
+  - `app/core/database.py` - SQLAlchemy async engine + session management
+  - `app/core/redis_client.py` - Redis async client for caching/sessions
+  - `app/main.py` - FastAPI application with lifespan management
+  - `app/clients/medcat_client.py` - Mock MedCAT client (web environment)
+  - `.env.example` - Configuration template
+  - `.env` - Active configuration
+
+- **Infrastructure Setup** (Native, No Docker):
+  - PostgreSQL 16: Running on localhost:5432 (trust authentication for development)
+  - Redis 7.0: Running on localhost:6379
+  - Database: `clinical_care_tools` created and verified
+  - Python dependencies: All 25 packages installed successfully
+
+- **Tracking Structure** (`.claude/` directory):
+  - `pipeline/PIPELINE_STATUS.md` - Ready queue, in-progress, completed tracking
+  - `roadmap/ROADMAP.md` - MVP + 9 sprints roadmap with continuation instructions
+  - `todos/ACTIVE_TODOS.md` - Current phase TODOs
+  - `todos/BACKLOG_TODOS.md` - Future work queue
+  - `todos/COMPLETED_TODOS.md` - Completed work archive
+  - `subagents/shared_context/` - Directory for multi-agent coordination (future use)
+
+**Changed**:
+- `/etc/postgresql/16/main/pg_hba.conf` - Changed authentication from `peer`/`scram-sha-256` to `trust` for development (local connections only)
+
+**Removed**:
+- None (greenfield implementation)
+
+**Environment Adaptations** (Claude Code on Web):
+1. **Docker**: Not available → Used native PostgreSQL 16 and Redis 7.0
+2. **CogStack-ModelServe**: Cannot deploy in Docker → Created mock client for development/testing
+3. **System packages**: Cannot install → Used pip packages exclusively
+4. **Background services**: PostgreSQL and Redis started manually (not via Docker Compose)
+
+**Why**:
+- **User requirement**: Start from `claude/create-ccweb-dev-branch-015zpMnefWaNr28fLqHR9E1A` branch
+- **Phase 0 objective**: Prepare development environment for implementation (adapted for web constraints)
+- **Autonomous workflow**: Establish tracking structure to prevent "what's next?" stops
+- **Development continuity**: Enable immediate start of Sprint 1 after Phase 0
+- **Web environment optimization**: Use available tools (PostgreSQL, Redis, Python, Node.js) instead of requiring Docker
+
+**Impact**:
+- ✅ **Backend operational**: FastAPI server running at http://localhost:8000
+- ✅ **Health check passing**: Both PostgreSQL and Redis showing "healthy" status
+- ✅ **API endpoints**: `/` (root), `/health`, `/docs` (auto-generated OpenAPI)
+- ✅ **Async database**: SQLAlchemy 2.0 async engine configured
+- ✅ **Redis caching**: Async Redis client configured for sessions/caching
+- ✅ **MedCAT mock ready**: Development can proceed without CogStack-ModelServe
+- ✅ **Tracking structure**: Autonomous continuation workflow established
+- ⚠️ **Production deployment**: Requires Docker setup (documented in `.specify/plans/clinical-care-tools-base-plan.md`)
+- ⚠️ **Frontend pending**: Vue 3 frontend structure not yet created (next task)
+
+**Health Check Results**:
+```json
+{
+    "status": "healthy",
+    "version": "0.1.0",
+    "environment": "development",
+    "services": {
+        "database": {"status": "healthy", "error": null},
+        "redis": {"status": "healthy"}
+    }
+}
+```
+
+**Migration Notes**:
+- **For production deployment**: Use Docker Compose with CogStack-ModelServe (see technical plan)
+- **For local development**: PostgreSQL and Redis must be running natively
+- **Authentication**: Trust mode enabled for development only (MUST use password auth in production)
+- **MedCAT integration**: Replace mock client with actual CogStack-ModelServe client in production
+
+**File Structure Created**:
+```
+clinical-care-tools/
+├── backend/
+│   ├── .env
+│   ├── .env.example
+│   ├── requirements.txt
+│   ├── alembic/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   ├── api/v1/{endpoints,routers}/
+│   │   ├── core/{config,database,redis_client}.py
+│   │   ├── clients/medcat_client.py
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   └── db/
+│   └── tests/
+└── frontend/ (directory created, not yet implemented)
+
+.claude/
+├── pipeline/PIPELINE_STATUS.md
+├── roadmap/ROADMAP.md
+├── todos/{ACTIVE,BACKLOG,COMPLETED}_TODOS.md
+└── subagents/shared_context/
+```
+
+**Next Immediate Steps** (Autonomous Continuation):
+1. Create Vue 3 frontend structure (directory exists, needs package.json, vite.config.ts, src files)
+2. Continue with remaining Phase 0 tasks
+3. Move to Sprint 1 implementation (no status report, automatic transition per pipeline)
+
+**Design Patterns Introduced**:
+- **Async-first architecture**: All database/Redis operations use asyncio
+- **Dependency injection**: FastAPI Depends() for database sessions, Redis, services
+- **Configuration via environment**: Pydantic Settings with .env file
+- **Lifespan management**: Proper startup/shutdown handlers for connections
+- **Health check pattern**: Standard `/health` endpoint for monitoring
+- **Mock/stub pattern**: MedCAT mock client allows development without external dependencies
+
+**Technical Debt Noted**:
+- PostgreSQL trust authentication (TODO: implement proper password auth for production)
+- MedCAT mock client (TODO: integrate actual CogStack-ModelServe)
+- Frontend not implemented (pending next task)
+- No API endpoints yet (only health check and root)
+- No database models defined (will add in Sprint 1)
+
+---
+
 ### 2025-11-08 - Enhanced Session Management Guidance in CLAUDE.md (v1.4.0)
 
 **Commits**:
