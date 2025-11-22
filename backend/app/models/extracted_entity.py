@@ -87,16 +87,16 @@ class ExtractedEntity(Base):
 
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
     document_id = Column(
-        PG_UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False, index=True
-    )
+        PG_UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False
+    )  # index created in __table_args__
     patient_id = Column(
         PG_UUID(as_uuid=True),
         nullable=True
     )  # Future: ForeignKey("patients.id") - index created in __table_args__
-    entity_type = Column(Enum(EntityType), nullable=False, index=True)
+    entity_type = Column(Enum(EntityType), nullable=False)  # index created in __table_args__
 
     # Clinical concept fields (null for PHI)
-    cui = Column(String(20), nullable=True, index=True)  # SNOMED-CT or UMLS CUI
+    cui = Column(String(20), nullable=True)  # SNOMED-CT or UMLS CUI - index created in __table_args__
 
     # Entity text
     pretty_name = Column(String(500), nullable=False)  # Human-readable name
