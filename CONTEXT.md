@@ -28,7 +28,8 @@
 **Commits**:
 - d585be2 - Tasks 1.1-1.2: Database foundation (timeline tables, Pydantic models)
 - 7f509e3 - Task 2.1: Elasticsearch repository (temporal concept queries)
-- [pending] - Task 2.2: Timeline Service (TDD - get_patient_timeline implementation)
+- 9ce902a - Task 2.2: Timeline Service (get_patient_timeline, 86.75% coverage, 9 FK fixes)
+- [pending] - Task 2.3: Timeline API Endpoints (prep: directory structure)
 
 **Added**:
 - Task 1.1: Timeline database tables (migration `004_add_timeline_tables.py`)
