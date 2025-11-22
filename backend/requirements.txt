@@ -8,6 +8,7 @@ sqlalchemy[asyncio]==2.0.36
 asyncpg==0.30.0  # Async driver for FastAPI
 psycopg2-binary==2.9.10  # Sync driver for Alembic migrations
 alembic==1.14.0
+aiosqlite==0.21.0  # Async SQLite for testing
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
@@ -23,6 +24,9 @@ email-validator==2.1.1  # Required by Pydantic for email validation
 # Redis Integration
 redis[hiredis]==5.2.0
 aioredis==2.0.1
+
+# Background Task Processing
+celery==5.5.3
 
 # Elasticsearch (Full-Text Search)
 elasticsearch[async]==8.11.0

@@ -48,7 +48,7 @@ def sample_mentions(sample_patient_id, sample_meta_annotations):
             concept_cui="C0004238",
             concept_name="Atrial Flutter",
             concept_type="condition",
-            document_id=uuid4(),
+            document_id=str(uuid4()),
             date=datetime(2023, 1, 15),
             sentence="Patient has atrial flutter.",
             meta_annotations=sample_meta_annotations,
@@ -59,7 +59,7 @@ def sample_mentions(sample_patient_id, sample_meta_annotations):
             concept_cui="C0004238",
             concept_name="Atrial Flutter",
             concept_type="condition",
-            document_id=uuid4(),
+            document_id=str(uuid4()),
             date=datetime(2023, 2, 20),
             sentence="Atrial flutter persists.",
             meta_annotations=sample_meta_annotations,
@@ -92,7 +92,7 @@ def sample_concepts(sample_mentions):
                     concept_cui="C0025598",
                     concept_name="Metformin",
                     concept_type="medication",
-                    document_id=uuid4(),
+                    document_id=str(uuid4()),
                     date=datetime(2023, 2, 10),
                     sentence="Started on metformin 500mg.",
                     meta_annotations=sample_meta_annotations,
@@ -109,7 +109,7 @@ def sample_documents():
     """Sample timeline documents."""
     return [
         TimelineDocument(
-            document_id=uuid4(),
+            document_id=str(uuid4()),
             title="Clinical Note 2023-01-15",
             document_type="clinical_note",
             date=datetime(2023, 1, 15),
@@ -117,7 +117,7 @@ def sample_documents():
             concepts=["C0004238"]
         ),
         TimelineDocument(
-            document_id=uuid4(),
+            document_id=str(uuid4()),
             title="Lab Results 2023-02-20",
             document_type="lab_results",
             date=datetime(2023, 2, 20),
