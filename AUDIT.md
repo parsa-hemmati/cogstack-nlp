@@ -18,45 +18,56 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
-### ⚠️  De-Identification Module Task #007: Manual Annotation Tool - PARTIAL (20%) (2025-11-22)
+### ⚠️  De-Identification Module Task #007: Manual Annotation Tool - PARTIAL (40%) (2025-11-22)
 
-**Change Type**: Database Schema + Models (Backend)
+**Change Type**: Backend API Implementation (Database + REST API)
 
 **Summary**:
 - ✅ Created manual_annotations table for human-in-the-loop review
 - ✅ Implemented ManualAnnotation ORM model with User relationship
 - ✅ Created Pydantic schemas (Create, Update, Response, List, Analytics)
-- ⚠️  API endpoints pending (0%)
+- ✅ Implemented 5 REST API endpoints (Create, Read, Update, Delete, Analytics)
 - ⚠️  Frontend components pending (0%)
 - ⚠️  Tests pending (0%)
 
-**Files Added**: 3 files (307 lines total)
+**Files Added**: 4 files (789 lines total)
 - `backend/alembic/versions/014_create_manual_annotations_table.py` (64 lines)
 - `backend/app/models/manual_annotation.py` (78 lines)
 - `backend/app/schemas/manual_annotation.py` (165 lines)
+- `backend/app/api/v1/endpoints/manual_annotations.py` (482 lines)
 
-**Compliance Impact**: ✅ POSITIVE (Human-in-the-loop safety net for missed PHI)
+**Compliance Impact**: ✅ POSITIVE (Human-in-the-loop safety net + audit logging)
 
-**⚠️  PRD Compliance**: PARTIAL (20% complete, schema aligns with spec)
+**⚠️  PRD Compliance**: PARTIAL (40% complete, backend API aligns with spec)
 
-**Schema Compliance** (Task #007 specification):
-- ✅ manual_annotations table with required fields (annotation_id, note_id, user_id, text, offsets, entity_type, confidence)
-- ✅ 18 PHI entity types supported (NAME, DOB, MRN, SSN, PHONE, FAX, EMAIL, ADDRESS, etc.)
-- ✅ Confidence validation (0.0-1.0 range)
-- ✅ Offset validation (end_offset > start_offset)
-- ✅ Soft delete support (is_active flag)
-- ✅ User relationship (cascade delete)
+**API Compliance** (Task #007 specification):
+- ✅ POST /api/v1/deidentify/annotations - Create manual annotation
+- ✅ GET /api/v1/deidentify/annotations/{note_id} - Get annotations for note
+- ✅ PUT /api/v1/deidentify/annotations/{annotation_id} - Update annotation
+- ✅ DELETE /api/v1/deidentify/annotations/{annotation_id} - Delete annotation (soft/hard delete)
+- ✅ GET /api/v1/deidentify/analytics - Get job analytics (admin only)
 
 **Security & HIPAA**:
-- ✅ User ID tracking (who created annotation)
+- ✅ Authentication required (JWT tokens via get_current_user dependency)
+- ✅ Ownership verification (users can only modify their own annotations)
+- ✅ Admin role check for analytics endpoint (require_role decorator)
+- ✅ Audit logging for all actions (CREATE_ANNOTATION, UPDATE_ANNOTATION, DELETE_ANNOTATION, VIEW_ANNOTATIONS)
+- ✅ Soft delete by default (hard delete requires admin role)
+- ✅ User ID tracking (who created/modified annotation)
 - ✅ Timestamps (created_at, updated_at for audit trail)
 - ✅ No PHI stored beyond annotation text (max 500 chars)
-- ⚠️  API authentication pending (will require JWT tokens)
-- ⚠️  Audit logging pending (will use AuditService)
 
-**Status**: PARTIAL (Database schema complete, API + Frontend + Tests pending)
+**Analytics Features**:
+- ✅ Date range filtering (default: last 30 days)
+- ✅ Total jobs, success rate, average processing time, total notes
+- ✅ Jobs over time (daily counts)
+- ✅ PHI distribution (entity type counts)
+- ✅ Confidence by type (average confidence per entity type)
+- ✅ Admin-only access (RBAC)
 
-**Recommendations**: Complete API endpoints with authentication, add audit logging for all annotation actions, implement frontend components with WCAG 2.1 AA compliance
+**Status**: PARTIAL (Database + API complete, Frontend + Tests pending)
+
+**Recommendations**: Write comprehensive unit and integration tests for API endpoints, implement frontend Vue components with WCAG 2.1 AA compliance
 
 **Epic**: De-Identification Module (Task #007)
 

@@ -281,9 +281,11 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 
 ### Recent Changes
 
-#### [2025-11-22] - De-Identification Module Task #007: Manual Annotation Tool (20% Complete) - IN PROGRESS
+#### [2025-11-22] - De-Identification Module Task #007: Manual Annotation Tool (40% Complete) - IN PROGRESS
 
-**Commits**: feat(de-identification): Add database schema for manual annotations (Task #007 partial - 20%)
+**Commits**:
+- feat(de-identification): Add database schema for manual annotations (Task #007 partial - 20%)
+- feat(de-identification): Add manual annotation API endpoints (Task #007 partial - 40%)
 
 **Added**:
 - **Database Migration** (`backend/alembic/versions/014_create_manual_annotations_table.py` - 64 lines):
@@ -304,16 +306,32 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
   - ManualAnnotationList (paginated list)
   - JobAnalytics (statistics + charts)
 
+- **REST API Endpoints** (`backend/app/api/v1/endpoints/manual_annotations.py` - 482 lines):
+  - POST /api/v1/deidentify/annotations - Create annotation
+  - GET /api/v1/deidentify/annotations/{note_id} - Get annotations for note
+  - PUT /api/v1/deidentify/annotations/{annotation_id} - Update annotation
+  - DELETE /api/v1/deidentify/annotations/{annotation_id} - Delete annotation (soft/hard)
+  - GET /api/v1/deidentify/analytics - Get job analytics (admin only)
+
 **Why**:
 - Implements human-in-the-loop workflow to catch missed PHI (8% safety net)
 - Manual annotations feed back into model training
 - Supports 18 PHI categories (NAME, DOB, MRN, SSN, PHONE, etc.)
+- Provides analytics for monitoring de-identification quality
 
 **Impact**:
 - ✅ Database schema complete (20%)
-- ⚠️ TODO: API endpoints, frontend components, tests (80% remaining)
+- ✅ API endpoints complete (40%)
+- ⚠️ TODO: Tests, frontend components (60% remaining)
 
-**Next**: API endpoints for CRUD operations, frontend Vue components
+**API Features**:
+- Authentication required (JWT tokens)
+- Ownership verification (users can only modify their own annotations, admins can modify all)
+- Audit logging for all actions (CREATE, UPDATE, DELETE, VIEW)
+- Soft delete with hard delete option (admin only)
+- Analytics with date range filtering (admin only)
+
+**Next**: Write unit tests for API endpoints, then frontend Vue components
 
 ---
 
