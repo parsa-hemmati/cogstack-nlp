@@ -65,7 +65,7 @@ async def init_db() -> None:
     """
     async with engine.begin() as conn:
         # Import all models here to ensure they're registered with Base
-        # from app.models import user, patient, document, etc.
+        from app.models import User  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
 
 
