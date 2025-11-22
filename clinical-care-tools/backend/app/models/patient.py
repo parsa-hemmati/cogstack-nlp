@@ -6,9 +6,11 @@ Represents aggregated patient records created from extracted entities.
 
 from datetime import datetime, date
 from typing import Optional
-from uuid import UUID, uuid4
+from uuid import uuid4
+from uuid import UUID as PyUUID
 
 from sqlalchemy import DateTime, Index, String, Date, Float, ARRAY, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import mapped_column, Mapped
 
 from app.models import Base
@@ -50,7 +52,7 @@ class Patient(Base):
     __tablename__ = "patients"
 
     # Primary Key
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    id: Mapped[PyUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     # Primary Identifiers (at least one must be present)
     nhs_number: Mapped[Optional[str]] = mapped_column(
@@ -81,13 +83,14 @@ class Patient(Base):
     postcode: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, index=True)
 
     # Aggregation Metadata
-    source_document_ids: Mapped[list[UUID]] = mapped_column(
-        ARRAY(UUID),
+    source_document_ids: Mapped[list[PyUUID]] = mapped_column(
+        ARRAY(UUID(as_uuid=True)),
         nullable=False,
         default=list,
         comment="Array of document UUIDs that contributed data",
     )
-    last_updated_from: Mapped[Optional[UUID]] = mapped_column(
+    last_updated_from: Mapped[Optional[PyUUID]] = mapped_column(
+        UUID(as_uuid=True),
         nullable=True,
         comment="Most recent document that updated this record",
     )

@@ -23,9 +23,40 @@
 
 ## 📝 Recent Changes
 
+### 2025-11-22 - Sprint 2: Timeline View Module - Phase 1 (Database Foundation)
+
+**Commits**: Pending - Tasks 1.1 and 1.2 complete
+
+**Added**:
+- Task 1.1: Timeline database tables (migration `004_add_timeline_tables.py`)
+  - `timeline_filters` table for saved filter presets (user_id FK, JSONB filters, is_default unique constraint)
+  - `timeline_exports` table for PDF/FHIR/JSON exports (patient_id FK, format/status enums, auto-expiry trigger)
+  - Indexes for performance (user_id, patient_id, status, created_at DESC, expires_at)
+  - PostgreSQL trigger for 7-day auto-expiry
+- Task 1.2: Timeline Pydantic models (`app/modules/timeline/models.py`)
+  - 8 request/response schemas (TimelineRequest, PatientTimeline, TimelineConcept, etc.)
+  - Meta-annotation filters (Negation, Experiencer, Temporality, Certainty enums)
+  - Export models (ExportRequest, TimelineExport with format/status validation)
+  - 23 unit tests with 97.67% coverage (exceeds 90% target)
+
+**Changed**:
+- Fixed UUID import conflict in `patient.py` (separated Python UUID from SQLAlchemy UUID)
+
+**Why**: Implements Sprint 2 database foundation per technical plan (ADR-013: Modular timeline architecture)
+
+**Impact**:
+- ✅ Database schema ready for timeline feature
+- ✅ Comprehensive Pydantic validation (date ranges, enums, mention count matching)
+- ✅ Foundation for timeline service (Task 2.1-2.3) and export functionality (Task 3.1-3.3)
+- ⚠️ PostgreSQL not available in web environment (migration file created, documented for production deployment)
+
+**Migration Notes**: Run `alembic upgrade head` to apply migration 004 in production
+
+---
+
 ### 2025-11-22 - Clinical Care Tools Base Application Implementation (Phases 0-7)
 
-**Commits**: Pending - Complete base application with 7 phases implemented
+**Commits**: a91c1f7 - Complete base application with 7 phases implemented
 
 **Added** (205 files, ~20,000+ LOC):
 - Phase 0: Docker Compose (postgres, redis, cogstack-modelserve, backend, frontend)
