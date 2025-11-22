@@ -10,6 +10,7 @@ import uuid
 import bcrypt
 from sqlalchemy import Boolean, Column, String, DateTime
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
@@ -88,6 +89,9 @@ class User(Base):
         nullable=False,
         doc="Timestamp of last update"
     )
+
+    # Relationships
+    sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
 
     def __init__(self, **kwargs):
         """

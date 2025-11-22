@@ -7,14 +7,15 @@ Handles user login, logout, and token management.
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.auth import LoginRequest, LoginResponse, UserResponse
-from app.services.auth_service import create_access_token
+from app.schemas.auth import LoginRequest, LoginResponse, UserResponse, LogoutResponse
+from app.services.auth_service import create_access_token, verify_token
+from app.services.session_service import invalidate_session
 
 
 router = APIRouter()
@@ -100,3 +101,68 @@ async def login(
         expires_at=expires_at,
         user=UserResponse.from_orm(user),
     )
+
+
+@router.post("/logout", response_model=LogoutResponse, status_code=status.HTTP_200_OK)
+async def logout(
+    authorization: Annotated[str, Header()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """
+    Logout endpoint.
+
+    Invalidates the current session by marking it as expired.
+
+    Args:
+        authorization: Authorization header with Bearer token
+        db: Database session
+
+    Returns:
+        LogoutResponse with success message
+
+    Raises:
+        HTTPException: 401 if token invalid or missing
+
+    Example:
+        POST /api/v1/auth/logout
+        Headers: Authorization: Bearer eyJhbGci...
+
+        Response (200):
+        {
+            "message": "Logged out successfully"
+        }
+    """
+    # Extract token from Authorization header
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid authorization header",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = authorization.replace("Bearer ", "")
+
+    # Verify token and extract JTI
+    try:
+        payload = verify_token(token)
+        token_jti = payload.get("jti")
+
+        if not token_jti:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token format",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except HTTPException:
+        # Re-raise token verification errors
+        raise
+
+    # Invalidate session
+    invalidated = await invalidate_session(db, token_jti)
+
+    if not invalidated:
+        # Session not found - token might be valid but no session exists
+        # This is acceptable (logout is idempotent)
+        pass
+
+    return LogoutResponse(message="Logged out successfully")

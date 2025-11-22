@@ -82,3 +82,16 @@ class LoginResponse(BaseModel):
     token_type: str = Field(default="bearer", description="Token type (always 'bearer')")
     expires_at: datetime = Field(..., description="Token expiration timestamp")
     user: UserResponse = Field(..., description="Authenticated user information")
+
+
+class LogoutResponse(BaseModel):
+    """
+    Logout success response schema.
+
+    Example:
+        {
+            "message": "Logged out successfully"
+        }
+    """
+
+    message: str = Field(..., description="Logout confirmation message")
