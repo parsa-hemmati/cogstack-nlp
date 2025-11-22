@@ -1,8 +1,8 @@
 # Project Context - Living Architecture & Decisions
 
 **Status**: Living Document - Updated with EVERY commit
-**Last Updated**: 2025-11-08
-**Version**: 1.0.0
+**Last Updated**: 2025-11-22
+**Version**: 1.1.0
 
 > ⚠️ **CRITICAL**: This document MUST be updated before any code commit. No PR can be merged without context updates.
 
@@ -240,13 +240,80 @@ The repository contains **3 production-ready applications** and **4 supporting l
 ---
 
 ### In Progress
-1. **Clinical Care Interfaces** (0% - Planning phase)
-   - Spec-Kit framework implementation complete
-   - Project constitution established
-   - Technical documentation complete
-   - PRDs written for Sprints 1-6
+
+1. **Sprint 1: Patient Search & Discovery** (Starting)
+   - Phase 0 complete (environment setup)
+   - Ready to implement patient search API
+   - Backend and frontend infrastructure operational
 
 ---
+
+### Recent Changes
+
+#### 2025-11-22 - Phase 0: Environment Setup (Web-Adapted Implementation)
+
+**Commits**: TBD (to be committed)
+
+**Environment**: Claude Code on Web (no Docker)
+
+**Added**:
+- Project Structure: `clinical-care-tools/backend` and `clinical-care-tools/frontend`
+- Backend (23 files):
+  - FastAPI 0.115.2 application (`app/main.py`)
+  - PostgreSQL async engine with SQLAlchemy 2.0 (`app/core/database.py`)
+  - Redis async client for caching/sessions (`app/core/redis_client.py`)
+  - Pydantic Settings configuration (`app/core/config.py`)
+  - Mock MedCAT client for web environment (`app/clients/medcat_client.py`)
+  - Requirements: 25 Python dependencies
+  - Environment template (`.env.example`)
+- Frontend (32 files):
+  - Vue 3.4 + TypeScript + Vite 5.0
+  - Vuetify 3.5 for Material Design components
+  - Vue Router with 3 routes (home, patients, timeline)
+  - Pinia store for state management
+  - Axios for API integration
+  - ESLint + Prettier for code quality
+  - Complete project structure with views, stores, types
+
+**Infrastructure Setup**:
+- PostgreSQL 16: Native setup with trust authentication (development)
+- Database `clinical_care_tools` created and verified
+- Redis 7.0: Native daemon running on port 6379
+- Health check endpoint: All services HEALTHY
+
+**Why**:
+- Implements Phase 0 requirement (environment setup for clinical care tools)
+- Adapted for Claude Code on Web (no Docker, native PostgreSQL/Redis)
+- Provides foundation for Sprint 1 (Patient Search & Discovery)
+- Follows constitution principles: modularity, developer experience, performance
+
+**Impact**:
+- ✅ Development environment ready for Sprint 1 implementation
+- ✅ Backend API running at `http://localhost:8000`
+- ✅ Frontend development server configured for `http://localhost:3000`
+- ✅ Health check passing: Database and Redis both healthy
+- ✅ API proxy configured: Frontend `/api` → Backend `http://localhost:8000/api`
+- ⚠️ Mock MedCAT client (production will use CogStack-ModelServe)
+- ⚠️ Trust authentication (production will use proper auth)
+
+**Migration Notes**:
+- Start backend: `cd clinical-care-tools/backend && python -m app.main`
+- Install frontend deps: `cd clinical-care-tools/frontend && npm install`
+- Start frontend: `npm run dev`
+- Access application: `http://localhost:3000`
+- Check health: `curl http://localhost:8000/health`
+
+**Production Deployment** (Docker):
+- PostgreSQL: Use Docker container with persistent volume
+- Redis: Use Docker container with persistence enabled
+- MedCAT: Deploy CogStack-ModelServe API (separate container)
+- Environment: Configure proper JWT secrets, encryption keys, database passwords
+
+**Technical Debt**: None - clean implementation
+
+---
+
+### Planned Clinical Care Tools (Not Yet Started)
 
 ### Planned Clinical Care Tools (Not Yet Started)
 
@@ -1058,7 +1125,7 @@ MEDCAT_TIMEOUT = 5  # seconds
   - New: MVP + 8 sprints (complete CogStack coverage: 100%)
   - Detailed deliverables per sprint
   - CogStack product mapping table
-- **Last Updated**: 2025-11-08 → 2025-11-17
+- **Last Updated**: 2025-11-22 → 2025-11-17
 
 **Removed**:
 - None (old roadmap replaced)
