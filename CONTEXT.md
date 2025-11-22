@@ -23,7 +23,7 @@
 
 ## 📝 Recent Changes
 
-### 2025-11-22 - Sprint 2: Timeline View Module - Tasks 1.1-3.3 Complete
+### 2025-11-22 - Sprint 2: Timeline View Module - Tasks 1.1-4.1 Complete
 
 **Commits**:
 - d585be2 - Tasks 1.1-1.2: Database foundation (timeline tables, Pydantic models)
@@ -31,7 +31,8 @@
 - 9ce902a - Task 2.2: Timeline Service (get_patient_timeline, 86.75% coverage, 9 FK fixes)
 - 504a9c5 - Task 2.3 prep: Integration test structure
 - 166019a - Task 2.3: Timeline API Router (7 endpoints, 26 integration tests)
-- [pending] - Tasks 3.1-3.3: Timeline Export Service (PDF, FHIR R4, JSON)
+- 58898f2 - Tasks 3.1-3.3: Timeline Export Service (PDF, FHIR R4, JSON)
+- [pending] - Task 4.1: Timeline Pinia Store (Vue 3 frontend state management)
 
 **Added**:
 - Task 1.1: Timeline database tables (migration `004_add_timeline_tables.py`)
@@ -79,6 +80,15 @@
     - Uses Pydantic model_dump(mode='json') for proper serialization
     - Returns dict with documents, concepts, date_range, filters_applied, statistics
   - 14 unit tests (6 PDF, 4 FHIR, 4 JSON) covering all export formats and edge cases
+- Task 4.1: Timeline Pinia Store (`frontend/src/stores/timeline.ts`)
+  - Timeline Pinia store using Composition API (defineStore with script setup pattern)
+  - State: timeline (PatientTimeline | null), loading (boolean), error (string | null), filterPresets (array)
+  - Getters: hasTimeline, documentCount, conceptCount
+  - Actions: fetchTimeline, fetchConceptDetails, exportTimeline, getExportStatus, downloadExport, saveFilterPreset, loadFilterPresets, clearTimeline
+  - Axios integration with proper error handling
+  - Download file handling with blob URLs and automatic cleanup
+  - 11 unit tests (fetchTimeline, fetchConceptDetails, exportTimeline, getExportStatus, downloadExport, saveFilterPreset, loadFilterPresets, clearTimeline)
+  - TypeScript types in `frontend/src/types/timeline.ts` (10 interfaces, 5 enums matching backend Pydantic models)
 
 **Changed**:
 - Fixed UUID type annotations in `app/models/timeline.py` (TimelineView.id, task_id, user_id)
