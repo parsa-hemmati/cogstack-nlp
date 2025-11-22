@@ -20,9 +20,9 @@ from app.schemas.deidentification import (
     DeidentificationResult,
 )
 from app.schemas.deidentification_api import (
-    BatchJobRequest,
-    BatchJobResponse,
-    JobStatusResponse,
+    DeidentifyBatchRequest,
+    DeidentifyBatchResponse,
+    JobStatus,
 )
 from app.services.deidentification_service import DeidentificationService
 from app.services.phi_detection_service import PHIDetectionService
@@ -88,9 +88,9 @@ async def deidentify_single_note(
     return result
 
 
-@router.post("/deidentify/batch", response_model=BatchJobResponse)
+@router.post("/deidentify/batch", response_model=DeidentifyBatchResponse)
 async def create_batch_job(
-    request: BatchJobRequest,
+    request: DeidentifyBatchRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -120,11 +120,14 @@ async def create_batch_job(
     - Supports concurrent jobs (up to 10 workers)
     """
     # Validate request
-    if len(request.note_ids) > 10000:
+    if len(request.notes) > 10000:
         raise HTTPException(
             status_code=400,
             detail="Maximum 10,000 notes per batch job"
         )
+
+    # Extract note IDs and texts
+    note_ids = [note.id for note in request.notes]
 
     # Create job in database
     job = DeidentificationJob(
@@ -132,7 +135,7 @@ async def create_batch_job(
         user_id=current_user.id,
         status="pending",
         method=request.method,
-        total_notes=len(request.note_ids),
+        total_notes=len(request.notes),
         notify_email=request.notify_email,
     )
 
@@ -145,7 +148,7 @@ async def create_batch_job(
         db=db,
         user=current_user,
         job_id=str(job.job_id),
-        total_notes=len(request.note_ids),
+        total_notes=len(request.notes),
         method=request.method,
     )
 
@@ -153,24 +156,25 @@ async def create_batch_job(
     process_batch_deidentification.delay(
         job_id=str(job.job_id),
         user_id=str(current_user.id),
-        note_ids=request.note_ids,
+        note_ids=note_ids,
         method=request.method,
         notify_email=request.notify_email,
     )
 
     # Calculate estimated completion time (100 notes/minute)
-    estimated_minutes = len(request.note_ids) / 100
+    estimated_minutes = len(request.notes) / 100
     estimated_completion = datetime.utcnow() + timedelta(minutes=estimated_minutes)
 
-    return BatchJobResponse(
-        job_id=str(job.job_id),
+    return DeidentifyBatchResponse(
+        job_id=job.job_id,
         status=job.status,
         total_notes=job.total_notes,
+        created_at=job.created_at,
         estimated_completion=estimated_completion,
     )
 
 
-@router.get("/deidentify/job/{job_id}", response_model=JobStatusResponse)
+@router.get("/deidentify/job/{job_id}", response_model=JobStatus)
 async def get_job_status(
     job_id: str,
     db: AsyncSession = Depends(get_db),
@@ -213,15 +217,16 @@ async def get_job_status(
     if job.user_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Access denied")
 
-    return JobStatusResponse(
-        job_id=str(job.job_id),
+    return JobStatus(
+        job_id=job.job_id,
         status=job.status,
         total_notes=job.total_notes,
         processed_notes=job.processed_notes,
-        error_count=job.error_count,
         progress_percentage=job.progress_percentage,
         created_at=job.created_at,
-        completed_at=job.completed_at,
+        updated_at=job.updated_at,
+        estimated_completion=None,
+        errors=[],
     )
 
 

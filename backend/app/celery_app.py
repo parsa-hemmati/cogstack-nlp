@@ -8,10 +8,11 @@ from celery import Celery
 from app.core.config import settings
 
 # Create Celery application
+# Use defaults if not configured (for testing/development)
 celery_app = Celery(
     "cogstack_nlp",
-    broker=settings.CELERY_BROKER_URL,
-    backend=settings.CELERY_RESULT_BACKEND,
+    broker=settings.CELERY_BROKER_URL or settings.REDIS_URL,
+    backend=settings.CELERY_RESULT_BACKEND or settings.REDIS_URL,
     include=["app.tasks.deidentification_tasks"]
 )
 

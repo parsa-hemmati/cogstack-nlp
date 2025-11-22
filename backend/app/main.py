@@ -5,7 +5,7 @@ FastAPI application entry point
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import audit, auth, break_glass, documents, health, patient_search, profile, roles, search, sessions, timeline, timeline_filter_presets, users
+from app.api.v1.endpoints import audit, auth, break_glass, deidentification, documents, health, patient_search, profile, roles, search, sessions, timeline, timeline_filter_presets, users
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ app.include_router(search.router, prefix="/api/v1", tags=["search"])
 app.include_router(timeline.router, prefix="/api/v1", tags=["timeline"])
 app.include_router(timeline_filter_presets.router, prefix="/api/v1/timeline/filters", tags=["timeline-filters"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
+app.include_router(deidentification.router, prefix="/api/v1", tags=["de-identification"])
 
 
 @app.get("/")

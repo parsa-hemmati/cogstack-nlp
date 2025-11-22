@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     REDIS_URL: str
     SESSION_EXPIRE_SECONDS: int = 28800  # 8 hours
 
+    # Celery (background tasks)
+    CELERY_BROKER_URL: Optional[str] = None  # Redis URL for Celery broker (optional for testing)
+    CELERY_RESULT_BACKEND: Optional[str] = None  # Redis URL for Celery result backend (optional for testing)
+
     # JWT Authentication
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
