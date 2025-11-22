@@ -58,6 +58,7 @@ class User(Base):
     # Relationships
     timeline_filter_presets = relationship("TimelineFilterPreset", back_populates="user", cascade="all, delete-orphan")
     deidentification_jobs = relationship("DeidentificationJob", back_populates="user", cascade="all, delete-orphan")
+    manual_annotations = relationship("ManualAnnotation", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """String representation for debugging."""

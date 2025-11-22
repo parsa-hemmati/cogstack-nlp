@@ -281,6 +281,42 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 
 ### Recent Changes
 
+#### [2025-11-22] - De-Identification Module Task #007: Manual Annotation Tool (20% Complete) - IN PROGRESS
+
+**Commits**: feat(de-identification): Add database schema for manual annotations (Task #007 partial - 20%)
+
+**Added**:
+- **Database Migration** (`backend/alembic/versions/014_create_manual_annotations_table.py` - 64 lines):
+  - manual_annotations table for human-in-the-loop PHI review
+  - Fields: annotation_id, note_id, user_id, text, offsets, entity_type, confidence
+  - Indexes on note_id, user_id, entity_type, created_at, is_active
+  - Check constraints for confidence (0.0-1.0) and valid offsets
+
+- **ORM Model** (`backend/app/models/manual_annotation.py` - 78 lines):
+  - ManualAnnotation model with User relationship
+  - Properties: length, to_dict()
+  - Soft delete support (is_active flag)
+
+- **Pydantic Schemas** (`backend/app/schemas/manual_annotation.py` - 165 lines):
+  - ManualAnnotationCreate (18 PHI entity types validated)
+  - ManualAnnotationUpdate (partial updates)
+  - ManualAnnotationResponse (with timestamps)
+  - ManualAnnotationList (paginated list)
+  - JobAnalytics (statistics + charts)
+
+**Why**:
+- Implements human-in-the-loop workflow to catch missed PHI (8% safety net)
+- Manual annotations feed back into model training
+- Supports 18 PHI categories (NAME, DOB, MRN, SSN, PHONE, etc.)
+
+**Impact**:
+- ✅ Database schema complete (20%)
+- ⚠️ TODO: API endpoints, frontend components, tests (80% remaining)
+
+**Next**: API endpoints for CRUD operations, frontend Vue components
+
+---
+
 #### [2025-11-22] - De-Identification Module Task #004: Batch Processing API - COMPLETE
 
 **Commits**: feat(de-identification): Complete batch processing API and Celery tasks (Task #004)

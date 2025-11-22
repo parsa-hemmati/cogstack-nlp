@@ -18,6 +18,50 @@ This file tracks **PRD compliance** across all implemented features. A dedicated
 
 ## 🎯 Current Compliance Status
 
+### ⚠️  De-Identification Module Task #007: Manual Annotation Tool - PARTIAL (20%) (2025-11-22)
+
+**Change Type**: Database Schema + Models (Backend)
+
+**Summary**:
+- ✅ Created manual_annotations table for human-in-the-loop review
+- ✅ Implemented ManualAnnotation ORM model with User relationship
+- ✅ Created Pydantic schemas (Create, Update, Response, List, Analytics)
+- ⚠️  API endpoints pending (0%)
+- ⚠️  Frontend components pending (0%)
+- ⚠️  Tests pending (0%)
+
+**Files Added**: 3 files (307 lines total)
+- `backend/alembic/versions/014_create_manual_annotations_table.py` (64 lines)
+- `backend/app/models/manual_annotation.py` (78 lines)
+- `backend/app/schemas/manual_annotation.py` (165 lines)
+
+**Compliance Impact**: ✅ POSITIVE (Human-in-the-loop safety net for missed PHI)
+
+**⚠️  PRD Compliance**: PARTIAL (20% complete, schema aligns with spec)
+
+**Schema Compliance** (Task #007 specification):
+- ✅ manual_annotations table with required fields (annotation_id, note_id, user_id, text, offsets, entity_type, confidence)
+- ✅ 18 PHI entity types supported (NAME, DOB, MRN, SSN, PHONE, FAX, EMAIL, ADDRESS, etc.)
+- ✅ Confidence validation (0.0-1.0 range)
+- ✅ Offset validation (end_offset > start_offset)
+- ✅ Soft delete support (is_active flag)
+- ✅ User relationship (cascade delete)
+
+**Security & HIPAA**:
+- ✅ User ID tracking (who created annotation)
+- ✅ Timestamps (created_at, updated_at for audit trail)
+- ✅ No PHI stored beyond annotation text (max 500 chars)
+- ⚠️  API authentication pending (will require JWT tokens)
+- ⚠️  Audit logging pending (will use AuditService)
+
+**Status**: PARTIAL (Database schema complete, API + Frontend + Tests pending)
+
+**Recommendations**: Complete API endpoints with authentication, add audit logging for all annotation actions, implement frontend components with WCAG 2.1 AA compliance
+
+**Epic**: De-Identification Module (Task #007)
+
+---
+
 ### ✅ De-Identification Module Task #004: Batch Processing API and Celery Tasks - COMPLETE (2025-11-22)
 
 **Change Type**: Backend API Implementation + Background Processing
