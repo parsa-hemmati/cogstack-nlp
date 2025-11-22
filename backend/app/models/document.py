@@ -65,37 +65,35 @@ class Document(Base):
     filename = Column(String(255), nullable=False, index=True)
     content_type = Column(String(100), nullable=False, default="application/rtf")
     content_hash = Column(
-        String(64), nullable=False, unique=True, index=True
-    )  # SHA-256 hash
+        String(64), nullable=False
+    )  # SHA-256 hash - unique constraint and index created in __table_args__
     encrypted_content = Column(LargeBinary, nullable=False)  # BYTEA column
     encryption_algorithm = Column(
         String(50), nullable=False, default="aes-256-gcm"
     )  # AES-256-GCM
     file_size = Column(BigInteger, nullable=False)  # Original size in bytes
     uploaded_by = Column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
-    )
+        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )  # index created in __table_args__
     project_id = Column(
         PG_UUID(as_uuid=True), nullable=True, index=True
-    )  # Future: projects table
+    )  # Future: projects table - keep index=True (no explicit Index in __table_args__)
     processing_status = Column(
         Enum(ProcessingStatus, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
-        default=ProcessingStatus.PENDING,
-        index=True
-    )
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+        default=ProcessingStatus.PENDING
+    )  # index created in __table_args__
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)  # index created in __table_args__
 
     # Relationships
     uploader = relationship("User", foreign_keys=[uploaded_by], backref="uploaded_documents")
 
     # Indexes for performance
     __table_args__ = (
-        Index("ix_documents_content_hash", "content_hash"),  # Deduplication lookup
         Index("ix_documents_processing_status", "processing_status"),  # Filter by status
         Index("ix_documents_uploaded_by", "uploaded_by"),  # Filter by uploader
         Index("ix_documents_created_at", "created_at"),  # Sort by upload time
-        UniqueConstraint("content_hash", name="uq_documents_content_hash"),  # Prevent duplicates
+        UniqueConstraint("content_hash", name="uq_documents_content_hash"),  # Prevent duplicates - creates index automatically
     )
 
     def __repr__(self):

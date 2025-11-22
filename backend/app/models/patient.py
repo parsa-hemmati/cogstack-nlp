@@ -66,10 +66,10 @@ class Patient(Base):
 
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
     nhs_number = Column(
-        String(10), nullable=False, unique=True, index=True
-    )  # UK NHS number (10 digits)
-    full_name = Column(String(200), nullable=True, index=True)  # For fuzzy matching
-    date_of_birth = Column(Date, nullable=True, index=True)  # For fuzzy matching
+        String(10), nullable=False, unique=True
+    )  # UK NHS number (10 digits) - index created in __table_args__
+    full_name = Column(String(200), nullable=True)  # For fuzzy matching - index created in __table_args__
+    date_of_birth = Column(Date, nullable=True)  # For fuzzy matching - index created in __table_args__
     address = Column(String(500), nullable=True)
 
     # Timeline tracking
