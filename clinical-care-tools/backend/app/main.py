@@ -153,9 +153,10 @@ async def root():
     }
 
 
-# API v1 router (placeholder - will add endpoints later)
-# from app.api.v1.routers import api_router
-# app.include_router(api_router, prefix=settings.api_v1_prefix)
+# API v1 router
+from app.api.v1.routers.api_router import api_router
+
+app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 
 if __name__ == "__main__":
