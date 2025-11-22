@@ -72,17 +72,27 @@ const router = createRouter({
       name: 'deidentify-results',
       component: () => import('../views/DeidentifyResultsView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin/search-analytics',
+      name: 'admin-search-analytics',
+      component: () => import('../views/admin/SearchAnalyticsView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })
 
-// Navigation guard for authentication
+// Navigation guard for authentication and authorization
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('access_token')
+  const userRole = localStorage.getItem('user_role') // Assuming user role is stored
 
   if (to.meta.requiresAuth && !token) {
     // Redirect to login if route requires auth and no token
     next({ name: 'login', query: { redirect: to.fullPath } })
+  } else if (to.meta.requiresAdmin && userRole !== 'admin') {
+    // Redirect to home if route requires admin role but user is not admin
+    next({ name: 'home' })
   } else {
     next()
   }
