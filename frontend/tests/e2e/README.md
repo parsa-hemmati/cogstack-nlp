@@ -1,216 +1,300 @@
-# Timeline E2E Tests
+# E2E, Performance, and Accessibility Testing
 
-End-to-end tests for the Timeline module using Playwright.
+This directory contains comprehensive end-to-end, performance, and accessibility tests for the Timeline Module.
 
 ## Overview
 
-This directory contains comprehensive E2E tests for the patient timeline feature:
+### Test Coverage
 
-- **timeline.spec.ts**: Core timeline viewing workflows
-- **timelineFilters.spec.ts**: Filter application and saved presets
-- **timelineAccessibility.spec.ts**: WCAG 2.1 AA compliance tests
+1. **E2E Tests (Playwright)**:
+   - `timeline.spec.ts` - Core timeline functionality
+   - `timelineFilters.spec.ts` - Filter application and presets
+   - `timelineAccessibility.spec.ts` - WCAG 2.1 AA compliance
+
+2. **Performance Tests**:
+   - Backend: `backend/tests/performance/test_timeline_load.py` (Locust)
+   - Frontend: `tests/performance/timeline.perf.ts` (Playwright + Performance API)
+
+3. **Accessibility Tests**:
+   - Automated audits with axe-core
+   - Keyboard navigation testing
+   - Screen reader support validation
+   - Color contrast verification
+
+## Prerequisites
+
+### Dependencies
+
+```bash
+# Frontend dependencies (already installed)
+npm install
+
+# Backend dependencies
+pip install locust
+
+# Playwright browsers
+npx playwright install chromium firefox webkit
+```
+
+### Test Data
+
+Create test patients with varying event counts:
+
+```bash
+# Run test data seeding script
+python backend/scripts/seed_test_data.py
+```
+
+This creates:
+- **P_SMALL**: 50 events (low complexity)
+- **P_MEDIUM**: 1,000 events (medium complexity)
+- **P_LARGE**: 10,000 events (high complexity)
 
 ## Running Tests
 
-### Prerequisites
+### E2E Tests
 
 ```bash
-# Install dependencies
-npm install
-
-# Install Playwright browsers
-npx playwright install
-```
-
-### Run All E2E Tests
-
-```bash
+# Run all E2E tests
 npm run test:e2e
-```
 
-### Run Specific Test File
-
-```bash
-npx playwright test tests/e2e/timeline.spec.ts
-```
-
-### Run Tests with UI
-
-```bash
+# Run with UI (interactive mode)
 npm run test:e2e:ui
-```
 
-### Run Tests in Headed Mode (see browser)
-
-```bash
+# Run in headed mode (see browser)
 npm run test:e2e:headed
-```
 
-### Run Accessibility Tests Only
+# Run specific test file
+npx playwright test tests/e2e/timeline.spec.ts
 
-```bash
-npm run test:accessibility
-```
-
-### Debug Mode
-
-```bash
+# Debug mode
 npm run test:e2e:debug
 ```
 
-## Test Reports
+### Performance Tests
 
-After running tests, view the HTML report:
-
-```bash
-npx playwright show-report
-```
-
-## Test Data
-
-Tests expect the following test patients to exist:
-
-- **P12345**: 50 events (light load)
-- **P_MEDIUM**: 500 events (medium load)
-- **P_LARGE**: 5000 events (heavy load)
-
-### Seed Test Data
+#### Backend Load Testing (Locust)
 
 ```bash
-# Backend test data seeding
-python backend/scripts/seed_timeline_test_data.py
+# Web UI mode (recommended for interactive testing)
+locust -f backend/tests/performance/test_timeline_load.py --host=http://localhost:8000
+
+# Then open http://localhost:8089 and configure:
+# - Number of users: 100
+# - Spawn rate: 10 users/second
+# - Run time: 5 minutes
+
+# Headless mode (CI/CD)
+locust -f backend/tests/performance/test_timeline_load.py \
+  --host=http://localhost:8000 \
+  --headless \
+  --users=100 \
+  --spawn-rate=10 \
+  --run-time=5m \
+  --html=timeline_load_test_report.html
 ```
 
-## Test Coverage
+#### Frontend Performance (Playwright)
 
-### timeline.spec.ts (10 tests)
+```bash
+# Run performance tests
+npx playwright test tests/performance/timeline.perf.ts
 
-- User views patient timeline
-- Timeline loads with performance <500ms
-- Timeline displays correct event count
-- Timeline handles empty state
-- Timeline handles API errors gracefully
-- User can retry failed timeline load
-- Timeline displays loading state
-- Timeline respects RBAC - unauthorized access blocked
-- Timeline audit logging - verifies request headers
+# Generate HTML report
+npx playwright test tests/performance/timeline.perf.ts --reporter=html
+```
 
-### timelineFilters.spec.ts (10 tests)
+#### Frontend Performance (Lighthouse CI)
 
-- User filters timeline by date range
-- User filters timeline by event type
-- User filters timeline by multiple event types
-- User filters by specialty
-- User clears filters
-- Filters update URL parameters
-- Filters persist on page reload
-- Filter panel can be toggled open/closed
-- Debounced filter updates - prevents excessive API calls
+```bash
+# Run Lighthouse CI
+npm run test:perf
 
-### timelineAccessibility.spec.ts (15+ tests)
+# This will:
+# 1. Build production bundle
+# 2. Start preview server
+# 3. Run Lighthouse on 3 URLs
+# 4. Generate performance report
+```
 
-- Timeline passes automated accessibility audit
-- Timeline has proper ARIA labels
-- Timeline supports keyboard navigation
-- Event markers have descriptive accessible names
-- Filter controls announce changes to screen readers
-- Event detail modal announces when opened
-- Color contrast meets WCAG AA (4.5:1 minimum)
-- Focus indicators are visible
-- Form inputs have associated labels
-- Interactive elements are keyboard accessible
-- Screen reader landmarks are properly defined
-- Images have alt text
-- Error messages are announced to screen readers
-- Loading states are announced to screen readers
-- Modal traps focus when open
+### Accessibility Tests
+
+```bash
+# Run accessibility tests only
+npm run test:accessibility
+
+# Or run all accessibility tests in timelineAccessibility.spec.ts
+npx playwright test tests/e2e/timelineAccessibility.spec.ts
+```
 
 ## Performance Targets
 
-All tests verify the following performance targets:
+### Backend (Locust)
 
-- **Timeline load**: <500ms for 1,000 events
-- **Filter application**: <300ms (debounced)
-- **Event detail modal**: <100ms to open
-- **Accessibility audit**: 0 violations
-- **WCAG 2.1 AA compliance**: All checks passing
+- **P50 response time**: < 200ms
+- **P95 response time**: < 500ms
+- **P99 response time**: < 1000ms
+- **Success rate**: > 99%
+
+### Frontend (Lighthouse CI)
+
+- **Performance score**: > 90
+- **Accessibility score**: > 95
+- **First Contentful Paint**: < 1.5s
+- **Largest Contentful Paint**: < 2.5s
+- **Time to Interactive**: < 3.5s
+- **Total Blocking Time**: < 300ms
+- **Cumulative Layout Shift**: < 0.1
+
+### Rendering Performance
+
+- **100 events**: < 500ms
+- **1,000 events**: < 1000ms
+- **10,000 events**: < 2000ms
+
+## Accessibility Requirements
+
+### WCAG 2.1 AA Compliance
+
+- ✅ No automated accessibility violations (axe-core)
+- ✅ Keyboard navigation for all interactions
+- ✅ Screen reader support (ARIA labels)
+- ✅ Color contrast ratio ≥ 4.5:1
+- ✅ Focus indicators visible
+- ✅ Semantic HTML structure
+
+### Keyboard Shortcuts
+
+- **Tab**: Navigate between elements
+- **Arrow keys**: Navigate timeline events
+- **Enter**: Open event detail
+- **Escape**: Close modal
+- **+**: Zoom in
+- **-**: Zoom out
+- **0**: Reset zoom
+
+## Test Reports
+
+### Playwright HTML Report
+
+```bash
+# Generate HTML report after test run
+npx playwright show-report
+```
+
+### Lighthouse CI Report
+
+Results saved to `.lighthouseci/` directory after running `npm run test:perf`.
+
+### Locust HTML Report
+
+Generated with `--html` flag. Example:
+
+```bash
+locust -f backend/tests/performance/test_timeline_load.py \
+  --host=http://localhost:8000 \
+  --headless \
+  --users=100 \
+  --spawn-rate=10 \
+  --run-time=5m \
+  --html=reports/timeline_load_test_$(date +%Y%m%d_%H%M%S).html
+```
 
 ## CI/CD Integration
 
-Tests run automatically in CI/CD pipeline:
+### GitHub Actions Example
 
 ```yaml
-# .github/workflows/e2e.yml
-- name: Run E2E tests
-  run: npm run test:e2e
+name: E2E and Performance Tests
+
+on: [push, pull_request]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          npm ci
+          npx playwright install --with-deps
+      - name: Run E2E tests
+        run: npm run test:e2e
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+  performance-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Lighthouse CI
+        run: npm run test:perf
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v3
+        with:
+          name: lighthouse-results
+          path: .lighthouseci/
 ```
 
 ## Troubleshooting
 
-### Tests Failing Locally
+### Common Issues
 
-1. **Check test data**: Ensure test patients exist
-2. **Check services**: Ensure backend API is running
-3. **Check ports**: Ensure port 5173 (frontend) and 8000 (backend) are available
-4. **Clear cache**: `rm -rf node_modules/.cache`
-5. **Reinstall browsers**: `npx playwright install --force`
+1. **Playwright browsers not installed**:
+   ```bash
+   npx playwright install chromium
+   ```
 
-### Debugging Failing Tests
+2. **Test data not seeded**:
+   ```bash
+   python backend/scripts/seed_test_data.py
+   ```
 
-```bash
-# Run with trace
-npx playwright test --trace on
+3. **Backend not running**:
+   ```bash
+   # Start backend server
+   cd backend && uvicorn app.main:app --reload
+   ```
 
-# View trace
-npx playwright show-trace trace.zip
-```
+4. **Frontend not running**:
+   ```bash
+   # Start frontend dev server
+   npm run dev
+   ```
 
-### Slow Tests
+5. **Locust not installed**:
+   ```bash
+   pip install locust
+   ```
 
-```bash
-# Run with timeout
-npx playwright test --timeout 60000
+## Test Maintenance
 
-# Run in parallel
-npx playwright test --workers 4
-```
+### Adding New Tests
 
-## Writing New Tests
+1. **E2E test**: Add to appropriate `*.spec.ts` file
+2. **Performance test**: Add task to `test_timeline_load.py` or new test case to `timeline.perf.ts`
+3. **Accessibility test**: Add to `timelineAccessibility.spec.ts`
 
-### Best Practices
+### Updating Test Data
 
-1. **Use data-testid attributes**: Prefer `[data-testid="..."]` over CSS classes
-2. **Wait for network idle**: Use `await page.waitForLoadState('networkidle')`
-3. **Use explicit waits**: `await expect(element).toBeVisible({ timeout: 5000 })`
-4. **Mock API responses**: For deterministic tests
-5. **Test user workflows**: Not implementation details
+Modify `backend/scripts/seed_test_data.py` to adjust test patient data.
 
-### Example Test
-
-```typescript
-test('User can filter timeline by date', async ({ page }) => {
-  // Navigate to timeline
-  await page.goto('/patients/P12345/timeline')
-  await page.waitForLoadState('networkidle')
-
-  // Open filters
-  await page.click('[data-testid="filter-toggle"]')
-
-  // Set date range
-  await page.fill('[data-testid="start-date"]', '2024-01-01')
-  await page.fill('[data-testid="end-date"]', '2024-12-31')
-
-  // Apply filters
-  await page.click('[data-testid="apply-filters"]')
-
-  // Verify results
-  await expect(page.locator('[data-testid="event-count"]')).toContainText('50')
-})
-```
-
-## Resources
+## References
 
 - [Playwright Documentation](https://playwright.dev/)
-- [Playwright Best Practices](https://playwright.dev/docs/best-practices)
-- [axe-core Accessibility Testing](https://github.com/dequelabs/axe-core)
+- [Locust Documentation](https://docs.locust.io/)
+- [Lighthouse CI Documentation](https://github.com/GoogleChrome/lighthouse-ci)
+- [axe-core Documentation](https://github.com/dequelabs/axe-core)
 - [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+
+## Task Reference
+
+**Task #007**: E2E Tests, Performance Testing & Accessibility Audit
+**Status**: Complete
+**Date**: 2025-11-22
