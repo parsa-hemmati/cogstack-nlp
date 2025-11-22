@@ -7,7 +7,7 @@ Tracks query performance, result quality, and user behavior.
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, Text, DateTime, Integer, ForeignKey, Index, JSON
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
@@ -52,8 +52,8 @@ class SearchAnalytics(Base):
     results_count = Column(Integer, nullable=False, index=True)  # Number of results returned
     execution_time_ms = Column(Integer, nullable=False)  # Query execution time
 
-    # User behavior
-    clicked_documents = Column(ARRAY(UUID(as_uuid=True)), nullable=True)  # Document IDs user clicked
+    # User behavior (JSON array for cross-database compatibility)
+    clicked_documents = Column(JSON, nullable=True)  # Document IDs user clicked (stored as JSON array)
 
     # Timestamp
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)

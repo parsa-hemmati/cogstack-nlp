@@ -18,8 +18,9 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    JSON,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
@@ -90,9 +91,8 @@ class ExtractedEntity(Base):
     )
     patient_id = Column(
         PG_UUID(as_uuid=True),
-        nullable=True,
-        index=True,
-    )  # Future: ForeignKey("patients.id")
+        nullable=True
+    )  # Future: ForeignKey("patients.id") - index created in __table_args__
     entity_type = Column(Enum(EntityType), nullable=False, index=True)
 
     # Clinical concept fields (null for PHI)
@@ -108,8 +108,8 @@ class ExtractedEntity(Base):
     # Confidence
     accuracy = Column(Float, nullable=True)  # MedCAT confidence (0.0-1.0)
 
-    # Meta-annotations (JSONB for flexibility)
-    meta_anns = Column(JSONB, nullable=True, default=dict)
+    # Meta-annotations (JSON for flexibility - uses JSONB in PostgreSQL)
+    meta_anns = Column(JSON, nullable=True, default=dict)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
