@@ -340,6 +340,24 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 
 ### Recent Changes
 
+#### [2025-11-22] - Sprint 3 Phase 5 Task 5.6: Rate Limiting for Search Endpoints - COMPLETE
+
+**Commits**: feat(search): Add rate limiting to search and export endpoints
+
+**Added**:
+- Rate limiting middleware (backend/app/middleware/rate_limit.py - 152 lines)
+- Applied rate limiting to POST /search and POST /export (60 requests/min per user)
+- Redis-based sliding window rate limiting with TTL
+
+**Why**: Prevents search endpoint abuse and ensures fair resource usage
+
+**Impact**:
+- ✅ Rate limiting: 60 searches/min per user
+- ✅ Returns 429 with Retry-After header when exceeded
+- ✅ Graceful degradation if Redis is down
+
+---
+
 #### [2025-11-22] - Sprint 3 Phase 5 Task 5.4: Admin Analytics View - COMPLETE
 
 **Commits**: feat(admin): Add SearchAnalyticsView with admin route and navigation guard
