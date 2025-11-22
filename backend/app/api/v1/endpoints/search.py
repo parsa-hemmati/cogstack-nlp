@@ -5,10 +5,11 @@ Handles document full-text search with Elasticsearch.
 """
 import io
 import logging
-from typing import List
+from typing import List, Optional
 from uuid import UUID
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,17 +17,22 @@ from sqlalchemy.exc import IntegrityError
 
 from app.clients.elasticsearch_client import get_es_client
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_role
 from app.models.saved_search import SavedSearch
 from app.models.user import User
 from app.schemas.search import (
     ExportFormat,
+    QueryAnalytics,
+    SearchAnalyticsAggregateResponse,
     SearchExportRequest,
     SearchRequest,
     SearchResponse,
     SavedSearchCreate,
     SavedSearchResponse,
+    SlowQueryAnalytics,
+    TrendDataPoint,
 )
+from app.services.analytics_service import AnalyticsService
 from app.services.audit_service import AuditService
 from app.services.export_service import ExportService
 from app.services.search_service import SearchService
@@ -496,4 +502,161 @@ async def export_search_results(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error during export"
+        )
+
+
+# ============================================================================
+# Analytics Endpoint
+# ============================================================================
+
+
+@router.get("/analytics", response_model=SearchAnalyticsAggregateResponse, status_code=status.HTTP_200_OK)
+async def get_search_analytics(
+    start_date: Optional[str] = Query(None, description="Start date for analytics (ISO format YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date for analytics (ISO format YYYY-MM-DD)"),
+    user_id: Optional[str] = Query(None, description="Filter by specific user ID"),
+    current_user: User = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get aggregated search analytics (admin only).
+
+    **Authorization**: Requires admin role (403 for non-admin users)
+
+    **Workflow**:
+    1. Validate date range parameters
+    2. Call AnalyticsService methods to aggregate data:
+       - Top queries (most frequently searched)
+       - Zero result queries (queries with no results)
+       - Slow queries (queries exceeding 2000ms threshold)
+       - Search trends (daily search volume)
+    3. Return aggregated analytics response
+
+    **Use Cases**:
+    - Query performance monitoring (identify slow queries)
+    - Search quality tracking (find zero-result queries)
+    - User behavior analysis (popular queries, search trends)
+    - System optimization (improve slow queries, add missing content)
+
+    Args:
+        start_date: Optional start date for filtering (ISO format YYYY-MM-DD)
+        end_date: Optional end date for filtering (ISO format YYYY-MM-DD)
+        user_id: Optional user ID filter
+        current_user: Authenticated admin user (injected by FastAPI)
+        db: Database session (injected by FastAPI)
+
+    Returns:
+        SearchAnalyticsAggregateResponse with aggregated analytics
+
+    Raises:
+        HTTPException 400: Invalid date format
+        HTTPException 403: User is not admin
+        HTTPException 401: Unauthorized (no valid JWT token)
+        HTTPException 500: Internal server error
+    """
+    try:
+        # Parse date parameters if provided
+        start_datetime = None
+        end_datetime = None
+
+        if start_date:
+            try:
+                start_datetime = datetime.fromisoformat(start_date)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid start_date format: {start_date}. Expected ISO format (YYYY-MM-DD)"
+                )
+
+        if end_date:
+            try:
+                end_datetime = datetime.fromisoformat(end_date)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid end_date format: {end_date}. Expected ISO format (YYYY-MM-DD)"
+                )
+
+        # Validate date range
+        if start_datetime and end_datetime and start_datetime > end_datetime:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="start_date must be before or equal to end_date"
+            )
+
+        # Parse user_id if provided
+        user_id_uuid = None
+        if user_id:
+            try:
+                user_id_uuid = UUID(user_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid user_id format: {user_id}. Expected UUID"
+                )
+
+        # Create AnalyticsService
+        analytics_service = AnalyticsService()
+
+        # Get top queries
+        top_queries_data = await analytics_service.get_top_queries(
+            db=db,
+            limit=10,
+            start_date=start_datetime,
+            end_date=end_datetime,
+            user_id=user_id_uuid
+        )
+        top_queries = [QueryAnalytics(**item) for item in top_queries_data]
+
+        # Get zero result queries
+        zero_result_data = await analytics_service.get_zero_result_queries(
+            db=db,
+            limit=10,
+            start_date=start_datetime,
+            end_date=end_datetime
+        )
+        zero_result_queries = [QueryAnalytics(**item) for item in zero_result_data]
+
+        # Get slow queries
+        slow_queries_data = await analytics_service.get_slow_queries(
+            db=db,
+            limit=10,
+            threshold_ms=2000,
+            start_date=start_datetime,
+            end_date=end_datetime
+        )
+        slow_queries = [SlowQueryAnalytics(**item) for item in slow_queries_data]
+
+        # Get search trends (if date range specified)
+        trends = []
+        if start_datetime and end_datetime:
+            trends_data = await analytics_service.get_search_trends(
+                db=db,
+                start_date=start_datetime,
+                end_date=end_datetime
+            )
+            trends = [TrendDataPoint(**item) for item in trends_data]
+
+        logger.info(
+            f"Analytics retrieved: user={current_user.username}, "
+            f"top_queries={len(top_queries)}, zero_result={len(zero_result_queries)}, "
+            f"slow_queries={len(slow_queries)}, trends={len(trends)}"
+        )
+
+        return SearchAnalyticsAggregateResponse(
+            top_queries=top_queries,
+            zero_result_queries=zero_result_queries,
+            slow_queries=slow_queries,
+            trends=trends
+        )
+
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Database or other errors
+        logger.error(f"Analytics error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error retrieving analytics"
         )

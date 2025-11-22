@@ -396,6 +396,101 @@ class SearchAnalyticsResponse(BaseModel):
         }
 
 
+class QueryAnalytics(BaseModel):
+    """Analytics for a specific query."""
+
+    query: str = Field(..., description="Search query")
+    count: int = Field(..., ge=0, description="Number of times searched")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "query": "diabetes mellitus",
+                "count": 42
+            }
+        }
+
+
+class SlowQueryAnalytics(BaseModel):
+    """Analytics for slow queries."""
+
+    query: str = Field(..., description="Search query")
+    execution_time_ms: int = Field(..., ge=0, description="Maximum execution time (ms)")
+    avg_execution_time_ms: int = Field(..., ge=0, description="Average execution time (ms)")
+    count: int = Field(..., ge=0, description="Number of times searched")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "query": "complex boolean query",
+                "execution_time_ms": 2500,
+                "avg_execution_time_ms": 2200,
+                "count": 5
+            }
+        }
+
+
+class TrendDataPoint(BaseModel):
+    """Single data point in search trends."""
+
+    date: str = Field(..., description="Date (YYYY-MM-DD)")
+    count: int = Field(..., ge=0, description="Number of searches on this date")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "date": "2025-11-18",
+                "count": 42
+            }
+        }
+
+
+class SearchAnalyticsAggregateResponse(BaseModel):
+    """Aggregated search analytics response."""
+
+    top_queries: List[QueryAnalytics] = Field(
+        default_factory=list,
+        description="Most frequently searched queries"
+    )
+    zero_result_queries: List[QueryAnalytics] = Field(
+        default_factory=list,
+        description="Queries that returned no results"
+    )
+    slow_queries: List[SlowQueryAnalytics] = Field(
+        default_factory=list,
+        description="Queries exceeding performance threshold"
+    )
+    trends: List[TrendDataPoint] = Field(
+        default_factory=list,
+        description="Search volume trends by date"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "top_queries": [
+                    {"query": "diabetes mellitus", "count": 42},
+                    {"query": "hypertension", "count": 35}
+                ],
+                "zero_result_queries": [
+                    {"query": "rare disease xyz", "count": 5}
+                ],
+                "slow_queries": [
+                    {
+                        "query": "complex boolean query",
+                        "execution_time_ms": 2500,
+                        "avg_execution_time_ms": 2200,
+                        "count": 5
+                    }
+                ],
+                "trends": [
+                    {"date": "2025-11-18", "count": 42},
+                    {"date": "2025-11-19", "count": 38}
+                ]
+            }
+        }
+
+
 class ExportFormat(str, Enum):
     """Export format options."""
     CSV = "csv"

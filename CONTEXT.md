@@ -340,6 +340,87 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 
 ### Recent Changes
 
+#### [2025-11-22] - Sprint 3 Phase 5 Task 5.2: Analytics API Endpoint - COMPLETE
+
+**Commits**: feat(search): Add analytics API endpoint with aggregated search analytics
+
+**Added**:
+- **Analytics API Endpoint** (`backend/app/api/v1/endpoints/search.py` - GET /api/v1/search/analytics):
+  - Admin-only endpoint (requires admin role, 403 for non-admin)
+  - Aggregates search analytics data from 4 AnalyticsService methods
+  - Query parameters: start_date, end_date, user_id (all optional)
+  - Date validation (ISO format YYYY-MM-DD, start <= end)
+  - Returns top queries, zero result queries, slow queries, search trends
+  - Comprehensive error handling (400 for invalid params, 500 for server errors)
+  - Audit logging for admin access
+
+- **Analytics Response Schemas** (`backend/app/schemas/search.py`):
+  - QueryAnalytics (query + count) - for top queries and zero result queries
+  - SlowQueryAnalytics (query + execution_time_ms + avg_execution_time_ms + count)
+  - TrendDataPoint (date + count) - for search volume trends
+  - SearchAnalyticsAggregateResponse - main response combining all analytics
+
+**Changed**:
+- Updated search.py imports to include AnalyticsService, require_role, datetime, Optional
+- Added QueryAnalytics, SlowQueryAnalytics, TrendDataPoint, SearchAnalyticsAggregateResponse to schema imports
+
+**Removed**: None
+
+**Why**:
+- Implements Sprint 3 Phase 5 Task 5.2 (Analytics API Endpoint)
+- Enables admins to monitor search performance and user behavior
+- Identifies slow queries for optimization (queries >2000ms)
+- Finds zero-result queries (indicates missing content or poor formulation)
+- Tracks search trends (daily volume for capacity planning)
+- Aligns with Constitution Principle #7 (Performance and Scalability) - monitoring
+
+**Impact**:
+- ✅ **Analytics endpoint created** (GET /api/v1/search/analytics, admin-only)
+- ✅ **4 analytics schemas added** (QueryAnalytics, SlowQueryAnalytics, TrendDataPoint, SearchAnalyticsAggregateResponse)
+- ✅ **AnalyticsService integration** (all 4 methods called: get_top_queries, get_zero_result_queries, get_slow_queries, get_search_trends)
+- ✅ **13 AnalyticsService tests passing** (100% service test coverage)
+- ✅ **RBAC enforcement** (require_role("admin") dependency)
+- ✅ **Date validation** (ISO format, range checks)
+- ✅ **Error handling** (400 for invalid input, 500 for server errors)
+- ⏳ **Integration tests pending** (require auth token generation setup)
+
+**Features Delivered**:
+- **Top Queries**: Returns 10 most frequently searched queries with counts
+- **Zero Result Queries**: Identifies queries returning no results (max 10)
+- **Slow Queries**: Finds queries exceeding 2000ms threshold with max/avg times (max 10)
+- **Search Trends**: Daily search volume aggregation (requires date range)
+- **Date Filtering**: Optional start_date and end_date parameters
+- **User Filtering**: Optional user_id parameter for user-specific analytics
+
+**Migration Notes**:
+- No breaking changes (new endpoint, new schemas)
+- AnalyticsService already implemented (Task 5.1, all tests passing)
+- Backend API ready for frontend integration
+- No database migrations required
+
+**Technical Debt**:
+- Integration tests skipped (require authentication token generation)
+- Tests use pytest.skip() placeholders pending auth setup
+- Frontend analytics component not yet created (Task 5.3)
+
+**Design Patterns Introduced**:
+- **Aggregation Pattern**: Single endpoint aggregates multiple analytics sources
+- **RBAC Pattern**: Admin-only access using require_role decorator
+- **Validation Pattern**: ISO date parsing with comprehensive error handling
+- **Response Composition**: SearchAnalyticsAggregateResponse combines 4 sub-schemas
+
+**Acceptance Criteria Met** (from Task 5.2):
+- [x] Analytics endpoint created (GET /api/v1/search/analytics)
+- [x] Requires admin role (403 for non-admin)
+- [x] Accepts query params (start_date, end_date, user_id)
+- [x] Calls all 4 AnalyticsService methods
+- [x] Returns SearchAnalyticsAggregateResponse
+- [x] Date validation (ISO format, range checks)
+- [x] Error handling (400, 403, 500)
+- [x] Audit logging for admin access
+
+---
+
 #### [2025-11-22] - Sprint 3 Phase 4: Saved Searches Frontend Components - COMPLETE
 
 **Commits**: feat(search): Add SavedSearches and SaveSearchDialog components for managing saved searches
