@@ -113,3 +113,82 @@ export async function search(request: SearchRequest): Promise<SearchResponse> {
 export async function clearSearchCache(): Promise<void> {
   await apiClient.post('/api/v1/search/cache/clear')
 }
+
+// ============================================================================
+// Analytics API
+// ============================================================================
+
+/**
+ * Single query analytics entry
+ */
+export interface QueryAnalytics {
+  query: string
+  count: number
+}
+
+/**
+ * Slow query analytics entry
+ */
+export interface SlowQueryAnalytics {
+  query: string
+  execution_time_ms: number
+  avg_execution_time_ms: number
+  count: number
+}
+
+/**
+ * Trend data point for search volume
+ */
+export interface TrendDataPoint {
+  date: string
+  count: number
+}
+
+/**
+ * Aggregated analytics response
+ */
+export interface AnalyticsResponse {
+  top_queries: QueryAnalytics[]
+  zero_result_queries: QueryAnalytics[]
+  slow_queries: SlowQueryAnalytics[]
+  trends: TrendDataPoint[]
+}
+
+/**
+ * Analytics query parameters
+ */
+export interface AnalyticsParams {
+  start_date?: string  // ISO format YYYY-MM-DD
+  end_date?: string    // ISO format YYYY-MM-DD
+  user_id?: string     // UUID
+}
+
+/**
+ * Get aggregated search analytics (admin only)
+ *
+ * Retrieves analytics data including:
+ * - Top 10 most frequently searched queries
+ * - Queries with zero results
+ * - Slow queries (>2000ms threshold)
+ * - Daily search volume trends
+ *
+ * @param {AnalyticsParams} params - Optional date range and user filter
+ * @returns {Promise<AnalyticsResponse>} Aggregated analytics data
+ *
+ * @throws {Error} If the API request fails or user is not admin (403)
+ *
+ * @example
+ * ```typescript
+ * const analytics = await getAnalytics({
+ *   start_date: '2025-11-01',
+ *   end_date: '2025-11-22'
+ * })
+ *
+ * console.log(analytics.top_queries) // Top 10 queries
+ * console.log(analytics.trends) // Daily search volume
+ * ```
+ */
+export async function getAnalytics(params?: AnalyticsParams): Promise<AnalyticsResponse> {
+  const response = await apiClient.get<AnalyticsResponse>('/api/v1/search/analytics', { params })
+  return response.data
+}
