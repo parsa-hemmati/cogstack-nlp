@@ -394,3 +394,49 @@ class SearchAnalyticsResponse(BaseModel):
                 "created_at": "2025-11-18T12:00:00Z"
             }
         }
+
+
+class ExportFormat(str, Enum):
+    """Export format options."""
+    CSV = "csv"
+    JSON = "json"
+    FHIR = "fhir"
+
+
+class SearchExportRequest(BaseModel):
+    """Request schema for search export."""
+
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=1000,
+        description="Search query to execute"
+    )
+    filters: Optional[DocumentSearchFilters] = Field(
+        None,
+        description="Optional filters for search results"
+    )
+    format: ExportFormat = Field(
+        ...,
+        description="Export format (csv, json, or fhir)"
+    )
+
+    @field_validator('query')
+    @classmethod
+    def validate_query(cls, v: str) -> str:
+        """Validate query is not empty or whitespace-only."""
+        if not v or not v.strip():
+            raise ValueError("Query cannot be empty or whitespace-only")
+        return v.strip()
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "query": "diabetes mellitus",
+                "filters": {
+                    "document_types": ["rtf"],
+                    "date_from": "2025-01-01"
+                },
+                "format": "csv"
+            }
+        }

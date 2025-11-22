@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="search-bar-container">
-    <!-- Search Input Row -->
+    <!-- Search Input Row with Query Builder Toggle -->
     <v-row class="mb-3">
       <v-col>
         <v-text-field
@@ -18,7 +18,34 @@
           @click:append="handleClear"
           @focus="$emit('focus')"
           @blur="$emit('blur')"
-        />
+        >
+          <template #append-inner>
+            <v-btn
+              icon
+              size="small"
+              variant="text"
+              :color="showQueryBuilder ? 'primary' : 'default'"
+              data-testid="toggle-query-builder-btn"
+              aria-label="Toggle visual query builder"
+              @click="toggleQueryBuilder"
+            >
+              <v-icon>mdi-code-braces</v-icon>
+            </v-btn>
+          </template>
+        </v-text-field>
+      </v-col>
+    </v-row>
+
+    <!-- Query Builder (Expandable) -->
+    <v-row v-if="showQueryBuilder" class="mb-3">
+      <v-col>
+        <v-expand-transition>
+          <QueryBuilder
+            :model-value="props.modelValue"
+            @update:model-value="handleQueryBuilderUpdate"
+            @close="showQueryBuilder = false"
+          />
+        </v-expand-transition>
       </v-col>
     </v-row>
 
@@ -49,9 +76,11 @@
 
 <script setup lang="ts">
 // SearchBar Component - Provides search input with debouncing, loading states, and error handling
+// Enhanced with visual query builder integration
 // See: docs/features/search/components/SearchBar.md for detailed documentation
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
+import QueryBuilder from './QueryBuilder.vue'
 
 const props = defineProps({
   modelValue: {
@@ -89,6 +118,9 @@ const emit = defineEmits([
   'clear-error'
 ])
 
+// Query Builder state
+const showQueryBuilder = ref(false)
+
 // Debounced update handler for modelValue changes
 // Prevents excessive API calls while user is typing (default 300ms)
 const debouncedUpdate = useDebounceFn((value: string) => {
@@ -114,6 +146,20 @@ const handleSearch = () => {
 const handleClear = () => {
   emit('update:modelValue', '')
   emit('clear')
+}
+
+// Toggle query builder visibility
+const toggleQueryBuilder = () => {
+  showQueryBuilder.value = !showQueryBuilder.value
+}
+
+// Handle query builder updates
+const handleQueryBuilderUpdate = (query: string) => {
+  emit('update:modelValue', query)
+  // Optionally trigger search immediately
+  if (query && query.trim()) {
+    emit('search', query.trim())
+  }
 }
 </script>
 
