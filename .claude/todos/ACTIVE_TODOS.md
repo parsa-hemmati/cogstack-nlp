@@ -1,67 +1,56 @@
 # Active TODOs
 
 **Last Updated**: 2025-11-22
-**Session**: Phase 0 Environment Setup (Web-Adapted)
+**Session**: Sprint 1 - Patient Search & Discovery
 
 ---
 
 ## Critical (Block Release)
 
-- [ ] **Environment**: Create web-adapted development environment
-  - Phase: Phase 0
+- [ ] **Sprint 1**: Implement Patient Search API
+  - Phase: Sprint 1
   - Assigned: Current session
-  - Blocker: Cannot start Sprint 1 without environment
+  - Blocker: Core functionality for MVP
+  - Next: Read Sprint 1 specification and identify first task
 
 ---
 
-## High Priority (This Phase)
+## High Priority (This Sprint)
 
-- [ ] **Infrastructure**: Setup PostgreSQL database schema
-  - File: TBD (will create in backend/)
-  - Impact: Required for all patient data storage
+- [ ] **API**: Create patient search endpoint
+  - File: TBD (will create in backend/app/api/v1/endpoints/)
+  - Impact: Core search functionality
   - Assigned: Current session
 
-- [ ] **Infrastructure**: Setup Redis caching layer
-  - File: TBD (will create in backend/)
-  - Impact: Required for session management
+- [ ] **Service**: Implement MedCAT integration service
+  - File: TBD (will create in backend/app/services/)
+  - Impact: NLP processing layer
   - Assigned: Current session
 
-- [ ] **Integration**: Create MedCAT mock client for testing
-  - File: TBD (will create in backend/app/clients/)
-  - Impact: Enables development without Docker
+- [ ] **Frontend**: Create patient search UI
+  - File: clinical-care-tools/frontend/src/views/PatientSearchView.vue
+  - Impact: User interface for search
   - Assigned: Current session
 
 ---
 
-## Medium Priority (Next Phase)
+## Medium Priority (Next Sprint)
+
+None yet - will populate as Sprint 1 progresses
+
+---
+
+## Low Priority (Backlog)
 
 - [ ] **Documentation**: Create Docker deployment guide
   - File: docs/deployment/docker-deployment.md
   - Impact: Production deployment reference
   - Assigned: Future session
 
-- [ ] **Documentation**: Document environment adaptations
-  - File: CONTEXT.md
-  - Impact: Future developers understand web vs production differences
-  - Assigned: Current session
-
----
-
-## Low Priority (Backlog)
-
-None yet - will populate as development progresses
-
----
-
-## Discovered During Codebase Scan
-
-None yet - will run scan after initial structure created
-
 ---
 
 ## Notes
 
-**Environment Context**:
-- Web environment: PostgreSQL 16, Redis 7.0, Python 3.11, Node.js 22
-- Limitations: No Docker, no system packages, limited network
-- Strategy: Build with native tools, document Docker for production
+**Current Focus**: Sprint 1 - Patient Search & Discovery
+**Phase 0 Status**: ✅ Complete
+**Next Action**: Read Sprint 1 specification and start implementation
