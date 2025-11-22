@@ -306,18 +306,30 @@ describe('useDeidentification', () => {
       const mockBlob = new Blob(['data'], { type: 'text/csv' })
       vi.mocked(deidentificationApi.downloadResults).mockResolvedValue(mockBlob)
 
-      // Mock DOM methods
-      const createElementSpy = vi.spyOn(document, 'createElement')
-      const appendChildSpy = vi.spyOn(document.body, 'appendChild')
-      const removeChildSpy = vi.spyOn(document.body, 'removeChild')
+      // Mock URL.createObjectURL
+      const mockUrl = 'blob:http://localhost/mock'
+      global.URL.createObjectURL = vi.fn(() => mockUrl)
+      global.URL.revokeObjectURL = vi.fn()
 
+      // Mock document.createElement to return a simple object
       const mockLink = {
         href: '',
         download: '',
-        click: vi.fn()
-      } as any
+        click: vi.fn(),
+        style: {},
+        setAttribute: vi.fn(),
+        getAttribute: vi.fn()
+      }
 
-      createElementSpy.mockReturnValue(mockLink)
+      const createElementOriginal = document.createElement.bind(document)
+      document.createElement = vi.fn((tag: string) => {
+        if (tag === 'a') return mockLink as any
+        return createElementOriginal(tag)
+      })
+
+      // Mock appendChild/removeChild to avoid DOM errors
+      document.body.appendChild = vi.fn()
+      document.body.removeChild = vi.fn()
 
       const { downloadJobResults } = useDeidentification()
 
@@ -329,11 +341,8 @@ describe('useDeidentification', () => {
       expect(deidentificationApi.downloadResults).toHaveBeenCalledWith('job-123', 'csv')
       expect(mockLink.download).toBe('deidentified_job-123.csv')
       expect(mockLink.click).toHaveBeenCalled()
-
-      // Cleanup
-      createElementSpy.mockRestore()
-      appendChildSpy.mockRestore()
-      removeChildSpy.mockRestore()
+      expect(global.URL.createObjectURL).toHaveBeenCalledWith(mockBlob)
+      expect(global.URL.revokeObjectURL).toHaveBeenCalledWith(mockUrl)
     })
 
     it('should handle download errors', async () => {

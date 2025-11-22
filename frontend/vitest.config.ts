@@ -15,7 +15,16 @@ export default defineConfig({
     coverage: {
       provider: 'v8'
     },
-    css: true
+    css: {
+      modules: {
+        classNameStrategy: 'non-scoped'
+      }
+    },
+    server: {
+      deps: {
+        inline: ['vuetify']
+      }
+    }
   },
   resolve: {
     alias: {
