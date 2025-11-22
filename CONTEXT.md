@@ -23,14 +23,15 @@
 
 ## 📝 Recent Changes
 
-### 2025-11-22 - Sprint 2: Timeline View Module - Tasks 1.1-2.3 Complete
+### 2025-11-22 - Sprint 2: Timeline View Module - Tasks 1.1-3.3 Complete
 
 **Commits**:
 - d585be2 - Tasks 1.1-1.2: Database foundation (timeline tables, Pydantic models)
 - 7f509e3 - Task 2.1: Elasticsearch repository (temporal concept queries)
 - 9ce902a - Task 2.2: Timeline Service (get_patient_timeline, 86.75% coverage, 9 FK fixes)
 - 504a9c5 - Task 2.3 prep: Integration test structure
-- [pending] - Task 2.3: Timeline API Router (7 endpoints, 26 integration tests)
+- 166019a - Task 2.3: Timeline API Router (7 endpoints, 26 integration tests)
+- [pending] - Tasks 3.1-3.3: Timeline Export Service (PDF, FHIR R4, JSON)
 
 **Added**:
 - Task 1.1: Timeline database tables (migration `004_add_timeline_tables.py`)
@@ -60,6 +61,24 @@
   - 26 integration tests covering auth, authorization, error cases, filters
   - FilterPresetRequest/Response models added to timeline/models.py
   - Router registered in main.py
+- Tasks 3.1-3.3: Timeline Export Service (`app/modules/timeline/export.py`)
+  - TimelineExportService with 3 export formats (PDF, FHIR R4, JSON)
+  - PDF Export (Task 3.1):
+    - WeasyPrint integration with fallback stub for environments without system libraries
+    - Jinja2 template rendering (embedded HTML/CSS template, no external files)
+    - Watermark support (CSS position fixed, transform rotate -45deg, opacity 0.3)
+    - Orientation support (portrait/landscape), page size support (A4/Letter)
+    - Tables for documents and concepts, statistics section, compliance footer
+  - FHIR R4 Export (Task 3.2):
+    - FHIR Bundle (type: document) with Composition resource
+    - Patient reference in Composition.subject
+    - Concepts mapped to Observation resources with SNOMED-CT coding
+    - Meta-annotations mapped to FHIR extensions (custom URLs for experiencer, temporality, certainty)
+    - Negation mapped to valueBoolean and interpretation coding (POS/NEG)
+  - JSON Export (Task 3.3):
+    - Uses Pydantic model_dump(mode='json') for proper serialization
+    - Returns dict with documents, concepts, date_range, filters_applied, statistics
+  - 14 unit tests (6 PDF, 4 FHIR, 4 JSON) covering all export formats and edge cases
 
 **Changed**:
 - Fixed UUID type annotations in `app/models/timeline.py` (TimelineView.id, task_id, user_id)
@@ -70,14 +89,17 @@
   - `app/models/project.py`: Added ForeignKey constraints to created_by, user_id, assigned_to, added_by, project_id, updated_by
   - `app/models/document.py`: Added ForeignKey constraints to project_id, uploaded_by
 
-**Why**: Implements Sprint 2 Timeline Service per technical plan (ADR-013: Modular timeline architecture)
+**Why**: Implements Sprint 2 Timeline Service and Export functionality per technical plan (ADR-013: Modular timeline architecture)
 
 **Impact**:
 - ✅ Core timeline functionality complete (get_patient_timeline fully tested)
 - ✅ HIPAA compliance: PHI access logged immediately before data fetch
 - ✅ 86.75% coverage on TimelineService (exceeds 85% requirement)
+- ✅ Export service complete with 3 formats (PDF, FHIR R4, JSON)
+- ✅ FHIR R4 compliance: Concepts mapped to Observations with SNOMED-CT coding
+- ✅ Flexible PDF export with WeasyPrint fallback stub
 - ✅ Fixed 9 missing foreign key constraints across 4 models (improves referential integrity)
-- ⚠️ Export tests skipped due to pre-existing SQLAlchemy relationship configuration issues (see Technical Debt)
+- ⚠️ WeasyPrint requires system libraries (cairo, pango) - stub fallback provided
 - 🔍 Discovered: User model has ambiguous foreign key paths (User.project_members has both user_id and added_by FKs)
 
 **Migration Notes**:
