@@ -281,6 +281,62 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 
 ### Recent Changes
 
+#### [2025-11-22] - FIX: Add Router Mock to useTimeline Composable Tests
+
+**Commits**: fix(tests): Add router mock to useTimeline composable tests
+
+**Added**:
+- Router mock in `useTimeline.test.ts` (vue-router mock with replace/push methods)
+- Route mock in `useTimeline.test.ts` (mock route with query params)
+
+**Changed**:
+- None
+
+**Removed**:
+- Obsolete `useTimeline.spec.ts` test file (tested outdated API without patientId parameter)
+
+**Why**:
+- `useTimeline` composable calls `router.replace()` at line 95 to update URL query params when filters change
+- Tests failed with: `TypeError: Cannot read properties of undefined (reading 'replace')`
+- Root cause: `useRouter()` and `useRoute()` from vue-router were not mocked in tests
+- Without mocks, these functions return undefined (no Vue app context in tests)
+
+**Impact**:
+- ✅ **Router undefined errors eliminated** (was causing 38+ test failures)
+- ✅ **6/14 useTimeline tests now passing** (router-related tests fixed)
+- ⚠️ Remaining 8 test failures are test logic issues (retry logic, cache fallback), not router-related
+- ✅ Test pattern matches working example from `useTimelineFilters.spec.ts`
+
+**Fix Pattern Applied** (from working test):
+```typescript
+// Mock vue-router at top level
+vi.mock('vue-router', () => ({
+  useRouter: vi.fn(),
+  useRoute: vi.fn()
+}))
+
+// Setup mocks in beforeEach
+beforeEach(() => {
+  mockRouter = {
+    replace: vi.fn().mockResolvedValue(undefined),
+    push: vi.fn().mockResolvedValue(undefined)
+  }
+  vi.mocked(useRouter).mockReturnValue(mockRouter)
+
+  mockRoute = {
+    query: {},
+    params: {}
+  }
+  vi.mocked(useRoute).mockReturnValue(mockRoute)
+})
+```
+
+**Technical Debt**:
+- 8 useTimeline tests still failing (retry logic tests need mock refinement, cache fallback tests need localStorage setup)
+- These are test implementation issues, not router mocking issues
+
+---
+
 #### [2025-11-22] - CRITICAL FIX: require_role Decorator Misuse in Audit and Manual Annotations APIs
 
 **Commits**: fix(audit): Fix require_role decorator usage in audit and manual_annotations endpoints

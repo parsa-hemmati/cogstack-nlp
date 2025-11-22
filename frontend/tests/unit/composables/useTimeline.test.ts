@@ -9,7 +9,14 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { ref } from 'vue'
 import { useTimeline } from '@/composables/useTimeline'
+import { useRouter, useRoute } from 'vue-router'
 import type { TimelineEvent, TimelineFilters } from '@/types/timeline'
+
+// Mock vue-router
+vi.mock('vue-router', () => ({
+  useRouter: vi.fn(),
+  useRoute: vi.fn()
+}))
 
 // Mock API calls
 vi.mock('@/composables/useTimelineEvents', () => ({
@@ -30,10 +37,25 @@ vi.mock('@/composables/useTimelineEvents', () => ({
 
 describe('useTimeline', () => {
   const mockPatientId = 'patient-123'
+  let mockRouter: any
+  let mockRoute: any
 
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+
+    // Mock router
+    mockRouter = {
+      replace: vi.fn().mockResolvedValue(undefined),
+      push: vi.fn().mockResolvedValue(undefined)
+    }
+    vi.mocked(useRouter).mockReturnValue(mockRouter)
+
+    // Mock route
+    mockRoute = {
+      query: {}
+    }
+    vi.mocked(useRoute).mockReturnValue(mockRoute)
   })
 
   afterEach(() => {
