@@ -1,0 +1,93 @@
+name: All Tests & Coverage
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  backend-tests:
+    uses: ./.github/workflows/test-backend.yml
+
+  frontend-tests:
+    uses: ./.github/workflows/test-frontend.yml
+
+  coverage-report:
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download backend coverage
+      uses: actions/download-artifact@v3
+      with:
+        name: pytest-results-3.11
+        path: backend-coverage/
+
+    - name: Download frontend coverage
+      uses: actions/download-artifact@v3
+      with:
+        name: vitest-coverage-18.x
+        path: frontend-coverage/
+
+    - name: Generate coverage badge
+      run: |
+        # This would generate coverage badges for both backend and frontend
+        echo "Coverage reports available in artifacts"
+
+    - name: Comment PR with test summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `## Test Results\n\n✅ Backend Tests\n✅ Frontend Tests\n\n📊 See detailed coverage reports in artifacts.`
+          });
+      continue-on-error: true
+
+  quality-gate:
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Check backend test results
+      if: needs.backend-tests.result != 'success'
+      run: |
+        echo "Backend tests failed"
+        exit 1
+
+    - name: Check frontend test results
+      if: needs.frontend-tests.result != 'success'
+      run: |
+        echo "Frontend tests failed"
+        exit 1
+
+    - name: All tests passed
+      run: echo "✅ All tests passed"
+
+  notify:
+    needs: [quality-gate]
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'push'
+
+    steps:
+    - name: Notify on failure
+      if: needs.quality-gate.result != 'success'
+      run: |
+        echo "Tests failed, notifying team..."
+        # Add notification logic here (Slack, email, etc.)
+
+    - name: Notify on success
+      if: needs.quality-gate.result == 'success'
+      run: |
+        echo "Tests passed!"

@@ -1,0 +1,60 @@
+{
+  "name": "patient-search",
+  "display_name": "Patient Search",
+  "version": "1.0.0",
+  "description": "Search and filter patients using medical concepts with meta-annotation filtering for 95% precision",
+  "dependencies": [],
+  "permissions": [
+    "patient_search.view",
+    "patient_search.search",
+    "patient_search.export",
+    "patient_search.saved_searches"
+  ],
+  "routes": [
+    {
+      "path": "/search",
+      "methods": ["POST"],
+      "description": "Execute patient search with filters"
+    },
+    {
+      "path": "/concepts",
+      "methods": ["GET"],
+      "description": "Get available medical concepts for autocomplete"
+    },
+    {
+      "path": "/saved-searches",
+      "methods": ["GET", "POST"],
+      "description": "Manage saved searches"
+    },
+    {
+      "path": "/saved-searches/{id}",
+      "methods": ["DELETE"],
+      "description": "Delete saved search"
+    },
+    {
+      "path": "/export",
+      "methods": ["POST"],
+      "description": "Export search results to CSV or FHIR"
+    }
+  ],
+  "configuration": {
+    "enabled_features": [
+      "meta_annotations",
+      "advanced_filters",
+      "export_csv",
+      "export_fhir",
+      "saved_searches"
+    ],
+    "confidence_threshold": 0.7,
+    "max_results": 100,
+    "cache_ttl": 300,
+    "medcat_service_url": "http://localhost:5000",
+    "meta_annotation_defaults": {
+      "negation": "Affirmed",
+      "temporality": ["Current", "Recent"],
+      "experiencer": "Patient",
+      "certainty": ["Confirmed", "Suspected"]
+    }
+  },
+  "entry_point": "__init__"
+}

@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: clinical-care-db
+    environment:
+      POSTGRES_DB: clinical_care_tools
+      POSTGRES_USER: ${POSTGRES_USER:-clinical_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clinical_admin} -d clinical_care_tools"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - clinical-network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: clinical-care-cache
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - clinical-network
+    restart: unless-stopped
+
+  # CogStack-ModelServe (NLP Service)
+  cogstack-modelserve:
+    image: cogstacksystems/medcat-service:latest
+    container_name: clinical-care-nlp
+    environment:
+      - MODEL_PATH=/models
+      - WORKERS=4
+      - LOG_LEVEL=info
+    volumes:
+      - ./models:/models:ro
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - clinical-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clinical-care-backend
+    environment:
+      # Database
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-clinical_admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/clinical_care_tools
+      - DATABASE_POOL_SIZE=20
+      - DATABASE_MAX_OVERFLOW=10
+
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_CACHE_TTL=3600
+
+      # CogStack-ModelServe
+      - COGSTACK_MODELSERVE_URL=http://cogstack-modelserve:8001
+      - COGSTACK_TIMEOUT=30
+
+      # JWT & Security
+      - SECRET_KEY=${SECRET_KEY:-changeme-in-production}
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRATION_HOURS=8
+      - JWT_REFRESH_DAYS=7
+
+      # CORS
+      - CORS_ORIGINS=http://localhost:8080,http://localhost:3000
+
+      # Audit Logging
+      - AUDIT_LOG_RETENTION_DAYS=2555
+      - AUDIT_LOG_PATH=/var/log/audit
+
+      # Application
+      - ENVIRONMENT=development
+      - LOG_LEVEL=info
+      - WORKERS=4
+
+    volumes:
+      - ./backend:/app
+      - audit_logs:/var/log/audit
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      cogstack-modelserve:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - clinical-network
+    restart: unless-stopped
+
+  # Vue 3 Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clinical-care-frontend
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_APP_TITLE=Clinical Care Tools
+      - VITE_ENVIRONMENT=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    networks:
+      - clinical-network
+    restart: unless-stopped
+
+networks:
+  clinical-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  audit_logs:
+    driver: local
