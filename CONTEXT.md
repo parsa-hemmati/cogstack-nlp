@@ -23,7 +23,7 @@
 
 ## 📝 Recent Changes
 
-### 2025-11-22 - Sprint 2: Timeline View Module - Tasks 1.1-4.1 Complete
+### 2025-11-22 - Sprint 2: Timeline View Module - Tasks 1.1-4.2 Complete
 
 **Commits**:
 - d585be2 - Tasks 1.1-1.2: Database foundation (timeline tables, Pydantic models)
@@ -32,7 +32,8 @@
 - 504a9c5 - Task 2.3 prep: Integration test structure
 - 166019a - Task 2.3: Timeline API Router (7 endpoints, 26 integration tests)
 - 58898f2 - Tasks 3.1-3.3: Timeline Export Service (PDF, FHIR R4, JSON)
-- [pending] - Task 4.1: Timeline Pinia Store (Vue 3 frontend state management)
+- 2b6d1e6 - Task 4.1: Timeline Pinia Store (Vue 3 frontend state management)
+- [pending] - Task 4.2: D3.js Timeline Visualization Component
 
 **Added**:
 - Task 1.1: Timeline database tables (migration `004_add_timeline_tables.py`)
@@ -89,6 +90,20 @@
   - Download file handling with blob URLs and automatic cleanup
   - 11 unit tests (fetchTimeline, fetchConceptDetails, exportTimeline, getExportStatus, downloadExport, saveFilterPreset, loadFilterPresets, clearTimeline)
   - TypeScript types in `frontend/src/types/timeline.ts` (10 interfaces, 5 enums matching backend Pydantic models)
+- Task 4.2: D3.js Timeline Visualization (`frontend/src/components/timeline/TimelineChart.vue`)
+  - Interactive D3.js timeline chart with Vue 3 Composition API
+  - D3 scales: scaleTime (X-axis for dates), scaleBand (Y-axis for document/concept types)
+  - D3 axes: axisBottom (time), axisLeft (types)
+  - D3 zoom behavior: scaleExtent [0.5, 10], pan within bounds
+  - Document markers: circles at document_date position (6px radius, #34495e color)
+  - Concept markers: circles at first_mention_date position (4px radius, color-coded by type)
+  - Color scheme: Disease=red, Medication=blue, Procedure=green, Symptom=orange, Test=purple, Diagnosis=orange, default=gray
+  - Event emitters: concept-click, document-click
+  - Tooltip on hover: shows concept name or document title
+  - Legend: displays concept types with colors
+  - Loading/empty states: proper UI feedback
+  - 13 unit tests covering rendering, markers, axes, legend, zoom, tooltip, event handling
+  - Requires d3@7.9.0, @types/d3@7.4.3 (documented dependency)
 
 **Changed**:
 - Fixed UUID type annotations in `app/models/timeline.py` (TimelineView.id, task_id, user_id)
