@@ -1,12 +1,12 @@
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
-import vuetify from 'vite-plugin-vuetify'
 import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
   plugins: [
-    vue(),
-    vuetify({ autoImport: true })
+    vue()
+    // Note: vite-plugin-vuetify autoImport is removed for testing
+    // Tests manually create Vuetify instances with createVuetify()
   ],
   test: {
     environment: 'happy-dom',

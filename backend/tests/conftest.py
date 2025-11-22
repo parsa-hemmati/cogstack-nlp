@@ -788,3 +788,27 @@ async def test_db(db: AsyncSession) -> AsyncSession:
         Database session
     """
     return db
+
+
+# Alias for async_client fixture (some tests use this name)
+@pytest.fixture(scope="function")
+async def async_client(client: AsyncClient) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Alias for client fixture - provides AsyncClient for API testing.
+    
+    Some tests reference 'async_client' while others use 'client'.
+    This fixture ensures both names work interchangeably.
+    """
+    yield client
+
+
+# Alias for db_session fixture (some tests use this name)
+@pytest.fixture(scope="function")
+async def db_session(db: AsyncSession) -> AsyncGenerator[AsyncSession, None]:
+    """
+    Alias for db fixture - provides AsyncSession for database testing.
+    
+    Some tests reference 'db_session' while others use 'db'.
+    This fixture ensures both names work interchangeably.
+    """
+    yield db

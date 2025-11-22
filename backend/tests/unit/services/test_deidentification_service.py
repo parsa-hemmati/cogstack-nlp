@@ -20,55 +20,38 @@ class TestDeidentificationServiceRemoval:
     """Test suite for removal method (default)."""
 
     @pytest.fixture
-    def mock_medcat_client(self):
-        """Mock MedCAT client."""
-        client = Mock()
-        client.detect_phi = AsyncMock()
-        # Mock classify_entity_type to return PHI type based on entity types
-        def mock_classify(entity):
-            if "Person" in entity.types or "Name" in entity.types:
-                return "phi_name"
-            elif "Date" in entity.types:
-                return "phi_date"
-            elif "NHS Number" in entity.types:
-                return "phi_nhs_number"
-            elif "Address" in entity.types or "Location" in entity.types:
-                return "phi_address"
-            elif "Age" in entity.types:
-                return "phi_age"
-            else:
-                return "clinical"
-        client.classify_entity_type = Mock(side_effect=mock_classify)
-        return client
+    def mock_phi_detection_service(self):
+        """Mock PHI detection service."""
+        service = Mock()
+        service.detect_phi = AsyncMock()
+        return service
 
     @pytest.fixture
-    def service(self, mock_medcat_client):
+    def service(self, mock_phi_detection_service):
         """Create deidentification service."""
-        return DeidentificationService(medcat_client=mock_medcat_client)
+        return DeidentificationService(phi_detection_service=mock_phi_detection_service)
 
     @pytest.mark.asyncio
-    async def test_deidentify_removal_method(self, service, mock_medcat_client):
+    async def test_deidentify_removal_method(self, service, mock_phi_detection_service):
         """Test removal method replaces PHI with [TYPE] placeholders."""
         # Arrange
         text = "Patient John Doe was admitted on 01/15/2024"
-        mock_medcat_client.detect_phi.return_value = [
-            Entity(
-                pretty_name="John Doe",
-                types=["Person", "Name"],
+        mock_phi_detection_service.detect_phi.return_value = [
+            PHIEntity(
+                entity_type="NAME",
+                text="John Doe",
                 start=8,
                 end=16,
-                accuracy=0.95,
+                confidence=0.95,
                 cui=None,
-                meta_anns={},
             ),
-            Entity(
-                pretty_name="01/15/2024",
-                types=["Date"],
+            PHIEntity(
+                entity_type="DATE",
+                text="01/15/2024",
                 start=33,
                 end=43,
-                accuracy=0.92,
+                confidence=0.92,
                 cui=None,
-                meta_anns={},
             ),
         ]
 
@@ -121,31 +104,16 @@ class TestDeidentificationServiceReplacement:
     """Test suite for replacement method (consistent mapping)."""
 
     @pytest.fixture
-    def mock_medcat_client(self):
-        """Mock MedCAT client."""
-        client = Mock()
-        client.detect_phi = AsyncMock()
-        # Mock classify_entity_type to return PHI type based on entity types
-        def mock_classify(entity):
-            if "Person" in entity.types or "Name" in entity.types:
-                return "phi_name"
-            elif "Date" in entity.types:
-                return "phi_date"
-            elif "NHS Number" in entity.types:
-                return "phi_nhs_number"
-            elif "Address" in entity.types or "Location" in entity.types:
-                return "phi_address"
-            elif "Age" in entity.types:
-                return "phi_age"
-            else:
-                return "clinical"
-        client.classify_entity_type = Mock(side_effect=mock_classify)
-        return client
+    def mock_phi_detection_service(self):
+        """Mock PHI detection service."""
+        service = Mock()
+        service.detect_phi = AsyncMock()
+        return service
 
     @pytest.fixture
-    def service(self, mock_medcat_client):
+    def service(self, mock_phi_detection_service):
         """Create deidentification service."""
-        return DeidentificationService(medcat_client=mock_medcat_client)
+        return DeidentificationService(phi_detection_service=mock_phi_detection_service)
 
     @pytest.mark.asyncio
     async def test_deidentify_replacement_consistent_mapping(
@@ -232,31 +200,16 @@ class TestDeidentificationServiceGeneralization:
     """Test suite for generalization method."""
 
     @pytest.fixture
-    def mock_medcat_client(self):
-        """Mock MedCAT client."""
-        client = Mock()
-        client.detect_phi = AsyncMock()
-        # Mock classify_entity_type to return PHI type based on entity types
-        def mock_classify(entity):
-            if "Person" in entity.types or "Name" in entity.types:
-                return "phi_name"
-            elif "Date" in entity.types:
-                return "phi_date"
-            elif "NHS Number" in entity.types:
-                return "phi_nhs_number"
-            elif "Address" in entity.types or "Location" in entity.types:
-                return "phi_address"
-            elif "Age" in entity.types:
-                return "phi_age"
-            else:
-                return "clinical"
-        client.classify_entity_type = Mock(side_effect=mock_classify)
-        return client
+    def mock_phi_detection_service(self):
+        """Mock PHI detection service."""
+        service = Mock()
+        service.detect_phi = AsyncMock()
+        return service
 
     @pytest.fixture
-    def service(self, mock_medcat_client):
+    def service(self, mock_phi_detection_service):
         """Create deidentification service."""
-        return DeidentificationService(medcat_client=mock_medcat_client)
+        return DeidentificationService(phi_detection_service=mock_phi_detection_service)
 
     @pytest.mark.asyncio
     async def test_deidentify_generalization_dates(
@@ -348,31 +301,16 @@ class TestDeidentificationServiceReviewFlagging:
     """Test suite for manual review flagging."""
 
     @pytest.fixture
-    def mock_medcat_client(self):
-        """Mock MedCAT client."""
-        client = Mock()
-        client.detect_phi = AsyncMock()
-        # Mock classify_entity_type to return PHI type based on entity types
-        def mock_classify(entity):
-            if "Person" in entity.types or "Name" in entity.types:
-                return "phi_name"
-            elif "Date" in entity.types:
-                return "phi_date"
-            elif "NHS Number" in entity.types:
-                return "phi_nhs_number"
-            elif "Address" in entity.types or "Location" in entity.types:
-                return "phi_address"
-            elif "Age" in entity.types:
-                return "phi_age"
-            else:
-                return "clinical"
-        client.classify_entity_type = Mock(side_effect=mock_classify)
-        return client
+    def mock_phi_detection_service(self):
+        """Mock PHI detection service."""
+        service = Mock()
+        service.detect_phi = AsyncMock()
+        return service
 
     @pytest.fixture
-    def service(self, mock_medcat_client):
+    def service(self, mock_phi_detection_service):
         """Create deidentification service."""
-        return DeidentificationService(medcat_client=mock_medcat_client)
+        return DeidentificationService(phi_detection_service=mock_phi_detection_service)
 
     @pytest.mark.asyncio
     async def test_deidentify_flags_low_confidence(
@@ -460,31 +398,16 @@ class TestDeidentificationServiceValidation:
     """Test suite for validation checks."""
 
     @pytest.fixture
-    def mock_medcat_client(self):
-        """Mock MedCAT client."""
-        client = Mock()
-        client.detect_phi = AsyncMock()
-        # Mock classify_entity_type to return PHI type based on entity types
-        def mock_classify(entity):
-            if "Person" in entity.types or "Name" in entity.types:
-                return "phi_name"
-            elif "Date" in entity.types:
-                return "phi_date"
-            elif "NHS Number" in entity.types:
-                return "phi_nhs_number"
-            elif "Address" in entity.types or "Location" in entity.types:
-                return "phi_address"
-            elif "Age" in entity.types:
-                return "phi_age"
-            else:
-                return "clinical"
-        client.classify_entity_type = Mock(side_effect=mock_classify)
-        return client
+    def mock_phi_detection_service(self):
+        """Mock PHI detection service."""
+        service = Mock()
+        service.detect_phi = AsyncMock()
+        return service
 
     @pytest.fixture
-    def service(self, mock_medcat_client):
+    def service(self, mock_phi_detection_service):
         """Create deidentification service."""
-        return DeidentificationService(medcat_client=mock_medcat_client)
+        return DeidentificationService(phi_detection_service=mock_phi_detection_service)
 
     @pytest.mark.asyncio
     async def test_validate_deidentification_catches_remaining_phi(
@@ -565,31 +488,16 @@ class TestDeidentificationServiceErrorHandling:
     """Test suite for error handling."""
 
     @pytest.fixture
-    def mock_medcat_client(self):
-        """Mock MedCAT client."""
-        client = Mock()
-        client.detect_phi = AsyncMock()
-        # Mock classify_entity_type to return PHI type based on entity types
-        def mock_classify(entity):
-            if "Person" in entity.types or "Name" in entity.types:
-                return "phi_name"
-            elif "Date" in entity.types:
-                return "phi_date"
-            elif "NHS Number" in entity.types:
-                return "phi_nhs_number"
-            elif "Address" in entity.types or "Location" in entity.types:
-                return "phi_address"
-            elif "Age" in entity.types:
-                return "phi_age"
-            else:
-                return "clinical"
-        client.classify_entity_type = Mock(side_effect=mock_classify)
-        return client
+    def mock_phi_detection_service(self):
+        """Mock PHI detection service."""
+        service = Mock()
+        service.detect_phi = AsyncMock()
+        return service
 
     @pytest.fixture
-    def service(self, mock_medcat_client):
+    def service(self, mock_phi_detection_service):
         """Create deidentification service."""
-        return DeidentificationService(medcat_client=mock_medcat_client)
+        return DeidentificationService(phi_detection_service=mock_phi_detection_service)
 
     @pytest.mark.asyncio
     async def test_deidentify_handles_empty_text(self, service, mock_medcat_client):
@@ -661,31 +569,16 @@ class TestDeidentificationServiceBatch:
     """Test suite for batch processing."""
 
     @pytest.fixture
-    def mock_medcat_client(self):
-        """Mock MedCAT client."""
-        client = Mock()
-        client.detect_phi = AsyncMock()
-        # Mock classify_entity_type to return PHI type based on entity types
-        def mock_classify(entity):
-            if "Person" in entity.types or "Name" in entity.types:
-                return "phi_name"
-            elif "Date" in entity.types:
-                return "phi_date"
-            elif "NHS Number" in entity.types:
-                return "phi_nhs_number"
-            elif "Address" in entity.types or "Location" in entity.types:
-                return "phi_address"
-            elif "Age" in entity.types:
-                return "phi_age"
-            else:
-                return "clinical"
-        client.classify_entity_type = Mock(side_effect=mock_classify)
-        return client
+    def mock_phi_detection_service(self):
+        """Mock PHI detection service."""
+        service = Mock()
+        service.detect_phi = AsyncMock()
+        return service
 
     @pytest.fixture
-    def service(self, mock_medcat_client):
+    def service(self, mock_phi_detection_service):
         """Create deidentification service."""
-        return DeidentificationService(medcat_client=mock_medcat_client)
+        return DeidentificationService(phi_detection_service=mock_phi_detection_service)
 
     @pytest.mark.asyncio
     async def test_deidentify_batch(self, service, mock_medcat_client):
