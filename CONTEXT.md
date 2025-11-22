@@ -176,7 +176,7 @@ The current development focus is **extending** this ecosystem with **clinical ca
     - ✅ 52 comprehensive unit tests written (exceeds 40+ requirement)
     - ⚠️ Test pass rate: 50% (26/52 tests passing, Vuetify interaction issues)
     - ✅ Full accessibility support (ARIA, keyboard navigation)
-  - ⏳ **Phase 4 (Saved Searches & Export)**: IN PROGRESS - Backend Complete (3/6 tasks, 50%)
+  - ✅ **Phase 4 (Saved Searches & Export)**: COMPLETE (6/6 tasks, 100%)
     - ✅ Task 4.1: Create Saved Searches API Endpoints (COMPLETE - 3 hours)
       - POST /api/v1/search/saved (create saved search)
       - GET /api/v1/search/saved (list user's saved searches)
@@ -184,8 +184,21 @@ The current development focus is **extending** this ecosystem with **clinical ca
       - Audit logging (SEARCH_SAVED, SEARCH_DELETED actions)
       - Ownership validation (users can only delete own searches)
       - 13 integration tests written (SQLite/JSONB compatibility issue, code verified)
-    - ⏳ Task 4.2: Create SavedSearches Component - NOT STARTED
-    - ⏳ Task 4.3: Create SaveSearchDialog Component - NOT STARTED
+    - ✅ Task 4.2: Create SavedSearches Component (COMPLETE - 3 hours, created by parallel agents)
+      - v-list with saved searches (name, query, description, execution count)
+      - Click handler to execute saved search
+      - Delete button with confirmation dialog
+      - "Save Current Search" button
+      - Shared indicator chip for is_shared searches
+      - 14 unit tests written
+    - ✅ Task 4.3: Create SaveSearchDialog Component (COMPLETE - 2 hours, created by parallel agents)
+      - v-dialog with v-form
+      - Name input (required, min 3 characters validation)
+      - Description textarea (optional)
+      - Query preview (read-only display)
+      - Filters preview (chip display)
+      - Save button with loading state
+      - Error handling with dismissible alert
     - ✅ Task 4.4: Implement ExportService (COMPLETE - 4 hours)
       - export_to_csv() - CSV with metadata header
       - export_to_json() - Structured JSON with query metadata
@@ -198,7 +211,14 @@ The current development focus is **extending** this ecosystem with **clinical ca
       - Returns StreamingResponse with file download
       - Content-Disposition header for filename
       - Authentication required
-    - ⏳ Task 4.6: Integrate Export into SearchView - NOT STARTED
+    - ✅ Task 4.6: Integrate Export into SearchView (COMPLETE - 1 hour)
+      - Created SearchView.vue with full integration
+      - Saved searches sidebar (left column)
+      - Search bar and results (main content)
+      - Export toolbar with 3 buttons (CSV, JSON, FHIR)
+      - Download using Blob API
+      - Success/error snackbars
+      - Route added (/search)
   - ⏳ Phase 5 (Analytics & Admin Dashboard): Not started
   - ⏳ Phase 6 (Testing & Hardening): Not started
 

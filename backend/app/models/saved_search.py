@@ -6,8 +6,8 @@ Stores user-defined reusable search queries with filters.
 """
 import uuid
 from datetime import datetime
-from sqlalchemy import Boolean, Column, String, Text, DateTime, Integer, ForeignKey, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Boolean, Column, String, Text, DateTime, Integer, ForeignKey, UniqueConstraint, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
@@ -49,7 +49,7 @@ class SavedSearch(Base):
 
     # Search parameters
     query = Column(Text, nullable=False)  # Full-text search query
-    filters = Column(JSONB, nullable=True)  # Meta-annotation filters, date ranges, etc.
+    filters = Column(JSON, nullable=True)  # Meta-annotation filters, date ranges, etc. (uses JSONB in PostgreSQL)
 
     # Sharing and usage tracking
     is_shared = Column(Boolean, nullable=False, default=False, index=True)

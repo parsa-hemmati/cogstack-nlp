@@ -6,8 +6,8 @@ Tracks query performance, result quality, and user behavior.
 """
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, Text, DateTime, Integer, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
+from sqlalchemy import Column, Text, DateTime, Integer, ForeignKey, Index, JSON
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
@@ -46,7 +46,7 @@ class SearchAnalytics(Base):
 
     # Search parameters
     query = Column(Text, nullable=False)  # Raw search query
-    filters = Column(JSONB, nullable=True)  # Applied filters
+    filters = Column(JSON, nullable=True)  # Applied filters (uses JSONB in PostgreSQL)
 
     # Performance metrics
     results_count = Column(Integer, nullable=False, index=True)  # Number of results returned
