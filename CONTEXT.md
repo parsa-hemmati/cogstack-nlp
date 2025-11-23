@@ -1465,9 +1465,46 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-23 - Task 3.5: CogStack-ModelServe Client Service
+
+**Commits**: [current] - feat(clients): implement CogStack-ModelServe async HTTP client
+
+**Added**:
+- `backend/app/clients/modelserve_client.py` - CogStack-ModelServe client
+  - `process_text(text, model_name)` - Extract SNOMED entities with meta-annotations
+  - `detect_phi(text)` - Detect PHI using medcat_deid model
+  - `process_text_bulk(texts, model_name)` - Batch processing
+  - `classify_entity_type(entity)` - Classify as PHI or clinical
+  - `health_check()` - Service health verification
+  - `get_available_models()` - List available models
+  - httpx.AsyncClient for async API calls
+  - 30-second timeout, retry logic via CogStack-ModelServe
+- `backend/tests/unit/clients/test_modelserve_client.py` - Unit tests (17 tests)
+
+**Why**:
+- Implements Task 3.5 (CogStack-ModelServe client)
+- Uses production-ready CogStack-ModelServe API (built-in retry, auth, monitoring)
+- Foundation for PHI extraction job (Task 3.9)
+- Provides SNOMED-CT entity extraction and PHI detection
+
+**Impact**:
+- ✅ Async HTTP client for CogStack-ModelServe API
+- ✅ SNOMED entity extraction with meta-annotations parsing
+- ✅ PHI detection (names, NHS numbers, dates, etc.)
+- ✅ Batch processing support
+- ✅ Health check and model discovery
+- ✅ 17 unit tests (mocked CogStack-ModelServe responses)
+
+**Migration Notes**:
+- Environment variable: MODELSERVE_URL (default: http://cogstack-modelserve:8000)
+- Models expected: medcat_snomed, medcat_deid
+- Meta-annotations: Negation, Temporality, Experiencer, Certainty
+
+---
+
 ### 2025-11-23 - Task 3.4: Document Upload API Endpoint
 
-**Commits**: [current] - feat(documents): implement document upload API with encryption and deduplication
+**Commits**: [924a2a9] - feat(documents): implement document upload API with encryption and deduplication
 
 **Added**:
 - `backend/app/api/v1/endpoints/documents.py` - Document upload endpoint
