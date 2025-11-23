@@ -1,8 +1,8 @@
 # Project Context - Living Architecture & Decisions
 
 **Status**: Living Document - Updated with EVERY commit
-**Last Updated**: 2025-11-22
-**Version**: 1.0.0
+**Last Updated**: 2025-11-23
+**Version**: 1.1.0
 
 > ⚠️ **CRITICAL**: This document MUST be updated before any code commit. No PR can be merged without context updates.
 
@@ -339,6 +339,64 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 ---
 
 ### Recent Changes
+
+#### [2025-11-23] - Sprint 6: Clinical Decision Support Technical Plan Created
+
+**Branch**: `claude/sprints-6-8-implementation-011M46D5vbdi9FbGxSzThebK`
+**File**: `.specify/plans/sprint-6-clinical-decision-support-plan.md` (v1.0.0, 74KB)
+
+**Status**: Technical Plan COMPLETE ✅ (Ready for Task Breakdown)
+
+**Scope**: 12 weeks, 360 hours, 7 implementation phases
+
+**Added**:
+- Comprehensive technical plan for Clinical Decision Support Module with Meditech Expanse integration
+- **Architecture**: FHIR Integration Layer → CDS Core Engine → Clinical Governance → Data Layer
+- **Database Schema**: 6 new tables (cds_guidelines, cds_rules, nhs_dmd_medications, drug_interactions, cds_recommendations, meditech_write_log)
+- **API Design**: 4 new endpoint groups (CDS recommendations, order creation, drug interaction checking, admin rules management)
+- **Implementation Phases**:
+  - Phase 6.1: CDS Core Infrastructure (3 weeks, 90 hours) - Mock FHIR integration
+  - Phase 6.2: Meditech Read Integration (2 weeks, 60 hours) - OAuth 2.0, FHIR read ops
+  - Phase 6.3: Drug Interaction Checking (1 week, 30 hours) - NHS dm+d database
+  - Phase 6.4: Meditech Write Integration (3 weeks, 90 hours) - Draft orders (MedicationRequest, ServiceRequest, Task, CommunicationRequest)
+  - Phase 6.5: Clinical Governance & RBAC (1 week, 30 hours) - Safety checks, approval workflows
+  - Phase 6.6: Meditech Workflow Integration (1 week, 30 hours) - InBasket alerts, order entry pre-population
+  - Phase 6.7: Testing & Validation (1 week, 30 hours) - UAT, performance testing, 90% coverage target
+- **Technology Stack**: fhir.resources 7.1.0, httpx 0.27.0, authlib 1.3.0, business-rules 1.0.1
+- **Testing Strategy**: 264 tests total (180 unit + 58 integration + 26 E2E), 90% coverage target
+- **Key Features**:
+  - Bidirectional FHIR R4 integration with Meditech Expanse
+  - Clinical guidelines database (ADA, AHA, USPSTF, NICE)
+  - CDS rules engine (IF-THEN logic)
+  - Drug interaction checking (NHS dm+d medication codes)
+  - Draft order creation (clinician approval workflow)
+  - Role-based permissions (doctors, pharmacists, nurses)
+  - Clinical safety checks (allergies, contraindications, duplicates)
+
+**Why**: Sprint 6 is critical next phase after Sprints 1-5 (Patient Search, Timeline, Full-Text Search, De-ID, Clinical Coding). CDS enables real-time clinical guidance integrated into Meditech workflows, improving guideline adherence and patient safety.
+
+**Impact**:
+- ✅ Provides complete roadmap for 12-week Sprint 6 implementation
+- ✅ Two-phase approach enables parallel development (mock integration → real Meditech)
+- ✅ Reduces risk with early clinical governance engagement
+- ✅ Comprehensive testing strategy (90% coverage, UAT with clinicians)
+- ⚠️ Requires Meditech sandbox access (Week 0 prerequisite)
+- ⚠️ Requires NHS dm+d database download from TRUD
+- ⚠️ Requires clinical governance approval for production deployment
+
+**Dependencies**:
+- Sprint 5 (Clinical Coding) - CDS rules match on ICD-10 condition codes
+- Base Application (Authentication, RBAC, Audit Logging)
+- Meditech Expanse sandbox access (OAuth 2.0 credentials, test patient data)
+- NHS dm+d database (monthly updates from TRUD)
+
+**Next Steps**:
+1. Create task breakdown for Sprint 6 (65+ tasks estimated)
+2. Request Meditech sandbox access (Week 0 prerequisite)
+3. Download NHS dm+d from TRUD
+4. Start Phase 6.1 implementation (CDS Core Infrastructure with mock data)
+
+---
 
 #### [2025-11-22] - Sprint 3 Phase 5 Task 5.6: Rate Limiting for Search Endpoints - COMPLETE
 
