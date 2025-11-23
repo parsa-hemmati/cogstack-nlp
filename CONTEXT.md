@@ -250,9 +250,63 @@ The repository contains **3 production-ready applications** and **4 supporting l
 
 ### Recent Changes
 
-#### 2025-11-23 - Task 2.5: Project Management Frontend Component
+#### 2025-11-23 - Task 2.6: Task List Frontend Component
 
 **Commits**: TBD (to be committed next)
+
+**Added**:
+- Tasks API Service: `frontend/src/services/tasks.ts` with CRUD functions for project tasks
+- Task Store: `frontend/src/stores/task.ts` with Pinia state management and filtering
+- Task List View: `frontend/src/views/TaskList.vue` with full task CRUD, filters, and overdue highlighting
+- Router Configuration: Added `/tasks` route with authentication
+
+**Changed**:
+- `frontend/src/router/index.ts` - Added tasks route
+
+**Why**:
+- Implements Task 2.6 from Phase 2 (User & Project Management)
+- Provides interface for task viewing and management within projects
+- Completes frontend trio (users, projects, tasks)
+- Enables task filtering by status, priority, and assignee
+- Highlights overdue tasks for better visibility
+- Follows Composition API and Vuetify Material Design patterns
+
+**Impact**:
+- ✅ Complete task management interface
+- ✅ Project selector dropdown to choose which project's tasks to view
+- ✅ Data table with title, status, priority, due date columns
+- ✅ Three filter controls: status, priority, assigned to (user ID)
+- ✅ Clear filters button to reset all filters
+- ✅ Create task dialog with title, description, status, priority, assignee, due date
+- ✅ Edit task dialog with all fields updatable
+- ✅ Overdue task highlighting: red alert icon and bold red due date for overdue tasks
+- ✅ Status chips with color coding (pending=grey, in_progress=blue, completed=green, blocked=red)
+- ✅ Priority chips with color coding (low=cyan, medium=blue, high=orange, urgent=red)
+- ✅ Real-time loading states and error handling
+- ✅ Success/error snackbar notifications
+- ✅ Form validation for required fields
+- ✅ Computed filtered tasks based on active filters
+- ✅ API integration through Axios with auth token interceptor
+- ✅ Auto-loads first project on mount if available
+
+**Migration Notes**:
+- Access task management at `/tasks` route
+- All authenticated users can access (no admin requirement)
+- Tasks scoped by project (must select project first)
+- Uses existing API authentication via localStorage access_token
+- Task operations require project membership (enforced by backend)
+
+**Technical Debt**:
+- Assignee display shows user IDs instead of names (needs user lookup integration)
+- No task deletion functionality in UI (backend ready)
+- Drag-and-drop status change not implemented (was optional)
+- Date input uses native HTML5 date picker (could use Vuetify date picker)
+
+---
+
+#### 2025-11-23 - Task 2.5: Project Management Frontend Component
+
+**Commits**: 551076f
 
 **Added**:
 - Projects API Service: `frontend/src/services/projects.ts` with CRUD and member management functions
