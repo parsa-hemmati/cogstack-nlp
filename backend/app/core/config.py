@@ -64,6 +64,13 @@ class Settings(BaseSettings):
     MEDCAT_SERVICE_URL: str = "http://medcat-service:5000"
     MEDCAT_SERVICE_TIMEOUT: int = 300  # 5 minutes
 
+    # Meditech FHIR Integration (Sprint 6 Phase 6.2)
+    MEDITECH_CLIENT_ID: Optional[str] = None  # OAuth 2.0 client ID
+    MEDITECH_CLIENT_SECRET: Optional[str] = None  # OAuth 2.0 client secret
+    MEDITECH_TOKEN_URL: str = "https://meditech-uk.cloud/oauth2/token"  # OAuth token endpoint
+    MEDITECH_FHIR_BASE_URL: str = "https://meditech-uk.cloud/fhir/r4"  # FHIR API base URL
+    USE_MOCK_FHIR: bool = True  # Use mock FHIR service (default True for local development)
+
     # Security
     ENCRYPTION_KEY: str  # AES-256 encryption key for PHI
     BREAK_GLASS_LOG_RETENTION_DAYS: int = 2920  # 8 years (HIPAA compliance)
