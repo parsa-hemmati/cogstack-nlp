@@ -1465,9 +1465,43 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-23 - Task 3.8: Patients Database Model
+
+**Commits**: [current] - feat(models): create Patient model for aggregated patient records
+
+**Added**:
+- `backend/app/models/patient.py` - Patient model
+  - Fields: id, nhs_number (unique), full_name, date_of_birth, address, first_seen_at, last_seen_at, document_count, created_at, updated_at
+  - Helper methods: update_last_seen(), normalize_nhs_number(), validate_nhs_number()
+  - NHS number normalized to "XXX XXX XXXX" format
+- `backend/alembic/versions/008_j6k7l8m9n0p1_create_patients_table.py` - Migration
+  - Unique constraint and index on nhs_number
+  - Added foreign key from extracted_entities.patient_id to patients.id (deferred from migration 007)
+- Updated `backend/app/models/__init__.py` with Patient
+
+**Why**:
+- Implements Task 3.8 (Patients Database Model)
+- Stores aggregated patient demographics from PHI extraction
+- NHS number serves as natural key for patient identity
+- Foundation for patient aggregation service (Task 3.10)
+
+**Impact**:
+- ✅ Patient model with 10 fields
+- ✅ NHS number unique constraint and validation
+- ✅ Helper methods for NHS number normalization
+- ✅ Tracking fields (first_seen_at, last_seen_at, document_count)
+- ✅ Foreign key link from extracted_entities to patients (SET NULL on delete)
+
+**Migration Notes**:
+- Run: `alembic upgrade head` (when database available)
+- Migration 008 adds foreign key from extracted_entities.patient_id to patients.id
+- Migration 008 depends on migration 007 (extracted_entities table)
+
+---
+
 ### 2025-11-23 - Task 3.7: Extracted Entities Database Model
 
-**Commits**: [current] - feat(models): create ExtractedEntity model for PHI and clinical entities
+**Commits**: [25603bc] - feat(models): create ExtractedEntity model for PHI and clinical entities
 
 **Added**:
 - `backend/app/models/extracted_entity.py` - ExtractedEntity model
