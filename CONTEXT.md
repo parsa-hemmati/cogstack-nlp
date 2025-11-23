@@ -2,7 +2,7 @@
 
 **Status**: Living Document - Updated with EVERY commit
 **Last Updated**: 2025-11-23
-**Version**: 1.1.1
+**Version**: 1.1.2
 
 > ⚠️ **CRITICAL**: This document MUST be updated before any code commit. No PR can be merged without context updates.
 
@@ -443,7 +443,7 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 - Pydantic 2.x (already installed)
 
 **Next Steps**:
-1. Task 6.1.2: Create CDS Guidelines Database Schema (cds_guidelines table)
+1. ✅ Task 6.1.2: Create CDS Guidelines Database Schema (COMPLETE)
 2. Task 6.1.3: Create CDS Rules Database Schema (cds_rules table)
 
 **Test Results** (Standalone Verification):
@@ -458,6 +458,71 @@ NHS Number Validation: 8/8 tests passed
 ✓ Too long raises exception
 ✓ Contains letters raises exception
 ```
+
+---
+
+#### [2025-11-23] - Sprint 6 Phase 6.1 Task 6.1.2: CDS Guidelines Database Schema - COMPLETE
+
+**Branch**: `claude/sprints-6-8-implementation-011M46D5vbdi9FbGxSzThebK`
+**Files Created**:
+- `backend/alembic/versions/015_create_cds_guidelines_table.py` (69 lines)
+- `backend/alembic/versions/015_VERIFICATION.md` (verification SQL and usage examples)
+- `backend/app/models/cds_guideline.py` (87 lines)
+- `backend/app/models/__init__.py` (updated to export CDSGuideline)
+
+**Status**: Task 6.1.2 COMPLETE ✅ (Migration created, model defined)
+
+**Added**:
+- **Database Migration 015**: Creates `cds_guidelines` table
+  - 9 columns: id (UUID), guideline_source, guideline_name, condition_code, recommendation, evidence_level, rationale, last_updated, created_at
+  - Unique constraint: (guideline_source, guideline_name, condition_code)
+  - 3 indexes: condition_code (primary query), guideline_source, evidence_level
+  - 2 check constraints: guideline_source IN ('ADA', 'AHA', 'USPSTF', 'NICE'), evidence_level IN ('A', 'B', 'C')
+- **SQLAlchemy Model**: `CDSGuideline` ORM model
+  - Maps to cds_guidelines table
+  - Includes to_dict() method for JSON serialization
+  - Proper type hints and documentation
+- **Verification Document**: SQL verification queries and usage examples
+
+**Why**: Task 6.1.2 from Sprint 6 Phase 6.1 (CDS Core Infrastructure). Guidelines database stores evidence-based clinical recommendations from authoritative sources (ADA, AHA, USPSTF, NICE) for matching to patient conditions.
+
+**Impact**:
+- ✅ Database schema defined for clinical guidelines storage
+- ✅ Supports 4 authoritative guideline sources (extensible to more)
+- ✅ ICD-10 and SNOMED CT condition code matching
+- ✅ Evidence levels (A/B/C) for recommendation strength
+- ✅ Unique constraint prevents duplicate guidelines
+- ✅ Indexed for fast lookups by condition code (O(log n))
+- ⏳ Migration pending: Run `alembic upgrade head` when PostgreSQL available
+
+**Database Schema**:
+```sql
+CREATE TABLE cds_guidelines (
+    id UUID PRIMARY KEY,
+    guideline_source VARCHAR(50) NOT NULL,  -- 'ADA', 'AHA', 'USPSTF', 'NICE'
+    guideline_name VARCHAR(255) NOT NULL,
+    condition_code VARCHAR(50) NOT NULL,    -- ICD-10 or SNOMED CT
+    recommendation TEXT NOT NULL,
+    evidence_level VARCHAR(10) NOT NULL,    -- 'A', 'B', 'C'
+    rationale TEXT NOT NULL,
+    last_updated TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_cds_guidelines_source_name_condition
+        UNIQUE (guideline_source, guideline_name, condition_code)
+);
+
+CREATE INDEX ix_cds_guidelines_condition_code ON cds_guidelines (condition_code);
+CREATE INDEX ix_cds_guidelines_source ON cds_guidelines (guideline_source);
+CREATE INDEX ix_cds_guidelines_evidence_level ON cds_guidelines (evidence_level);
+```
+
+**Dependencies**:
+- Task 6.1.1 (FHIR models) - condition codes match ICD-10/SNOMED from FHIR resources
+- PostgreSQL with UUID extension (gen_random_uuid())
+
+**Next Steps**:
+1. Task 6.1.3: Create CDS Rules Database Schema (cds_rules table)
+2. Task 6.1.4: Load initial clinical guidelines data (ADA, AHA guidelines)
 
 ---
 
