@@ -1465,6 +1465,55 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-23 - Task 4.2: Create Module Registry Service
+
+**Commits**: [current] - feat(services): implement module registry for dynamic module loading
+
+**Added**:
+- `backend/app/services/module_registry.py` - Module registry service
+  - `get_enabled_modules(db)` - List all enabled modules sorted by name
+  - `get_module(db, name)` - Get module by name (enabled or disabled)
+  - `register_module_routes(app, module_name)` - Placeholder for dynamic route registration
+  - Database queries using SQLAlchemy async
+  - Returns only enabled modules for UI display
+  - Returns any module by name for admin management
+- `backend/tests/unit/services/test_module_registry.py` - Unit tests (10 tests)
+  - Test get_enabled_modules() returns enabled only
+  - Test modules sorted alphabetically
+  - Test get_module() by name
+  - Test enabled and disabled modules accessible
+  - Test module not found returns None
+  - Test module configuration accessible (JSONB)
+  - Test default_filters accessible
+  - Test permissions accessible
+  - Test register_module_routes() placeholder
+
+**Why**:
+- Implements Task 4.2 (Module Registry Service)
+- Provides API for listing and retrieving modules
+- Foundation for dynamic module UI navigation
+- Admin can query any module (enabled or disabled)
+- Configuration and permissions accessible per module
+- Placeholder for future dynamic route registration
+- TDD approach: Tests written first, service implemented to pass
+
+**Impact**:
+- ✅ List enabled modules for UI navigation
+- ✅ Retrieve module configuration (max_results, default_filters, etc.)
+- ✅ Access module permissions array
+- ✅ Query any module by name (admin functionality)
+- ✅ Sorted alphabetically for consistent display
+- ✅ Foundation for Task 4.3 (Patient Search API)
+
+**Migration Notes**:
+- No database changes (uses existing modules table from Task 4.1)
+- Used by frontend to display available modules
+- Used by API endpoints to validate module access
+- Example: `modules = await get_enabled_modules(db)` for UI nav
+- Example: `module = await get_module(db, "patient-search")` for config
+
+---
+
 ### 2025-11-23 - Task 4.1: Create Modules Database Model
 
 **Commits**: [current] - feat(models): create Module model for dynamic module registry
