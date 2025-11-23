@@ -1465,9 +1465,53 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-23 - Task 3.9: PHI Extraction Background Job
+
+**Commits**: [current] - feat(services): implement document processing background service
+
+**Added**:
+- `backend/app/services/document_processing_service.py` - Document processing service
+  - `process_document(document_id, db)` - Main processing function (6 steps)
+  - `_store_entity()` - Store extracted entity in database
+  - `_aggregate_patient()` - Create/update patient record from NHS number
+  - Processing pipeline:
+    1. Decrypt document content
+    2. Extract SNOMED entities via CogStack-ModelServe
+    3. Detect PHI via CogStack-ModelServe DeID model
+    4. Classify entities (PHI vs clinical)
+    5. Store all entities in extracted_entities table
+    6. Aggregate patient demographics if NHS number found
+    7. Update document status (processing → completed/failed)
+  - Error handling and status updates
+  - Comprehensive logging
+
+**Why**:
+- Implements Task 3.9 (PHI Extraction Background Job)
+- Core NLP processing pipeline for clinical documents
+- Integrates all components: encryption, ModelServe, classifier, models
+- Enables patient-centric record aggregation
+- FastAPI BackgroundTasks compatible
+
+**Impact**:
+- ✅ Complete document processing pipeline (7 steps)
+- ✅ SNOMED entity extraction via CogStack-ModelServe
+- ✅ PHI detection and classification
+- ✅ Patient aggregation by NHS number
+- ✅ Document status tracking (pending → processing → completed/failed)
+- ✅ Error handling with rollback
+- ✅ Links entities to patients automatically
+
+**Migration Notes**:
+- Use as FastAPI background task: `background_tasks.add_task(process_document, ...)`
+- Requires CogStack-ModelServe at MODELSERVE_URL
+- Updates document.processing_status automatically
+- Creates/updates patient records based on NHS number
+
+---
+
 ### 2025-11-23 - Task 3.8: Patients Database Model
 
-**Commits**: [current] - feat(models): create Patient model for aggregated patient records
+**Commits**: [edfc58c] - feat(models): create Patient model for aggregated patient records
 
 **Added**:
 - `backend/app/models/patient.py` - Patient model
