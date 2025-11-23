@@ -1465,9 +1465,45 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-23 - Task 3.7: Extracted Entities Database Model
+
+**Commits**: [current] - feat(models): create ExtractedEntity model for PHI and clinical entities
+
+**Added**:
+- `backend/app/models/extracted_entity.py` - ExtractedEntity model
+  - Fields: id, document_id, patient_id (nullable), entity_type, cui, pretty_name, start_char, end_char, accuracy, meta_anns (JSONB), created_at
+  - EntityType enum: PHI_NAME, PHI_NHS_NUMBER, PHI_DOB, PHI_DATE, PHI_ADDRESS, PHI_PHONE, PHI_EMAIL, CLINICAL
+  - Helper methods: is_phi(), is_clinical(), is_affirmed(), is_current(), is_patient_experiencer()
+  - Relationships: document (CASCADE DELETE), patient (SET NULL, nullable)
+- `backend/alembic/versions/007_e1f2g3h4i5j6_create_extracted_entities_table.py` - Migration
+  - Indexes on: document_id, patient_id, entity_type, cui
+  - Foreign key to documents with CASCADE DELETE
+  - patient_id FK deferred (will be added after patients table created in Task 3.8)
+- Updated `backend/app/models/__init__.py` with ExtractedEntity, EntityType
+
+**Why**:
+- Implements Task 3.7 (Extracted Entities Database Model)
+- Stores both PHI and clinical entities extracted by CogStack-ModelServe
+- Meta-annotations (JSONB) for flexible querying (Negation, Temporality, Experiencer, Certainty)
+- Foundation for PHI extraction job (Task 3.9) and patient aggregation (Task 3.10)
+
+**Impact**:
+- ✅ ExtractedEntity model with 8 entity types (7 PHI + 1 clinical)
+- ✅ JSONB meta-annotations storage
+- ✅ Indexed for fast document/patient queries
+- ✅ Helper methods for meta-annotation checks
+- ✅ Alembic migration with indexes
+
+**Migration Notes**:
+- Run: `alembic upgrade head` (when database available)
+- patient_id FK will be added in later migration (after Task 3.8 creates patients table)
+- Migration 007 depends on migration 006 (documents table)
+
+---
+
 ### 2025-11-23 - Task 3.6: PHI Classifier Service
 
-**Commits**: [current] - feat(services): implement PHI classifier for entity type mapping
+**Commits**: [e40e74a] - feat(services): implement PHI classifier for entity type mapping
 
 **Added**:
 - `backend/app/services/phi_classifier.py` - PHI entity classifier

@@ -8,5 +8,19 @@ from app.models.audit_log import AuditLog
 from app.models.project import Project, ProjectMember
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.models.document import Document, ProcessingStatus
+from app.models.extracted_entity import ExtractedEntity, EntityType
 
-__all__ = ["User", "Session", "AuditLog", "Project", "ProjectMember", "Task", "TaskStatus", "TaskPriority", "Document", "ProcessingStatus"]
+__all__ = [
+    "User",
+    "Session",
+    "AuditLog",
+    "Project",
+    "ProjectMember",
+    "Task",
+    "TaskStatus",
+    "TaskPriority",
+    "Document",
+    "ProcessingStatus",
+    "ExtractedEntity",
+    "EntityType",
+]
