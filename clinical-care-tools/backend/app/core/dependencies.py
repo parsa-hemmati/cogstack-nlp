@@ -128,3 +128,38 @@ async def get_current_active_user(
     """
     # get_current_user already checks is_active, so just return
     return current_user
+
+
+async def get_current_admin_user(
+    current_user: Annotated[User, Depends(get_current_user)]
+) -> User:
+    """
+    Get current user and verify they have admin role.
+
+    Dependency for admin-only endpoints.
+    Requires authenticated user with 'admin' role.
+
+    Args:
+        current_user: User from get_current_user dependency
+
+    Returns:
+        Admin User object
+
+    Raises:
+        HTTPException: 403 if user is not admin
+
+    Usage:
+        @router.get("/api/v1/admin/users")
+        async def get_all_users(
+            current_admin: User = Depends(get_current_admin_user)
+        ):
+            # Only admins can access
+            return await fetch_all_users()
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin permission required. Only users with admin role can access this resource."
+        )
+
+    return current_user
