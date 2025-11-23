@@ -94,43 +94,56 @@ async def health_check():
     """
     Health check endpoint.
 
+    Returns service status including database connectivity.
+    Used by Docker health checks and monitoring systems.
+
     Returns:
-        Application health status including database and Redis connectivity.
+        Health status with 200 OK if healthy, 503 Service Unavailable if unhealthy
+
+    Response Format:
+        {
+            "status": "healthy" | "unhealthy",
+            "version": "0.1.0",
+            "timestamp": "2025-11-22T23:59:59.123456",
+            "database": {
+                "status": "connected" | "disconnected",
+                "message": "Optional error message"
+            }
+        }
     """
-    # Check database
-    db_healthy = True
-    db_error = None
+    from datetime import datetime
+    from app.core.database import engine
+    from sqlalchemy import text
+
+    # Check database connectivity
+    database_status = {}
     try:
-        from app.core.database import engine
-        from sqlalchemy import text
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
+        database_status = {"status": "connected"}
     except Exception as e:
-        db_healthy = False
-        db_error = str(e)
+        database_status = {
+            "status": "disconnected",
+            "message": str(e)[:100]  # Truncate long error messages
+        }
 
-    # Check Redis
-    redis_healthy = await redis_client.ping()
+    # Determine overall health status
+    overall_status = "healthy" if database_status["status"] == "connected" else "unhealthy"
 
-    # Overall status
-    healthy = db_healthy and redis_healthy
+    # Determine HTTP status code
+    http_status = 200 if overall_status == "healthy" else 503
+
+    # Build response
+    response_data = {
+        "status": overall_status,
+        "version": settings.app_version,
+        "timestamp": datetime.utcnow().isoformat(),
+        "database": database_status,
+    }
 
     return JSONResponse(
-        status_code=200 if healthy else 503,
-        content={
-            "status": "healthy" if healthy else "unhealthy",
-            "version": settings.app_version,
-            "environment": settings.environment,
-            "services": {
-                "database": {
-                    "status": "healthy" if db_healthy else "unhealthy",
-                    "error": db_error if not db_healthy else None,
-                },
-                "redis": {
-                    "status": "healthy" if redis_healthy else "unhealthy",
-                },
-            },
-        },
+        content=response_data,
+        status_code=http_status
     )
 
 
