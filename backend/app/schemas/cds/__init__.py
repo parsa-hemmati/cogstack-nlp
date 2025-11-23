@@ -16,11 +16,46 @@ from .fhir_models import (
     UKCoreMedicationRequest,
     validate_nhs_number,
 )
+from .guideline_schemas import (
+    CDSGuidelineBase,
+    CDSGuidelineCreate,
+    CDSGuidelineUpdate,
+    CDSGuidelineResponse,
+    CDSGuidelineSearchRequest,
+    CDSGuidelineListResponse,
+)
+from .rule_schemas import (
+    CDSRuleBase,
+    CDSRuleCreate,
+    CDSRuleUpdate,
+    CDSRuleResponse,
+    CDSRuleListResponse,
+    CDSRuleEvaluationRequest,
+    CDSRecommendation,
+    CDSRuleEvaluationResponse,
+)
 
 __all__ = [
+    # FHIR models
     "UKCorePatient",
     "UKCoreCondition",
     "UKCoreObservation",
     "UKCoreMedicationRequest",
     "validate_nhs_number",
+    # Guideline schemas
+    "CDSGuidelineBase",
+    "CDSGuidelineCreate",
+    "CDSGuidelineUpdate",
+    "CDSGuidelineResponse",
+    "CDSGuidelineSearchRequest",
+    "CDSGuidelineListResponse",
+    # Rule schemas
+    "CDSRuleBase",
+    "CDSRuleCreate",
+    "CDSRuleUpdate",
+    "CDSRuleResponse",
+    "CDSRuleListResponse",
+    "CDSRuleEvaluationRequest",
+    "CDSRecommendation",
+    "CDSRuleEvaluationResponse",
 ]
