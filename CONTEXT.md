@@ -1465,9 +1465,39 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-23 - Task 3.6: PHI Classifier Service
+
+**Commits**: [current] - feat(services): implement PHI classifier for entity type mapping
+
+**Added**:
+- `backend/app/services/phi_classifier.py` - PHI entity classifier
+  - `classify_entity(entity)` - Map CogStack-ModelServe types to PHI categories
+  - `is_phi_entity(category)` - Check if category is PHI
+  - `get_phi_categories()` - List all PHI categories
+  - Classification rules for 7 PHI types + clinical
+- `backend/tests/unit/services/test_phi_classifier.py` - Unit tests (17 tests)
+
+**Why**:
+- Implements Task 3.6 (PHI Classifier Service)
+- Maps CogStack-ModelServe entity types to database schema
+- Simplified implementation (CogStack-ModelServe does heavy lifting)
+- Foundation for extracted entities storage (Task 3.7)
+
+**Impact**:
+- ✅ Classify entities as: phi_name, phi_nhs_number, phi_dob, phi_date, phi_address, phi_phone, phi_email, clinical
+- ✅ Case-insensitive type matching
+- ✅ DOB detection from date + context
+- ✅ 17 unit tests covering all PHI types and edge cases
+
+**Migration Notes**:
+- No database changes (pure logic service)
+- Used by PHI extraction job (Task 3.9) to classify entities before storage
+
+---
+
 ### 2025-11-23 - Task 3.5: CogStack-ModelServe Client Service
 
-**Commits**: [current] - feat(clients): implement CogStack-ModelServe async HTTP client
+**Commits**: [d043fe2] - feat(clients): implement CogStack-ModelServe async HTTP client
 
 **Added**:
 - `backend/app/clients/modelserve_client.py` - CogStack-ModelServe client
