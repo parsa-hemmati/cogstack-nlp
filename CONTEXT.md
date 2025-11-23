@@ -1465,6 +1465,59 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-23 - Task 4.1: Create Modules Database Model
+
+**Commits**: [current] - feat(models): create Module model for dynamic module registry
+
+**Added**:
+- `backend/app/models/module.py` - Module database model
+  - Fields: id (UUID), name (unique), display_name, description, version, enabled (Boolean), config (JSONB), icon, permissions (ARRAY), created_at, updated_at
+  - Supports dynamic module enable/disable
+  - Flexible JSONB configuration per module
+  - Permissions array for access control
+- `backend/alembic/versions/009_q1r2s3t4u5v6_create_modules_table.py` - Migration
+  - Creates modules table with unique name constraint
+  - Seed data for 3 core modules:
+    1. **patient-search** (enabled, Phase 4): Search patients by concepts
+    2. **timeline-view** (enabled, Phase 5): Visualize patient timeline
+    3. **clinical-decision-support** (disabled, Phase 7): CDS Hooks integration
+  - JSONB config with default filters and settings
+  - Permissions: search_patients, view_patient_timeline, view_cds_alerts, etc.
+- `backend/tests/unit/models/test_module.py` - Unit tests (8+ tests)
+  - Test module creation with all fields
+  - Test minimal fields with defaults
+  - Test enabled/disabled state toggle
+  - Test JSONB config storage and updates
+  - Test permissions array operations
+  - Test seed modules structure
+- Updated `backend/app/models/__init__.py` with Module export
+
+**Why**:
+- Implements Task 4.1 (Modules Database Model)
+- Foundation for modular architecture (Phase 4-8)
+- Modules can be enabled/disabled dynamically
+- Flexible JSONB configuration per module
+- Permissions-based access control
+- Seed modules for core functionality (patient search, timeline, CDS)
+- TDD approach: Tests written first, model implemented to pass
+
+**Impact**:
+- ✅ Module registry for dynamic feature management
+- ✅ 3 seed modules (patient-search enabled, timeline-view enabled, CDS disabled)
+- ✅ JSONB config: max_results, default_filters, UI settings
+- ✅ Permissions array: search_patients, view_patient_timeline, etc.
+- ✅ Enable/disable modules without code changes
+- ✅ Foundation for Task 4.2 (Module Registry Service)
+
+**Migration Notes**:
+- Run: `alembic upgrade head` (when database available)
+- Migration 009 depends on migration 008 (patients table)
+- Seed modules automatically inserted on upgrade
+- patient-search and timeline-view enabled by default
+- clinical-decision-support disabled by default (Phase 7 feature)
+
+---
+
 ### 2025-11-23 - Task 3.12: PHI De-Identification Security Tests
 
 **Commits**: [current] - feat(security): implement PHI de-identification tests and log sanitization
