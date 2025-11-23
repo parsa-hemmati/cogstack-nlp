@@ -1465,6 +1465,52 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-23 - Task 3.4: Document Upload API Endpoint
+
+**Commits**: [current] - feat(documents): implement document upload API with encryption and deduplication
+
+**Added**:
+- `backend/app/api/v1/endpoints/documents.py` - Document upload endpoint
+  - POST /api/v1/documents/upload endpoint
+  - File type validation (RTF only)
+  - SHA-256 content hash computation
+  - Duplicate detection using deduplication service (Task 3.3)
+  - AES-256-GCM encryption using encryption service (Task 3.2)
+  - Audit logging (UPLOAD_DOCUMENT, UPLOAD_DOCUMENT_DUPLICATE actions)
+  - Project permission validation
+  - Returns 201 for new documents, 200 for duplicates
+- `backend/app/schemas/document.py` - Pydantic schemas
+  - DocumentUploadResponse: New document upload response
+  - DocumentDuplicateResponse: Duplicate detection response
+  - DocumentResponse: Generic document data
+- `backend/tests/integration/test_documents_api.py` - Integration tests (10 tests)
+
+**Changed**:
+- `backend/app/api/v1/routers/api_router.py` - Added documents router registration
+- `backend/app/models/document.py` - Fixed Base import path
+
+**Why**:
+- Implements Sprint 2 Task 3.4 (Document Upload endpoint)
+- Integrates encryption (Task 3.2) and deduplication (Task 3.3)
+- HIPAA compliance via audit logging
+- Storage optimization through deduplication
+
+**Impact**:
+- ✅ POST /api/v1/documents/upload endpoint functional
+- ✅ AES-256-GCM encryption integration
+- ✅ SHA-256 + Redis cache deduplication
+- ✅ Audit logging (UPLOAD_DOCUMENT action)
+- ✅ Returns existing document ID for duplicates
+- ✅ 10 integration tests (TDD approach)
+
+**Migration Notes**:
+- Endpoint: POST /api/v1/documents/upload (multipart/form-data)
+- Form fields: `file`, `project_id`
+- Returns: 201 (new) or 200 (duplicate)
+- Requires: documents table migration (006_f9c8b4d7e2a1)
+
+---
+
 ### 2025-11-17 - Aggressive Expansion: Complete CogStack Product Suite Roadmap
 
 **Commits**:

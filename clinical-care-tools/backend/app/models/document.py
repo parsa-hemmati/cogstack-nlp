@@ -12,7 +12,7 @@ from datetime import datetime
 from sqlalchemy import Column, String, DateTime, Integer, LargeBinary, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.models.base import Base
+from app.core.database import Base
 
 
 class ProcessingStatus(str, enum.Enum):
