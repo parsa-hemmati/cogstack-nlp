@@ -250,9 +250,52 @@ The repository contains **3 production-ready applications** and **4 supporting l
 
 ### Recent Changes
 
-#### 2025-11-23 - Task 2.6: Task List Frontend Component
+#### 2025-11-23 - Task 2.7: E2E Test for User Management Workflow
 
 **Commits**: TBD (to be committed next)
+
+**Added**:
+- Playwright Configuration: `frontend/playwright.config.ts` with browser configs and settings
+- E2E Test Spec: `frontend/tests/e2e/user-management.spec.ts` with complete user lifecycle tests
+- E2E Tests README: `frontend/tests/e2e/README.md` with setup and usage instructions
+
+**Why**:
+- Implements Task 2.7 from Phase 2 (User & Project Management)
+- Provides end-to-end testing for user management workflow
+- Ensures complete user lifecycle works: create, login, password change, access control
+- Follows Playwright best practices with test steps, screenshots, and video capture
+- Enables automated testing for critical admin workflows
+
+**Impact**:
+- ✅ Playwright configured for multi-browser testing (Chromium, Firefox, WebKit, Mobile)
+- ✅ Complete user lifecycle E2E test with 7 steps
+- ✅ Test coverage: admin login, create user, logout, new user login, password change, access verification
+- ✅ Additional tests: edit user, filter users, access control validation
+- ✅ Screenshot capture on test failure
+- ✅ Video recording for failed tests
+- ✅ Trace collection on first retry for debugging
+- ✅ HTML test reports generated
+- ✅ CI/CD integration example in README
+- ⚠️ Requires Playwright installation: `npm install -D @playwright/test`
+- ⚠️ Tests documented but not yet executed (web environment limitations)
+
+**Migration Notes**:
+- Install Playwright: `npm install -D @playwright/test && npx playwright install`
+- Run tests: `npx playwright test`
+- View reports: `npx playwright show-report`
+- Tests require backend at localhost:8000 and frontend at localhost:3000
+- Default admin credentials expected: admin/admin123
+
+**Technical Debt**:
+- Login page route assumed (/login) - may need adjustment based on auth implementation
+- Change password flow assumed - may need adjustment based on auth implementation
+- User delete functionality tested but not implemented in UI yet
+
+---
+
+#### 2025-11-23 - Task 2.6: Task List Frontend Component
+
+**Commits**: d2e12fd
 
 **Added**:
 - Tasks API Service: `frontend/src/services/tasks.ts` with CRUD functions for project tasks
