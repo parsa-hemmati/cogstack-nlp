@@ -340,6 +340,69 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 
 ### Recent Changes
 
+#### [2025-11-23] - Sprint 6 Phase 6.3: Drug Interaction Checking - SKELETAL
+
+**Branch**: `claude/sprints-6-8-implementation-011M46D5vbdi9FbGxSzThebK`
+**Files Created**:
+- `backend/alembic/versions/017_create_nhs_dmd_medications_table.py` (106 lines) - Migration for NHS dm+d and drug_interactions tables
+- `backend/app/models/cds/nhs_dmd_medication.py` (62 lines) - SQLAlchemy model for NHS dm+d medications
+- `backend/app/models/cds/drug_interaction.py` (71 lines) - SQLAlchemy model for drug interactions
+- `backend/app/models/cds/__init__.py` (8 lines) - CDS models package export
+- `backend/app/services/cds/drug_interaction_checker.py` (334 lines) - Drug interaction checking service
+
+**Status**: Phase 6.3 SKELETAL COMPLETE ✅ (ready for data loading, blocked by environment)
+
+**Added**:
+- **Database Schema** (Migration 017):
+  - `nhs_dmd_medications` table: 200,000+ NHS medications (dm+d codes, names, forms, strengths)
+  - `drug_interactions` table: drug-drug interaction data (severity, description, evidence)
+  - Indexes: name search, VTM/VMP/AMP hierarchy, bidirectional interaction lookup
+  - Unique constraint: prevents duplicate interactions from same source
+
+- **DrugInteractionChecker Service**:
+  - `check_interactions(new_med, current_meds, min_severity)` - Check new medication against patient's current medications
+  - `get_medication_by_code(dm_d_code)` - Fetch medication details from NHS dm+d database
+  - `search_medications(search_term, limit)` - Search medications by name
+  - Bidirectional interaction checking (A-B and B-A)
+  - Severity filtering (1=contraindicated, 2=major, 3=moderate, 4=minor)
+  - Example: Check if Warfarin (322166004) interacts with Aspirin (322259000)
+
+- **SQLAlchemy Models**:
+  - `NHSDMDMedication`: dm+d_code (PK), name, form, strength, unit, vtm_id, vmp_id, amp_id, is_active
+  - `DrugInteraction`: id (UUID), drug_a_code, drug_b_code, interaction_type, severity, description, evidence_level, source
+
+**Why**: Phase 6.3 provides drug interaction checking infrastructure for clinical safety. Prevents prescribing contraindicated medications (e.g., Warfarin + Aspirin).
+
+**Impact**:
+- ✅ Database schema ready for NHS dm+d data loading (200,000+ medications)
+- ✅ Service layer ready for interaction checking once data is populated
+- ✅ Bidirectional lookup ensures all interactions found (A-B or B-A)
+- ✅ Severity filtering allows configuring alert levels (e.g., only show major + contraindicated)
+- ⚠️ Blocked: NHS dm+d data must be downloaded from NHS Digital TRUD (requires network + database)
+- ⚠️ Blocked: Drug interaction data source needed (OpenFDA or commercial API)
+- ⚠️ Migration created but cannot execute without PostgreSQL running
+
+**Pending Tasks** (7 tasks):
+- Task 6.3.1: Download and parse NHS dm+d data from TRUD (4 hours)
+- Task 6.3.2: Load dm+d into PostgreSQL (3 hours, ~200,000 records)
+- Task 6.3.3: Set up drug interaction data source (OpenFDA or commercial, 5 hours)
+- Task 6.3.4: ✅ DrugInteractionChecker service (COMPLETE)
+- Task 6.3.5: Create check-interactions API endpoint (3 hours)
+- Task 6.3.6: Implement alternative medication suggestions (3 hours)
+- Task 6.3.7: Add allergy checking (2 hours)
+- Task 6.3.8: Integrate with CDS rules engine (2 hours)
+- Task 6.3.9: Write integration tests (3 hours)
+- Task 6.3.10: Performance testing (1 hour)
+
+**Next Steps**:
+1. Download NHS dm+d data from TRUD when network/database available
+2. Load dm+d data into PostgreSQL (200,000+ medications)
+3. Set up OpenFDA drug interaction data source (or commercial alternative)
+4. Create API endpoint for interaction checking
+5. Implement Phase 6.4-6.7 following skeletal architecture
+
+---
+
 #### [2025-11-23] - Sprint 6 Phase 6.2: Meditech FHIR Integration Enhancements - PARTIAL
 
 **Branch**: `claude/sprints-6-8-implementation-011M46D5vbdi9FbGxSzThebK`
