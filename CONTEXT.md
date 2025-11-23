@@ -1465,6 +1465,60 @@ MEDCAT_TIMEOUT = 5  # seconds
 
 ---
 
+### 2025-11-23 - Task 3.11: Document Upload Frontend Component
+
+**Commits**: [current] - feat(frontend): implement document upload component with progress tracking
+
+**Added**:
+- `frontend/src/services/documents.ts` - Document API service
+  - `uploadDocument(file, projectId)` - Upload RTF document via multipart form
+  - `isDuplicateResponse()` - Type guard to check if response is duplicate
+  - TypeScript interfaces: DocumentUploadResponse, DocumentDuplicateResponse
+  - FormData handling for file uploads
+- `frontend/src/components/DocumentUpload.vue` - Document upload Vue component
+  - v-file-input for RTF file selection
+  - File validation rules (RTF only, <10MB)
+  - Upload progress indicator
+  - Duplicate detection message display
+  - Processing status display (pending → processing → completed/failed)
+  - Success/error message alerts
+  - Composition API with TypeScript
+- `frontend/src/views/ProjectDetail.vue` - Project detail page
+  - Displays project information and members
+  - Integrates DocumentUpload component
+  - Recent documents section (placeholder)
+  - Event handlers for upload/duplicate events
+  - Snackbar notifications
+- Updated `frontend/src/router/index.ts` - Added project detail route
+  - Route: `/projects/:id` → ProjectDetail view
+
+**Why**:
+- Implements Task 3.11 (Document Upload Frontend Component)
+- User interface for RTF document uploads (Task 3.4 backend)
+- Real-time progress and status feedback
+- Clear duplicate detection messaging
+- Processing status visibility (SNOMED + PHI extraction)
+- Integrates with backend document upload API
+
+**Impact**:
+- ✅ Full document upload workflow (frontend + backend)
+- ✅ File validation (RTF only, size limits)
+- ✅ Upload progress indication
+- ✅ Duplicate detection with clear messaging
+- ✅ Processing status display (pending → processing → completed)
+- ✅ Success/error handling with user-friendly messages
+- ✅ Vuetify 3 components following project patterns
+- ✅ TypeScript type safety throughout
+
+**Migration Notes**:
+- No database changes (frontend only)
+- Requires backend document upload API (Task 3.4) running
+- Access via `/projects/:projectId` route
+- Component can be reused in other views by importing `<DocumentUpload>`
+- Example: `<DocumentUpload project-id="123" @uploaded="handleUpload" />`
+
+---
+
 ### 2025-11-23 - Task 3.10: Enhanced Patient Aggregation Service
 
 **Commits**: [current] - feat(services): implement enhanced patient aggregation with fuzzy matching
