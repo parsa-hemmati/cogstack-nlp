@@ -250,9 +250,59 @@ The repository contains **3 production-ready applications** and **4 supporting l
 
 ### Recent Changes
 
-#### 2025-11-23 - Task 2.4: User Management Frontend Component
+#### 2025-11-23 - Task 2.5: Project Management Frontend Component
 
 **Commits**: TBD (to be committed next)
+
+**Added**:
+- Projects API Service: `frontend/src/services/projects.ts` with CRUD and member management functions
+- Project Store: `frontend/src/stores/project.ts` with Pinia state management
+- Project Management View: `frontend/src/views/ProjectManagement.vue` with full project and member CRUD UI
+- Router Configuration: Added `/projects` route with authentication
+
+**Changed**:
+- `frontend/src/router/index.ts` - Added projects route
+
+**Why**:
+- Implements Task 2.5 from Phase 2 (User & Project Management)
+- Provides interface for project creation and management
+- Enables team collaboration through member management
+- Completes frontend-backend integration for project CRUD operations
+- Follows Composition API and Vuetify Material Design patterns
+
+**Impact**:
+- ✅ Complete project management interface
+- ✅ Data table with project name, description, member count, creation date
+- ✅ Create project dialog with name and description
+- ✅ Edit project dialog with name and description updates
+- ✅ Member management dialog with add/remove functionality
+- ✅ Role-based member chips (owner=red, admin=orange, member=blue, viewer=grey)
+- ✅ Member count indicator in project list
+- ✅ Add member form with user ID and role selection
+- ✅ Remove member with last-owner protection
+- ✅ Real-time loading states and error handling
+- ✅ Success/error snackbar notifications
+- ✅ Confirmation dialog for member removal
+- ✅ Date formatting for created_at and added_at timestamps
+- ✅ API integration through Axios with auth token interceptor
+- ⚠️ User display shows UUID instead of username (needs user lookup integration)
+
+**Migration Notes**:
+- Access project management at `/projects` route
+- All authenticated users can access (no admin requirement)
+- Uses existing API authentication via localStorage access_token
+- Member management requires project owner or admin role (enforced by backend)
+
+**Technical Debt**:
+- Member display shows user IDs instead of names (future: integrate user lookup)
+- No project deletion functionality in UI (backend ready)
+- Confirmation dialog uses browser confirm() (future: use Vuetify dialog)
+
+---
+
+#### 2025-11-23 - Task 2.4: User Management Frontend Component
+
+**Commits**: cba3461
 
 **Added**:
 - Users API Service: `frontend/src/services/users.ts` with fetch, create, update, delete functions
