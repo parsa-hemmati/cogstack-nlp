@@ -1,6 +1,7 @@
 """Database models."""
 from app.models.audit_log import AuditLog
 from app.models.cds_guideline import CDSGuideline
+from app.models.cds_rule import CDSRule
 from app.models.deidentification_job import DeidentificationJob
 from app.models.document import Document, ProcessingStatus
 from app.models.extracted_entity import ExtractedEntity, EntityType
@@ -14,6 +15,7 @@ from app.models.user import User
 __all__ = [
     "AuditLog",
     "CDSGuideline",
+    "CDSRule",
     "DeidentificationJob",
     "Document",
     "ProcessingStatus",

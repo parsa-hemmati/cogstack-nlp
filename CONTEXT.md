@@ -2,7 +2,7 @@
 
 **Status**: Living Document - Updated with EVERY commit
 **Last Updated**: 2025-11-23
-**Version**: 1.1.2
+**Version**: 1.1.3
 
 > ⚠️ **CRITICAL**: This document MUST be updated before any code commit. No PR can be merged without context updates.
 
@@ -521,8 +521,80 @@ CREATE INDEX ix_cds_guidelines_evidence_level ON cds_guidelines (evidence_level)
 - PostgreSQL with UUID extension (gen_random_uuid())
 
 **Next Steps**:
-1. Task 6.1.3: Create CDS Rules Database Schema (cds_rules table)
+1. ✅ Task 6.1.3: Create CDS Rules Database Schema (COMPLETE)
 2. Task 6.1.4: Load initial clinical guidelines data (ADA, AHA guidelines)
+
+---
+
+#### [2025-11-23] - Sprint 6 Phase 6.1 Task 6.1.3: CDS Rules Database Schema - COMPLETE
+
+**Branch**: `claude/sprints-6-8-implementation-011M46D5vbdi9FbGxSzThebK`
+**Files Created**:
+- `backend/alembic/versions/016_create_cds_rules_table.py` (74 lines)
+- `backend/alembic/versions/016_VERIFICATION.md` (verification SQL, JSONB examples)
+- `backend/app/models/cds_rule.py` (159 lines)
+- `backend/app/models/__init__.py` (updated to export CDSRule)
+
+**Status**: Task 6.1.3 COMPLETE ✅ (Migration created, model defined, rules engine ready)
+
+**Added**:
+- **Database Migration 016**: Creates `cds_rules` table for IF-THEN business rules
+  - 9 columns: id (UUID), rule_name (unique), description, priority, conditions (JSONB), actions (JSONB), active, created_at, updated_at
+  - JSONB columns for flexible rule definitions
+  - Auto-update trigger for updated_at column
+  - 2 indexes: active (filter), priority DESC (ordering)
+- **SQLAlchemy Model**: `CDSRule` ORM model
+  - Maps to cds_rules table
+  - Includes evaluate_conditions() method for rule evaluation
+  - Includes from_dict() factory method
+  - JSONB condition operators: equals, not_equals, greater_than, less_than, in, contains
+- **Verification Document**: JSONB structure examples, query patterns, usage
+
+**Why**: Task 6.1.3 from Sprint 6 Phase 6.1 (CDS Core Infrastructure). Rules database stores IF-THEN logic for generating clinical recommendations based on patient data (conditions, lab values, medications).
+
+**Impact**:
+- ✅ Flexible rule engine using JSONB (no schema changes for new rule types)
+- ✅ Priority-based rule evaluation (high priority first)
+- ✅ Active/inactive flag for enabling/disabling rules without deletion
+- ✅ Auto-update timestamp trigger (updated_at set automatically)
+- ✅ Condition operators: equals, not_equals, >, <, >=, <=, in, contains
+- ✅ Example: "IF condition_code=E11.9 AND hba1c>7.0 THEN alert + recommend_guideline"
+- ⏳ Migration pending: Run `alembic upgrade head` when PostgreSQL available
+
+**JSONB Structure Examples**:
+```json
+// Conditions (IF part)
+{
+  "conditions": [
+    {"field": "condition_code", "operator": "equals", "value": "E11.9"},
+    {"field": "hba1c_value", "operator": "greater_than", "value": 7.0}
+  ]
+}
+
+// Actions (THEN part)
+{
+  "actions": [
+    {
+      "type": "alert",
+      "severity": "warning",
+      "message": "HbA1c elevated (>7.0%). Consider medication adjustment."
+    },
+    {
+      "type": "recommend_guideline",
+      "guideline_id": "ada-diabetes-glycemic-control"
+    }
+  ]
+}
+```
+
+**Dependencies**:
+- Task 6.1.2 (CDS Guidelines) - rules recommend specific guidelines via guideline_id
+- PostgreSQL with JSONB support (native JSON operations)
+- Optional: business-rules library for production rule engine (alternative to built-in evaluator)
+
+**Next Steps**:
+1. Task 6.1.4: Load initial clinical guidelines data
+2. Task 6.1.5: Create CDS Rules Engine Service (evaluates rules against patient data)
 
 ---
 
