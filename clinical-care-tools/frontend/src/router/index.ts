@@ -26,6 +26,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/TimelineView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/users',
+    name: 'users',
+    component: () => import('@/views/UserManagement.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
 ]
 
 const router = createRouter({

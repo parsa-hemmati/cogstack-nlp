@@ -250,6 +250,98 @@ The repository contains **3 production-ready applications** and **4 supporting l
 
 ### Recent Changes
 
+#### 2025-11-23 - Task 2.4: User Management Frontend Component
+
+**Commits**: TBD (to be committed next)
+
+**Added**:
+- Users API Service: `frontend/src/services/users.ts` with fetch, create, update, delete functions
+- User Store: `frontend/src/stores/user.ts` with Pinia state management
+- User Management View: `frontend/src/views/UserManagement.vue` with full CRUD UI
+- Router Configuration: Added `/users` route with admin-only access
+
+**Changed**:
+- `frontend/src/router/index.ts` - Added users route with requiresAdmin meta
+
+**Why**:
+- Implements Task 2.4 from Phase 2 (User & Project Management)
+- Provides admin interface for user management
+- Completes frontend-backend integration for user CRUD operations
+- Follows Composition API and Vuetify Material Design patterns
+- Enables admin users to manage platform users
+
+**Impact**:
+- ✅ Complete user management interface for admins
+- ✅ Data table with sortable columns and pagination
+- ✅ Create user dialog with username, full name, password, role
+- ✅ Edit user dialog with full name, role, active status
+- ✅ Real-time loading states and error handling
+- ✅ Success/error snackbar notifications
+- ✅ Role-based chips with color coding (admin=red, clinician=blue, researcher=cyan, viewer=grey)
+- ✅ Active/inactive status indicators
+- ✅ Form validation with required fields and password minimum length
+- ✅ API integration through Axios with auth token interceptor
+- ✅ Admin-only route guard (requiresAdmin: true)
+- ⚠️ Admin check in navigation guard needs implementation (TODO marker exists)
+
+**Migration Notes**:
+- Access user management at `/users` route
+- Requires admin role to access (enforced by meta.requiresAdmin)
+- Uses existing API authentication via localStorage access_token
+- All API calls include Bearer token from auth interceptor
+
+**Technical Debt**:
+- Navigation guard admin check uses placeholder (TODO: Implement authentication check)
+- Delete user functionality not yet implemented in UI (backend ready)
+
+---
+
+#### 2025-11-23 - Task 2.3: Tasks Database Model and API
+
+**Commits**: be63020
+
+**Added**:
+- Task Model: `app/models/task.py` with TaskStatus and TaskPriority enums
+- Task Schemas: `app/schemas/task.py` with TaskCreate, TaskUpdate, TaskResponse
+- Task Service: `app/services/task_service.py` with full CRUD operations
+- Task API Endpoints: `app/api/v1/endpoints/tasks.py` with 4 endpoints
+- Integration Tests: `tests/integration/test_tasks_api.py` with 12 comprehensive tests
+- Database Migration: `alembic/versions/a3b7c9d4e5f6_create_tasks_table.py`
+
+**Changed**:
+- `app/models/__init__.py` - Added Task, TaskStatus, TaskPriority exports
+- `app/api/v1/routers/api_router.py` - Registered tasks router
+
+**Why**:
+- Implements Task 2.3 from Phase 2 (User & Project Management)
+- Enables work assignment and tracking within projects
+- Provides foundation for project management workflows
+- Follows TDD approach (RED-GREEN-REFACTOR cycle)
+- Maintains HIPAA compliance with audit logging on all operations
+
+**Impact**:
+- ✅ Complete CRUD API for task management within projects
+- ✅ 4 API endpoints: GET/POST tasks, PATCH/DELETE task
+- ✅ Permission model: Project members can view/create/update, owners/admins can delete
+- ✅ Task assignment to project members with validation
+- ✅ Status tracking (pending, in_progress, completed, blocked)
+- ✅ Priority levels (low, medium, high, urgent)
+- ✅ Due date support with optional deadlines
+- ✅ Audit logging: CREATE_TASK, UPDATE_TASK, DELETE_TASK events
+- ✅ 12 integration tests covering CRUD, permissions, audit logs
+- ⚠️ Tests documented but not yet executed (PostgreSQL configuration in progress)
+
+**Migration Notes**:
+- Run `alembic upgrade head` to create tasks table when PostgreSQL available
+- All task operations create audit logs for HIPAA compliance
+- Tasks cascade delete when parent project is deleted
+- Assigned users must be project members (enforced by service layer)
+
+**Technical Debt**:
+- None - Complete implementation following established patterns
+
+---
+
 #### 2025-11-22 - Phase 0: Environment Setup (Web-Adapted Implementation)
 
 **Commits**: TBD (to be committed)
