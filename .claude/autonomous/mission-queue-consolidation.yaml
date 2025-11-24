@@ -1,0 +1,582 @@
+# Mission Queue: Branch Consolidation Completion
+# Generated: 2025-11-24
+# Framework: CCPM Autonomous Execution v2.0.0
+# Purpose: Complete consolidation of 6 branches using comparative analysis and cherry-picking
+
+# =============================================================================
+# CONSOLIDATION PROJECT: Finish integrating best implementations from all branches
+# =============================================================================
+
+project:
+  name: branch-consolidation-completion
+  description: "Use CCPM agents to analyze and cherry-pick best implementations from 6 branches"
+  base_branch: ccpm-consolidated
+  source_branches:
+    - myfork/development
+    - myfork/autonomous/mvp-execution
+    - myfork/claude/development-on-ccweb-014NeWxCVzNfcbd6R6RFpo18
+    - myfork/claude/setup-ai-agent-onboarding-015LJGj2rWtJvBbL6GBaXGat
+    - myfork/claude/create-ccweb-dev-branch-015zpMnefWaNr28fLqHR9E1A
+    - myfork/claude/develop-roadmap-phases-01AA61yzporwCFfD6BQpAerL
+  target_completion: "16 hours (8 missions × 2 hours each, 3 agents parallel)"
+
+# Agent assignments for parallel analysis and integration
+agent_assignments:
+  architecture-analyzer:
+    focus: "Comparative architecture analysis across branches"
+    tasks: [1.1, 1.2]
+    worktree: ../cogstack-consolidation-analysis
+
+  implementation-cherry-picker:
+    focus: "Code quality comparison and cherry-picking best implementations"
+    tasks: [2.1, 2.2, 2.3]
+    worktree: ../cogstack-consolidation-cherry-pick
+
+  integration-validator:
+    focus: "Merge validation, conflict resolution, testing"
+    tasks: [3.1, 3.2, 3.3]
+    worktree: ../cogstack-consolidation-validate
+
+  auditor:
+    focus: "Quality assurance and consolidation verification"
+    coordination: "Validates each integration, ensures no regressions"
+
+# =============================================================================
+# PHASE 1: Comparative Analysis (4 hours → 2 hours parallel)
+# =============================================================================
+
+missions:
+  # ---------------------------------------------------------------------------
+  # Mission 1.1: Frontend Implementation Comparison
+  # Agent: architecture-analyzer
+  # ---------------------------------------------------------------------------
+  - mission_id: consolidation-1.1
+    phase: phase-1-analysis
+    task_number: 1.1
+    title: "Compare Frontend Implementations Across Branches"
+    assigned_to: architecture-analyzer
+    estimated_hours: 2.0
+    dependencies: []
+    status: ready
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Analyze frontend structure in each branch"
+        - "Compare Vue 3 implementations"
+        - "Check for timeline components across branches"
+        - "Review test coverage for frontend code"
+        - "Identify unique frontend features per branch"
+
+      innovate:
+        - "Create comparison matrix (features × branches)"
+        - "Score implementations (code quality, tests, completeness)"
+        - "Identify best-in-class components"
+
+      plan:
+        - "Document frontend features by branch"
+        - "Create recommendation matrix"
+        - "List files to cherry-pick"
+
+      execute:
+        - "Generate FRONTEND_COMPARISON_REPORT.md"
+        - "Include: component comparison, test coverage, recommendations"
+        - "Create cherry-pick plan with file lists"
+
+      review:
+        - "Verify: All branches analyzed"
+        - "Verify: Quality scores assigned"
+        - "Verify: Recommendations documented"
+
+    output:
+      documentation:
+        - "FRONTEND_COMPARISON_REPORT.md"
+        - "frontend-cherry-pick-plan.md"
+
+    success_criteria:
+      - "All 6 branches analyzed for frontend code"
+      - "Comparison matrix with quality scores"
+      - "Clear recommendations for which implementations to keep"
+      - "Cherry-pick plan with specific files/commits"
+
+  # ---------------------------------------------------------------------------
+  # Mission 1.2: Search Implementation Comparison
+  # Agent: architecture-analyzer (runs parallel with 2.1)
+  # ---------------------------------------------------------------------------
+  - mission_id: consolidation-1.2
+    phase: phase-1-analysis
+    task_number: 1.2
+    title: "Compare Search Implementations Across Branches"
+    assigned_to: architecture-analyzer
+    estimated_hours: 2.0
+    dependencies: []
+    status: ready
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Compare search implementations across branches"
+        - "development: Advanced query parsing, Redis caching, optimization"
+        - "autonomous/mvp-execution: Search features with filter application"
+        - "development-on-ccweb: Rate limiting, analytics, saved searches"
+        - "Analyze test coverage for each implementation"
+        - "Check performance benchmarks"
+
+      innovate:
+        - "Create feature matrix (query types, caching, analytics, rate limiting)"
+        - "Score by completeness, performance, test coverage"
+        - "Identify complementary features (can merge multiple)"
+
+      plan:
+        - "Document search features by branch"
+        - "Recommend: Keep development (has best query parsing + caching)"
+        - "Add: Rate limiting from development-on-ccweb"
+        - "Add: Analytics from development-on-ccweb"
+
+      execute:
+        - "Generate SEARCH_COMPARISON_REPORT.md"
+        - "Create search-integration-plan.md"
+        - "List specific files to cherry-pick"
+
+      review:
+        - "Verify: All search implementations analyzed"
+        - "Verify: Performance data compared"
+        - "Verify: Integration plan clear"
+
+    output:
+      documentation:
+        - "SEARCH_COMPARISON_REPORT.md"
+        - "search-integration-plan.md"
+
+    success_criteria:
+      - "Search implementations compared across all branches"
+      - "Best implementation identified (development)"
+      - "Complementary features identified (rate limiting, analytics)"
+      - "Integration plan with cherry-pick commands"
+
+# =============================================================================
+# PHASE 2: Cherry-Pick Best Implementations (6 hours → 2 hours parallel)
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # Mission 2.1: Cherry-Pick Frontend Components
+  # Agent: implementation-cherry-picker
+  # ---------------------------------------------------------------------------
+  - mission_id: consolidation-2.1
+    phase: phase-2-cherry-pick
+    task_number: 2.1
+    title: "Cherry-Pick Best Frontend Components"
+    assigned_to: implementation-cherry-picker
+    estimated_hours: 2.0
+    dependencies: [consolidation-1.1]
+    status: pending
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Read FRONTEND_COMPARISON_REPORT.md"
+        - "Review frontend-cherry-pick-plan.md"
+        - "Identify commits to cherry-pick"
+
+      innovate:
+        - "Use git cherry-pick for clean integration"
+        - "Resolve conflicts favoring higher-quality code"
+        - "Preserve test coverage"
+
+      plan:
+        - "Cherry-pick timeline components"
+        - "Cherry-pick search UI components"
+        - "Cherry-pick shared composables"
+        - "Update frontend dependencies"
+
+      execute:
+        - "Execute cherry-pick commands"
+        - "Resolve merge conflicts"
+        - "Run frontend tests"
+        - "Verify components work"
+
+      review:
+        - "Verify: All recommended frontend code integrated"
+        - "Verify: Tests passing"
+        - "Verify: No regressions"
+
+    coordination:
+      before_start:
+        - "Wait for consolidation-1.1 (analysis complete)"
+      after_complete:
+        - "auditor validates frontend quality"
+        - "Notify integration-validator (ready for E2E tests)"
+
+    output:
+      code_files:
+        - "frontend/src/components/**"
+        - "frontend/src/composables/**"
+      documentation:
+        - "FRONTEND_INTEGRATION_REPORT.md"
+
+    success_criteria:
+      - "Best frontend components integrated"
+      - "All frontend tests passing"
+      - "No conflicts remaining"
+      - "Documentation updated"
+
+  # ---------------------------------------------------------------------------
+  # Mission 2.2: Cherry-Pick Enhanced Search Features
+  # Agent: implementation-cherry-picker (parallel with 2.1)
+  # ---------------------------------------------------------------------------
+  - mission_id: consolidation-2.2
+    phase: phase-2-cherry-pick
+    task_number: 2.2
+    title: "Cherry-Pick Enhanced Search Features"
+    assigned_to: implementation-cherry-picker
+    estimated_hours: 2.0
+    dependencies: [consolidation-1.2]
+    status: pending
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Read SEARCH_COMPARISON_REPORT.md"
+        - "Read search-integration-plan.md"
+        - "Identify commits with rate limiting and analytics"
+
+      innovate:
+        - "Cherry-pick rate limiting from development-on-ccweb"
+        - "Cherry-pick analytics from development-on-ccweb"
+        - "Integrate with existing search from development base"
+
+      plan:
+        - "Cherry-pick rate limiting endpoint"
+        - "Cherry-pick analytics service"
+        - "Cherry-pick saved searches feature"
+        - "Merge with existing query parsing/caching"
+
+      execute:
+        - "Execute cherry-pick commands"
+        - "Resolve conflicts (keep development query parsing)"
+        - "Integrate rate limiting middleware"
+        - "Add analytics endpoints"
+        - "Run search tests"
+
+      review:
+        - "Verify: Rate limiting works"
+        - "Verify: Analytics endpoints functional"
+        - "Verify: Existing query parsing preserved"
+        - "Verify: All search tests passing"
+
+    coordination:
+      after_complete:
+        - "auditor validates search security (rate limiting, injection prevention)"
+
+    output:
+      code_files:
+        - "backend/app/api/v1/endpoints/search.py (updated)"
+        - "backend/app/services/analytics_service.py"
+        - "backend/app/middleware/rate_limiter.py"
+      test_files:
+        - "tests/integration/test_search_rate_limiting.py"
+        - "tests/integration/test_search_analytics.py"
+
+    success_criteria:
+      - "Rate limiting integrated and working"
+      - "Analytics endpoints functional"
+      - "Saved searches feature added"
+      - "All search tests passing (existing + new)"
+
+  # ---------------------------------------------------------------------------
+  # Mission 2.3: Merge CONTEXT.md with ADRs from All Branches
+  # Agent: implementation-cherry-picker (parallel execution)
+  # ---------------------------------------------------------------------------
+  - mission_id: consolidation-2.3
+    phase: phase-2-cherry-pick
+    task_number: 2.3
+    title: "Merge CONTEXT.md with ADRs from All Branches"
+    assigned_to: implementation-cherry-picker
+    estimated_hours: 2.0
+    dependencies: []
+    status: ready
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Read CONTEXT.md from all 6 branches"
+        - "Extract unique ADRs (Architecture Decision Records)"
+        - "Extract unique implementation notes"
+        - "Identify conflicts in status reporting"
+
+      innovate:
+        - "Create comprehensive Recent Changes timeline"
+        - "Merge all unique ADRs chronologically"
+        - "Preserve implementation status from each branch"
+        - "Add consolidation notes"
+
+      plan:
+        - "Keep base from development (most recent)"
+        - "Add CCPM workflow section from autonomous"
+        - "Add unique ADRs from all branches"
+        - "Update 'Implemented Features' with consolidated status"
+        - "Add 'Branch Consolidation' section documenting merge"
+
+      execute:
+        - "Create merged CONTEXT.md"
+        - "Add all unique ADRs chronologically"
+        - "Document branch consolidation decision"
+        - "Update feature status (which branch provided what)"
+        - "Add links to integration reports"
+
+      review:
+        - "Verify: All unique ADRs included"
+        - "Verify: No duplicate entries"
+        - "Verify: Consolidation documented"
+        - "Verify: Feature status accurate"
+
+    output:
+      documentation:
+        - "CONTEXT.md (merged and consolidated)"
+        - "CONTEXT_MERGE_REPORT.md (documents what came from where)"
+
+    success_criteria:
+      - "CONTEXT.md includes ADRs from all 6 branches"
+      - "No duplicate entries"
+      - "Consolidation clearly documented"
+      - "Feature status reflects consolidated state"
+
+# =============================================================================
+# PHASE 3: Integration Validation & Testing (6 hours → 2 hours parallel)
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # Mission 3.1: Run Full Test Suite
+  # Agent: integration-validator
+  # ---------------------------------------------------------------------------
+  - mission_id: consolidation-3.1
+    phase: phase-3-validation
+    task_number: 3.1
+    title: "Run Full Test Suite and Fix Failures"
+    assigned_to: integration-validator
+    estimated_hours: 2.0
+    dependencies: [consolidation-2.1, consolidation-2.2, consolidation-2.3]
+    status: pending
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Identify all test suites (backend, frontend)"
+        - "Check test dependencies"
+        - "Review CI/CD workflows"
+
+      innovate:
+        - "Run tests in parallel (backend + frontend)"
+        - "Categorize failures (conflicts, missing deps, actual bugs)"
+        - "Fix systematically (deps first, then conflicts, then bugs)"
+
+      plan:
+        - "Install all dependencies"
+        - "Run backend tests: pytest"
+        - "Run frontend tests: vitest"
+        - "Fix dependency issues"
+        - "Fix conflicts from cherry-picks"
+        - "Fix any actual bugs"
+
+      execute:
+        - "cd clinical-care-tools/backend && pytest"
+        - "cd clinical-care-tools/frontend && npm test"
+        - "Fix failures one by one"
+        - "Re-run tests until all pass"
+        - "Generate test coverage report"
+
+      review:
+        - "Verify: All backend tests passing"
+        - "Verify: All frontend tests passing"
+        - "Verify: Coverage ≥85%"
+        - "Verify: No test warnings"
+
+    output:
+      documentation:
+        - "TEST_RESULTS.md (coverage report, passing/failing tests)"
+      fixes:
+        - "Various test fixes and dependency updates"
+
+    success_criteria:
+      - "100% of tests passing"
+      - "Test coverage ≥85%"
+      - "No dependency errors"
+      - "CI/CD workflows green"
+
+  # ---------------------------------------------------------------------------
+  # Mission 3.2: Performance Benchmarking
+  # Agent: integration-validator (parallel with 3.1)
+  # ---------------------------------------------------------------------------
+  - mission_id: consolidation-3.2
+    phase: phase-3-validation
+    task_number: 3.2
+    title: "Run Performance Benchmarks and Compare"
+    assigned_to: integration-validator
+    estimated_hours: 2.0
+    dependencies: [consolidation-2.1, consolidation-2.2]
+    status: pending
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Identify performance-critical code paths"
+        - "Search query performance"
+        - "Timeline view loading time"
+        - "API response times"
+
+      innovate:
+        - "Create benchmark suite"
+        - "Test with production-like data volumes"
+        - "Compare with requirements (e.g., <500ms)"
+
+      plan:
+        - "Benchmark search queries (all types)"
+        - "Benchmark timeline view loading"
+        - "Benchmark cache hit rates"
+        - "Compare with spec requirements"
+
+      execute:
+        - "Run search benchmarks (100 concurrent queries)"
+        - "Run timeline benchmarks (various patient sizes)"
+        - "Measure cache effectiveness"
+        - "Generate performance report"
+
+      review:
+        - "Verify: Search <500ms (spec requirement)"
+        - "Verify: Timeline <500ms (spec requirement)"
+        - "Verify: Cache hit rate >70%"
+        - "Verify: No performance regressions"
+
+    output:
+      documentation:
+        - "PERFORMANCE_REPORT.md (benchmarks, comparisons)"
+
+    success_criteria:
+      - "All performance targets met"
+      - "Search <500ms"
+      - "Timeline <500ms"
+      - "Cache hit rate >70%"
+      - "No regressions from original branches"
+
+  # ---------------------------------------------------------------------------
+  # Mission 3.3: Create Final Integration Report
+  # Agent: integration-validator
+  # ---------------------------------------------------------------------------
+  - mission_id: consolidation-3.3
+    phase: phase-3-validation
+    task_number: 3.3
+    title: "Create Comprehensive Final Integration Report"
+    assigned_to: integration-validator
+    estimated_hours: 2.0
+    dependencies: [consolidation-3.1, consolidation-3.2]
+    status: pending
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Collect all integration reports"
+        - "Review FRONTEND_COMPARISON_REPORT.md"
+        - "Review SEARCH_COMPARISON_REPORT.md"
+        - "Review TEST_RESULTS.md"
+        - "Review PERFORMANCE_REPORT.md"
+        - "Review CONTEXT_MERGE_REPORT.md"
+
+      innovate:
+        - "Create executive summary"
+        - "Document what was kept from each branch"
+        - "Document quality metrics"
+        - "Create before/after comparison"
+
+      plan:
+        - "Executive summary (1 page)"
+        - "Integration by phase (what was done)"
+        - "Quality metrics (tests, coverage, performance)"
+        - "Branch contribution matrix (what came from where)"
+        - "Success criteria validation"
+        - "Next steps and recommendations"
+
+      execute:
+        - "Generate FINAL_CONSOLIDATION_REPORT.md"
+        - "Include all metrics and comparisons"
+        - "Document decisions made"
+        - "List remaining work (if any)"
+
+      review:
+        - "Verify: All phases documented"
+        - "Verify: All success criteria addressed"
+        - "Verify: Clear next steps"
+        - "Verify: Professional quality"
+
+    output:
+      documentation:
+        - "FINAL_CONSOLIDATION_REPORT.md"
+        - "BRANCH_CONTRIBUTION_MATRIX.md"
+
+    success_criteria:
+      - "Comprehensive report covering all consolidation work"
+      - "All 8 missions documented"
+      - "Quality metrics included"
+      - "Success criteria validated"
+      - "Professional documentation quality"
+
+# =============================================================================
+# Execution Strategy
+# =============================================================================
+
+execution_strategy:
+  parallel_phases:
+    - name: "Phase 1: Parallel Analysis"
+      duration: "2 hours (was 4 hours sequential)"
+      agents:
+        - architecture-analyzer: "Frontend + Search analysis in parallel"
+      speedup: "2x"
+
+    - name: "Phase 2: Parallel Cherry-Picking"
+      duration: "2 hours (was 6 hours sequential)"
+      agents:
+        - implementation-cherry-picker: "Frontend, Search, CONTEXT.md in parallel"
+      speedup: "3x"
+
+    - name: "Phase 3: Parallel Validation"
+      duration: "2 hours (was 6 hours sequential)"
+      agents:
+        - integration-validator: "Tests, Benchmarks, Report in parallel"
+      speedup: "3x"
+
+  total_speedup: "16 hours vs 48 hours sequential = 3x faster"
+
+  coordination_mechanism:
+    - "Shared integration reports for coordination"
+    - "Git worktrees for parallel work"
+    - "Auditor validates quality at each step"
+
+# =============================================================================
+# Success Metrics
+# =============================================================================
+
+success_metrics:
+  consolidation_complete:
+    - "All 6 branches analyzed"
+    - "Best implementations cherry-picked"
+    - "CONTEXT.md fully merged"
+    - "All tests passing (≥85% coverage)"
+    - "Performance targets met (<500ms)"
+    - "Comprehensive documentation"
+
+  quality_gates:
+    - "Zero merge conflicts remaining"
+    - "No test failures"
+    - "No performance regressions"
+    - "HIPAA/GDPR compliance maintained"
+    - "All ADRs preserved and documented"
+
+  deliverables:
+    - "FRONTEND_COMPARISON_REPORT.md"
+    - "SEARCH_COMPARISON_REPORT.md"
+    - "CONTEXT.md (fully merged)"
+    - "TEST_RESULTS.md"
+    - "PERFORMANCE_REPORT.md"
+    - "FINAL_CONSOLIDATION_REPORT.md"
+    - "BRANCH_CONTRIBUTION_MATRIX.md"
+
+target_completion: "16 hours with 3 parallel agents (vs 48 hours sequential)"
