@@ -1,0 +1,111 @@
+# Coverage configuration for Clinical Care Tools backend
+# Specification: Track code coverage during testing
+# Target: 85% overall coverage, 90% for critical paths (auth, PHI, security)
+
+[run]
+# Source code to measure
+source = app
+
+# Files to omit from coverage
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */venv/*
+    */site-packages/*
+    */migrations/*
+    */.venv/*
+
+# Patterns to omit
+# (e.g., __init__.py files that just import)
+branch = True
+
+[report]
+# Lines to exclude from coverage
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+
+    # Don't complain about missing debug code
+    def __repr__
+    def __str__
+    if self\.debug
+
+    # Don't complain about non-runnable code
+    if 0:
+    if False:
+    if __name__ == .__main__.:
+
+    # Don't complain about abstract methods
+    @(abc\.)?abstractmethod
+    @abstract
+
+    # Don't complain about type checking imports
+    if TYPE_CHECKING:
+
+    # Don't complain about unimplemented features
+    raise NotImplementedError
+    raise AssertionError
+    ... (Ellipsis)
+
+    # Database/dependency imports that might be optional
+    except ImportError:
+
+    # Logging configuration
+    logger\..*
+
+# Coverage thresholds
+precision = 2
+skip_covered = False
+skip_empty = True
+
+# Minimum coverage percentage for overall project
+fail_under = 85
+
+# Show missing lines
+show_missing = True
+
+# Sorting
+sort = Cover
+
+# Contextual per-test coverage
+per_module = True
+
+[html]
+# HTML report configuration
+directory = htmlcov
+title = Clinical Care Tools Backend Coverage Report
+
+[xml]
+# XML report configuration (for CI/CD)
+output = coverage.xml
+
+# Critical paths with higher coverage requirements
+[report:critical]
+# Override for critical security/compliance paths
+# These need 90%+ coverage minimum
+
+# Authentication services
+# - app/services/auth_service.py: 90%+
+# - app/services/session_service.py: 90%+
+# - app/core/security.py: 90%+
+
+# RBAC/Access Control
+# - app/services/rbac_service.py: 90%+
+# - app/middleware/auth_middleware.py: 90%+
+
+# Audit Logging
+# - app/services/audit_service.py: 90%+
+# - app/models/audit_log.py: 90%+
+
+# PHI Encryption
+# - app/services/encryption_service.py: 90%+
+
+# Configuration for specific test types
+[paths]
+source =
+    app
+    */app
+
+# Parallel testing coverage combination
+parallel = True

@@ -1,33 +1,30 @@
-"""SQLAlchemy database models."""
+"""
+Database models package.
+"""
 
-from app.models.annotation import Annotation
+from app.models.user import User
+from app.models.session import Session
 from app.models.audit_log import AuditLog
-from app.models.clinical_incident import (
-    ClinicalIncident,
-    IncidentSeverity,
-    IncidentStatus,
-    IncidentType,
-)
-from app.models.clinical_override import ClinicalOverride
-from app.models.critical_finding_alert import CriticalFindingAlert, FindingSeverity
-from app.models.document import Document, DocumentStatus, DocumentType
+from app.models.project import Project, ProjectMember
+from app.models.task import Task, TaskStatus, TaskPriority
+from app.models.document import Document, ProcessingStatus
+from app.models.extracted_entity import ExtractedEntity, EntityType
 from app.models.patient import Patient
-from app.models.user import User, UserRole
+from app.models.module import Module
 
 __all__ = [
     "User",
-    "UserRole",
-    "Patient",
-    "Document",
-    "DocumentType",
-    "DocumentStatus",
-    "Annotation",
+    "Session",
     "AuditLog",
-    "ClinicalOverride",
-    "CriticalFindingAlert",
-    "FindingSeverity",
-    "ClinicalIncident",
-    "IncidentType",
-    "IncidentSeverity",
-    "IncidentStatus",
+    "Project",
+    "ProjectMember",
+    "Task",
+    "TaskStatus",
+    "TaskPriority",
+    "Document",
+    "ProcessingStatus",
+    "ExtractedEntity",
+    "EntityType",
+    "Patient",
+    "Module",
 ]

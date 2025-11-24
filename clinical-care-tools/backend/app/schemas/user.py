@@ -1,93 +1,139 @@
-"""Pydantic schemas for user-related requests and responses."""
+"""
+Pydantic schemas for User API endpoints.
 
-from datetime import datetime
+Schemas:
+- UserCreate: Creating new users
+- UserUpdate: Updating existing users
+- UserResponse: User data in responses (excludes sensitive fields)
+"""
+
 from typing import Optional
-from uuid import UUID
-
-from pydantic import BaseModel, EmailStr, Field
-
-from app.models.user import UserRole
+from datetime import datetime
+from pydantic import BaseModel, Field, field_validator
+from enum import Enum
 
 
-class UserBase(BaseModel):
-    """Base user schema with common fields."""
+class UserRole(str, Enum):
+    """Allowed user roles."""
+    ADMIN = "admin"
+    CLINICIAN = "clinician"
+    RESEARCHER = "researcher"
+    VIEWER = "viewer"
 
-    username: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr
-    full_name: str = Field(..., min_length=1, max_length=255)
-    role: UserRole = UserRole.VIEWER
 
+class UserCreate(BaseModel):
+    """Schema for creating new user."""
 
-class UserCreate(UserBase):
-    """Schema for creating a new user."""
+    username: str = Field(
+        ...,
+        min_length=3,
+        max_length=50,
+        description="Unique username"
+    )
+    full_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="User's full name"
+    )
+    password: str = Field(
+        ...,
+        min_length=8,
+        description="Password (min 8 characters)"
+    )
+    role: UserRole = Field(
+        ...,
+        description="User role (admin, clinician, researcher, viewer)"
+    )
 
-    password: str = Field(..., min_length=8, max_length=100)
-    can_break_glass: bool = False
+    @field_validator('password')
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        """Validate password meets minimum strength requirements."""
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+
+        # Check for at least one letter and one number
+        has_letter = any(c.isalpha() for c in v)
+        has_digit = any(c.isdigit() for c in v)
+
+        if not (has_letter and has_digit):
+            raise ValueError('Password must contain at least one letter and one number')
+
+        return v
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "username": "john_doe",
+                    "full_name": "John Doe",
+                    "password": "SecurePass123!",
+                    "role": "clinician"
+                }
+            ]
+        }
+    }
 
 
 class UserUpdate(BaseModel):
-    """Schema for updating user."""
+    """Schema for updating existing user."""
 
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = Field(None, min_length=1, max_length=255)
-    role: Optional[UserRole] = None
-    is_active: Optional[bool] = None
-    can_break_glass: Optional[bool] = None
+    full_name: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=100,
+        description="User's full name"
+    )
+    role: Optional[UserRole] = Field(
+        None,
+        description="User role"
+    )
+    is_active: Optional[bool] = Field(
+        None,
+        description="Whether user account is active"
+    )
+    must_change_password: Optional[bool] = Field(
+        None,
+        description="Whether user must change password on next login"
+    )
 
-
-class UserPasswordUpdate(BaseModel):
-    """Schema for password update."""
-
-    current_password: str
-    new_password: str = Field(..., min_length=8, max_length=100)
-
-
-class UserResponse(UserBase):
-    """Schema for user response."""
-
-    id: UUID
-    is_active: bool
-    is_verified: bool
-    can_break_glass: bool
-    failed_login_attempts: int
-    locked_until: Optional[datetime]
-    last_login_at: Optional[datetime]
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        """Pydantic configuration."""
-
-        from_attributes = True
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "full_name": "John Doe Updated",
+                    "is_active": False
+                }
+            ]
+        }
+    }
 
 
-class Token(BaseModel):
-    """Schema for JWT token response."""
+class UserResponse(BaseModel):
+    """Schema for user data in API responses."""
 
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-
-class TokenPayload(BaseModel):
-    """Schema for JWT token payload."""
-
-    sub: UUID  # User ID
-    exp: datetime  # Expiration
-    iat: datetime  # Issued at
-
-
-class LoginRequest(BaseModel):
-    """Schema for login request."""
-
+    id: str
     username: str
-    password: str
+    full_name: str
+    role: str
+    is_active: bool
+    must_change_password: bool
+    created_at: datetime
 
-
-class LoginResponse(BaseModel):
-    """Schema for login response."""
-
-    user: UserResponse
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
+    model_config = {
+        "from_attributes": True,
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "username": "john_doe",
+                    "full_name": "John Doe",
+                    "role": "clinician",
+                    "is_active": True,
+                    "must_change_password": False,
+                    "created_at": "2025-01-08T12:34:56"
+                }
+            ]
+        }
+    }

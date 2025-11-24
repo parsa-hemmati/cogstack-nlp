@@ -1,1 +1,3 @@
-"""Test suite for Clinical Care Tools."""
+"""
+Tests package for Clinical Care Tools backend.
+"""

@@ -1,24 +1,19 @@
-"""FastAPI application entry point."""
+"""
+Clinical Care Tools - FastAPI Application
 
-import logging
+Main entry point for the FastAPI application.
+Web environment: Uses native PostgreSQL and Redis (no Docker).
+Production: Uses Docker-based infrastructure.
+"""
+
 from contextlib import asynccontextmanager
-from typing import Any
-
-from fastapi import FastAPI, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import auth
 from app.core.config import settings
-from app.core.scheduler import scheduler
-from app.db.session import close_db, init_db
-
-# Configure logging
-logging.basicConfig(
-    level=settings.LOG_LEVEL,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+from app.core.database import init_db, close_db
+from app.core.redis_client import redis_client
 
 
 @asynccontextmanager
@@ -29,142 +24,152 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events.
     """
     # Startup
-    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-    logger.info(f"Environment: {settings.ENVIRONMENT}")
+    print("🚀 Starting Clinical Care Tools API...")
+    print(f"📌 Environment: {settings.environment}")
+    print(f"📌 Database: {settings.postgres_server}:{settings.postgres_port}/{settings.postgres_db}")
+    print(f"📌 Redis: {settings.redis_host}:{settings.redis_port}")
 
-    # Initialize database (create tables if needed)
-    # Note: In production, use Alembic migrations instead
-    if settings.is_development:
+    # Initialize database
+    try:
         await init_db()
-        logger.info("Database initialized")
+        print("✅ Database initialized")
+    except Exception as e:
+        print(f"❌ Database initialization failed: {e}")
 
-    # Start background task scheduler
-    scheduler.start()
-    logger.info("Background scheduler started")
+    # Initialize Redis
+    try:
+        await redis_client.connect()
+        if await redis_client.ping():
+            print("✅ Redis connected")
+        else:
+            print("⚠️  Redis connection unhealthy")
+    except Exception as e:
+        print(f"❌ Redis connection failed: {e}")
+
+    print("✅ Application startup complete")
 
     yield
 
     # Shutdown
-    logger.info("Shutting down application")
-    scheduler.stop()
-    await close_db()
+    print("🛑 Shutting down Clinical Care Tools API...")
+
+    # Close database connections
+    try:
+        await close_db()
+        print("✅ Database connections closed")
+    except Exception as e:
+        print(f"❌ Database cleanup failed: {e}")
+
+    # Close Redis connection
+    try:
+        await redis_client.disconnect()
+        print("✅ Redis connection closed")
+    except Exception as e:
+        print(f"❌ Redis cleanup failed: {e}")
+
+    print("✅ Application shutdown complete")
 
 
 # Create FastAPI application
 app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.APP_VERSION,
-    description="Clinical Care Tools - Healthcare NLP Platform",
-    docs_url="/docs" if settings.is_development else None,
-    redoc_url="/redoc" if settings.is_development else None,
+    title=settings.app_name,
+    version=settings.app_version,
+    description="Clinical Care Tools API for healthcare NLP workflows",
     lifespan=lifespan,
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.backend_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-@app.get("/", tags=["Root"])
-async def root() -> dict[str, str]:
-    """Root endpoint."""
-    return {
-        "message": f"Welcome to {settings.APP_NAME}",
-        "version": settings.APP_VERSION,
-        "environment": settings.ENVIRONMENT,
-        "docs": "/docs" if settings.is_development else "disabled",
-    }
-
-
-@app.get("/health", tags=["Health"])
-async def health_check() -> dict[str, Any]:
+# Health check endpoint
+@app.get("/health", tags=["health"])
+async def health_check():
     """
     Health check endpoint.
 
-    Used by Docker healthcheck and monitoring systems.
+    Returns service status including database connectivity.
+    Used by Docker health checks and monitoring systems.
+
+    Returns:
+        Health status with 200 OK if healthy, 503 Service Unavailable if unhealthy
+
+    Response Format:
+        {
+            "status": "healthy" | "unhealthy",
+            "version": "0.1.0",
+            "timestamp": "2025-11-22T23:59:59.123456",
+            "database": {
+                "status": "connected" | "disconnected",
+                "message": "Optional error message"
+            }
+        }
+    """
+    from datetime import datetime
+    from app.core.database import engine
+    from sqlalchemy import text
+
+    # Check database connectivity
+    database_status = {}
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        database_status = {"status": "connected"}
+    except Exception as e:
+        database_status = {
+            "status": "disconnected",
+            "message": str(e)[:100]  # Truncate long error messages
+        }
+
+    # Determine overall health status
+    overall_status = "healthy" if database_status["status"] == "connected" else "unhealthy"
+
+    # Determine HTTP status code
+    http_status = 200 if overall_status == "healthy" else 503
+
+    # Build response
+    response_data = {
+        "status": overall_status,
+        "version": settings.app_version,
+        "timestamp": datetime.utcnow().isoformat(),
+        "database": database_status,
+    }
+
+    return JSONResponse(
+        content=response_data,
+        status_code=http_status
+    )
+
+
+# Root endpoint
+@app.get("/", tags=["root"])
+async def root():
+    """
+    Root endpoint.
+
+    Returns:
+        Welcome message and API information.
     """
     return {
-        "status": "healthy",
-        "version": settings.APP_VERSION,
-        "environment": settings.ENVIRONMENT,
+        "message": "Clinical Care Tools API",
+        "version": settings.app_version,
+        "environment": settings.environment,
+        "docs": "/docs",
+        "health": "/health",
+        "api": settings.api_v1_prefix,
     }
 
 
-@app.get("/info", tags=["Info"])
-async def info() -> dict[str, Any]:
-    """Application information."""
-    return {
-        "name": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "environment": settings.ENVIRONMENT,
-        "features": {
-            "fhir_export": settings.ENABLE_FHIR_EXPORT,
-            "clinical_decision_support": settings.ENABLE_CLINICAL_DECISION_SUPPORT,
-            "break_glass_access": settings.ENABLE_BREAK_GLASS_ACCESS,
-        },
-    }
+# API v1 router
+from app.api.v1.routers.api_router import api_router
 
-
-# Include API routers
-from app.api.v1 import (
-    admin,
-    clinical_incidents,
-    clinical_overrides,
-    critical_findings,
-    patients,
-    search,
-    timeline,
-)
-from app.api.v1.endpoints import (
-    deidentify, phi, clinical_coding,
-    cds, fhir, alerting, population_health, analytics
-)
-
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
-app.include_router(patients.router, prefix="/api/v1/patients", tags=["Patients"])
-app.include_router(timeline.router, prefix="/api/v1/timeline", tags=["Timeline"])
-app.include_router(search.router, prefix="/api/v1", tags=["Search"])
-app.include_router(deidentify.router, prefix="/api/v1", tags=["De-identification"])
-app.include_router(clinical_coding.router, prefix="/api/v1", tags=["Clinical Coding"])
-app.include_router(cds.router, prefix="/api/v1", tags=["Clinical Decision Support"])
-app.include_router(fhir.router, prefix="/api/v1", tags=["FHIR R4"])
-app.include_router(alerting.router, prefix="/api/v1", tags=["Automated Alerting"])
-app.include_router(population_health.router, prefix="/api/v1", tags=["Population Health"])
-app.include_router(analytics.router, prefix="/api/v1", tags=["Advanced Analytics"])
-app.include_router(phi.router, prefix="/api/v1", tags=["PHI Detection (Internal)"])
-app.include_router(admin.router, prefix="/api/v1", tags=["Admin"])
-app.include_router(
-    clinical_overrides.router, prefix="/api/v1", tags=["Clinical Overrides"]
-)
-app.include_router(
-    clinical_incidents.router, prefix="/api/v1", tags=["Clinical Incidents"]
-)
-app.include_router(
-    critical_findings.router, prefix="/api/v1", tags=["Critical Findings"]
-)
-
-
-# Global exception handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc: Exception) -> JSONResponse:
-    """Handle uncaught exceptions."""
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-
-    if settings.is_development:
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": str(exc), "type": type(exc).__name__},
-        )
-    else:
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": "Internal server error"},
-        )
+app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 
 if __name__ == "__main__":
@@ -174,6 +179,6 @@ if __name__ == "__main__":
         "app.main:app",
         host="0.0.0.0",
         port=8000,
-        reload=settings.is_development,
-        log_level=settings.LOG_LEVEL.lower(),
+        reload=settings.debug,
+        log_level="info" if settings.debug else "warning",
     )

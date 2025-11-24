@@ -1,32 +1,22 @@
-"""Document model for storing clinical documents metadata."""
+"""
+Document model for encrypted clinical document storage.
 
+Stores RTF documents with AES-256 encryption, SHA-256 content hashing,
+and processing status tracking for MedCAT NLP extraction.
+"""
+
+import enum
+import uuid
 from datetime import datetime
-from enum import Enum as PyEnum
-from typing import Optional
-from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Column, String, DateTime, Integer, LargeBinary, ForeignKey, Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import UUID
 
-from app.db.base import Base
+from app.core.database import Base
 
 
-class DocumentType(str, PyEnum):
-    """Document types."""
-
-    CLINICAL_NOTE = "clinical_note"
-    DISCHARGE_SUMMARY = "discharge_summary"
-    LAB_REPORT = "lab_report"
-    RADIOLOGY_REPORT = "radiology_report"
-    PATHOLOGY_REPORT = "pathology_report"
-    CONSULTATION = "consultation"
-    PRESCRIPTION = "prescription"
-    OTHER = "other"
-
-
-class DocumentStatus(str, PyEnum):
-    """Document processing status."""
-
+class ProcessingStatus(str, enum.Enum):
+    """Document processing status enumeration."""
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -35,121 +25,79 @@ class DocumentStatus(str, PyEnum):
 
 class Document(Base):
     """
-    Document model for clinical document metadata.
+    Document model for encrypted clinical document storage.
 
-    Full text content is stored in Elasticsearch.
-    This model stores metadata and references.
+    Stores RTF documents with encryption for PHI protection. Content is encrypted
+    using AES-256-GCM before storage. SHA-256 hash ensures deduplication and
+    integrity verification.
 
     Attributes:
-        patient_id: Foreign key to patient
-        document_type: Type of clinical document
-        document_date: Date of the document
-        author: Document author (clinician)
-        title: Document title
-        elasticsearch_id: Reference to Elasticsearch document
-        status: Processing status
-        nlp_processed: Whether NLP processing is complete
-        nlp_processed_at: Timestamp of NLP processing
-        error_message: Error message if processing failed
-        legal_hold: If true, document cannot be deleted per retention policy
-        legal_hold_reason: Reason for legal hold (litigation, audit, etc.)
-        legal_hold_by: User who placed the legal hold
-        legal_hold_at: When legal hold was placed
+        id: Unique document identifier (UUID)
+        filename: Original filename (max 255 characters)
+        content_type: MIME type (e.g., "application/rtf")
+        content_hash: SHA-256 hash of original content (before encryption)
+        encrypted_content: AES-256-GCM encrypted content stored as BYTEA
+        encryption_algorithm: Encryption algorithm used (e.g., "AES-256-GCM")
+        file_size: Original file size in bytes (before encryption)
+        uploaded_by: User ID who uploaded the document
+        project_id: Project this document belongs to
+        processing_status: NLP processing status (pending, processing, completed, failed)
+        created_at: Timestamp when document was uploaded
+
+    Relationships:
+        uploaded_by: References User.id
+        project_id: References Project.id (CASCADE DELETE)
+
+    Constraints:
+        - content_hash must be unique (prevents duplicate uploads)
+        - content_hash is indexed for fast lookups
+        - project_id CASCADE DELETE (removing project removes documents)
+
+    Example:
+        >>> import hashlib
+        >>> content = b"Patient clinical notes..."
+        >>> content_hash = hashlib.sha256(content).hexdigest()
+        >>> doc = Document(
+        ...     filename="patient_notes.rtf",
+        ...     content_type="application/rtf",
+        ...     content_hash=content_hash,
+        ...     encrypted_content=encrypted_content,
+        ...     encryption_algorithm="AES-256-GCM",
+        ...     file_size=len(content),
+        ...     uploaded_by=user_id,
+        ...     project_id=project_id,
+        ...     processing_status=ProcessingStatus.PENDING
+        ... )
     """
 
     __tablename__ = "documents"
 
-    patient_id: Mapped[UUID] = mapped_column(
-        ForeignKey("patients.id", ondelete="CASCADE"),
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # File metadata
+    filename = Column(String(255), nullable=False, index=True)
+    content_type = Column(String(100), nullable=False)
+
+    # Content integrity and storage
+    content_hash = Column(String(64), nullable=False, unique=True, index=True)  # SHA-256 hex
+    encrypted_content = Column(LargeBinary, nullable=False)  # BYTEA in PostgreSQL
+    encryption_algorithm = Column(String(50), nullable=False, default="AES-256-GCM")
+    file_size = Column(Integer, nullable=False)  # Original size in bytes
+
+    # Ownership and organization
+    uploaded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Processing tracking
+    processing_status = Column(
+        SQLEnum(ProcessingStatus, native_enum=False, length=20),
         nullable=False,
-        index=True,
+        default=ProcessingStatus.PENDING,
+        index=True
     )
 
-    document_type: Mapped[DocumentType] = mapped_column(
-        Enum(DocumentType),
-        nullable=False,
-    )
-
-    document_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        index=True,
-    )
-
-    author: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-    )
-
-    title: Mapped[str] = mapped_column(
-        String(500),
-        nullable=False,
-    )
-
-    elasticsearch_id: Mapped[Optional[str]] = mapped_column(
-        String(100),
-        nullable=True,
-        index=True,
-        comment="Reference to document in Elasticsearch",
-    )
-
-    status: Mapped[DocumentStatus] = mapped_column(
-        Enum(DocumentStatus),
-        default=DocumentStatus.PENDING,
-        nullable=False,
-        index=True,
-    )
-
-    nlp_processed: Mapped[bool] = mapped_column(
-        default=False,
-        nullable=False,
-    )
-
-    nlp_processed_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-    )
-
-    error_message: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    # Legal hold fields (for compliance/litigation holds)
-    legal_hold: Mapped[bool] = mapped_column(
-        default=False,
-        nullable=False,
-        index=True,
-        comment="If true, document cannot be deleted per retention policy",
-    )
-
-    legal_hold_reason: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Reason for legal hold (e.g., litigation, audit)",
-    )
-
-    legal_hold_by: Mapped[Optional[UUID]] = mapped_column(
-        ForeignKey("users.id"),
-        nullable=True,
-        comment="User who placed the legal hold",
-    )
-
-    legal_hold_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-        comment="When legal hold was placed",
-    )
-
-    # Relationships
-    patient = relationship("Patient", back_populates="documents")
-    annotations = relationship(
-        "Annotation",
-        back_populates="document",
-        cascade="all, delete-orphan",
-        lazy="selectin",
-    )
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     def __repr__(self) -> str:
-        """String representation."""
-        return f"<Document(id='{self.id}', title='{self.title}', type='{self.document_type}')>"
+        return f"<Document(id={self.id}, filename={self.filename}, status={self.processing_status})>"

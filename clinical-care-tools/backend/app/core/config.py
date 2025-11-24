@@ -1,147 +1,105 @@
-"""Application configuration management."""
+"""
+Application configuration settings.
 
-from functools import lru_cache
-from typing import Any, Dict, List, Optional
+Environment-aware configuration using pydantic-settings.
+Adapts to Claude Code on Web environment (no Docker).
+"""
 
-from pydantic import Field, PostgresDsn, field_validator
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import PostgresDsn, RedisDsn, Field
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables."""
+    """Application settings."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore",
+        extra="allow"
     )
 
     # Application
-    APP_NAME: str = "Clinical Care Tools"
-    APP_VERSION: str = "0.1.0"
-    ENVIRONMENT: str = Field(default="development")
-    DEBUG: bool = Field(default=False)
-    LOG_LEVEL: str = Field(default="INFO")
+    app_name: str = "Clinical Care Tools"
+    app_version: str = "0.1.0"
+    debug: bool = True
+    environment: str = "development"  # development, staging, production
 
-    # Database
-    POSTGRES_USER: str = Field(default="postgres")
-    POSTGRES_PASSWORD: str = Field(default="changeme")
-    POSTGRES_HOST: str = Field(default="localhost")
-    POSTGRES_PORT: int = Field(default=5432)
-    POSTGRES_DB: str = Field(default="clinical_care_tools")
-
-    DATABASE_URL: Optional[str] = None
-
-    @field_validator("DATABASE_URL", mode="before")
-    @classmethod
-    def assemble_db_url(cls, v: Optional[str], info: Any) -> str:
-        """Construct database URL from components if not provided."""
-        if isinstance(v, str) and v:
-            return v
-
-        data = info.data
-        return str(
-            PostgresDsn.build(
-                scheme="postgresql+asyncpg",
-                username=data.get("POSTGRES_USER"),
-                password=data.get("POSTGRES_PASSWORD"),
-                host=data.get("POSTGRES_HOST"),
-                port=data.get("POSTGRES_PORT"),
-                path=data.get("POSTGRES_DB", ""),
-            )
-        )
-
-    # Database connection pool
-    DB_POOL_SIZE: int = Field(default=20)
-    DB_MAX_OVERFLOW: int = Field(default=10)
-    DB_POOL_TIMEOUT: int = Field(default=30)
-    DB_ECHO: bool = Field(default=False)
-
-    # Redis
-    REDIS_HOST: str = Field(default="localhost")
-    REDIS_PORT: int = Field(default=6379)
-    REDIS_DB: int = Field(default=0)
-    REDIS_URL: Optional[str] = None
-
-    @field_validator("REDIS_URL", mode="before")
-    @classmethod
-    def assemble_redis_url(cls, v: Optional[str], info: Any) -> str:
-        """Construct Redis URL from components if not provided."""
-        if isinstance(v, str) and v:
-            return v
-
-        data = info.data
-        return f"redis://{data.get('REDIS_HOST')}:{data.get('REDIS_PORT')}/{data.get('REDIS_DB')}"
-
-    REDIS_POOL_SIZE: int = Field(default=10)
-    REDIS_POOL_MAX_SIZE: int = Field(default=20)
-
-    # Elasticsearch
-    ELASTICSEARCH_HOST: str = Field(default="localhost")
-    ELASTICSEARCH_PORT: int = Field(default=9200)
-    ELASTICSEARCH_URL: Optional[str] = None
-
-    @field_validator("ELASTICSEARCH_URL", mode="before")
-    @classmethod
-    def assemble_elasticsearch_url(cls, v: Optional[str], info: Any) -> str:
-        """Construct Elasticsearch URL from components if not provided."""
-        if isinstance(v, str) and v:
-            return v
-
-        data = info.data
-        return f"http://{data.get('ELASTICSEARCH_HOST')}:{data.get('ELASTICSEARCH_PORT')}"
-
-    ELASTICSEARCH_INDEX: str = Field(default="documents")
-
-    # JWT Authentication
-    JWT_SECRET_KEY: str = Field(
-        default="your-secret-key-change-in-production-use-openssl-rand-hex-32"
-    )
-    JWT_ALGORITHM: str = Field(default="HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
-    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7)
+    # API
+    api_v1_prefix: str = "/api/v1"
 
     # Security
-    CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:8080", "http://localhost:3000"]
+    secret_key: str = "development-secret-key-change-in-production"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+
+    # CORS
+    backend_cors_origins: list[str] = ["http://localhost:8080", "http://localhost:3000"]
+
+    # Database - Web Environment Adaptation
+    # Note: In web environment, use native PostgreSQL (not Docker)
+    # Production: Use Docker-based PostgreSQL
+    postgres_server: str = Field(default="localhost", description="PostgreSQL server host")
+    postgres_port: int = Field(default=5432, description="PostgreSQL server port")
+    postgres_user: str = Field(default="postgres", description="PostgreSQL username")
+    postgres_password: str = Field(default="postgres", description="PostgreSQL password")
+    postgres_db: str = Field(default="clinical_care_tools", description="PostgreSQL database name")
+
+    @property
+    def database_url(self) -> str:
+        """Build PostgreSQL database URL."""
+        return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_server}:{self.postgres_port}/{self.postgres_db}"
+
+    @property
+    def async_database_url(self) -> str:
+        """Build async PostgreSQL database URL."""
+        return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_server}:{self.postgres_port}/{self.postgres_db}"
+
+    # Redis - Web Environment Adaptation
+    # Note: In web environment, use native Redis (not Docker)
+    # Production: Use Docker-based Redis
+    redis_host: str = Field(default="localhost", description="Redis server host")
+    redis_port: int = Field(default=6379, description="Redis server port")
+    redis_db: int = Field(default=0, description="Redis database number")
+    redis_password: Optional[str] = Field(default=None, description="Redis password")
+
+    @property
+    def redis_url(self) -> str:
+        """Build Redis connection URL."""
+        if self.redis_password:
+            return f"redis://:{self.redis_password}@{self.redis_host}:{self.redis_port}/{self.redis_db}"
+        return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
+
+    # CogStack-ModelServe - Web Environment Adaptation
+    # Note: In web environment, use mock client for testing
+    # Production: Use actual CogStack-ModelServe in Docker
+    medcat_service_url: str = Field(
+        default="http://localhost:8001",
+        description="CogStack-ModelServe URL (mocked in web environment)"
     )
-    SESSION_TIMEOUT_MINUTES: int = Field(default=30)
-    MAX_LOGIN_ATTEMPTS: int = Field(default=5)
-    LOCKOUT_DURATION_MINUTES: int = Field(default=15)
+    medcat_api_key: Optional[str] = Field(default=None, description="CogStack-ModelServe API key")
 
-    # CogStack-ModelServe
-    MODELSERVE_URL: str = Field(default="http://localhost:8001")
-    MODELSERVE_TIMEOUT: int = Field(default=30)
+    # Audit Logging
+    audit_log_enabled: bool = True
+    audit_log_file: str = "logs/audit.log"
 
-    # Audit Logging (HIPAA compliance)
-    AUDIT_LOG_ENABLED: bool = Field(default=True)
-    AUDIT_LOG_RETENTION_DAYS: int = Field(default=2920)  # 8 years
+    # Session Management
+    session_timeout_minutes: int = 60
+    max_concurrent_sessions: int = 5
 
-    # Feature Flags
-    ENABLE_FHIR_EXPORT: bool = Field(default=False)
-    ENABLE_CLINICAL_DECISION_SUPPORT: bool = Field(default=False)
-    ENABLE_BREAK_GLASS_ACCESS: bool = Field(default=True)
+    # File Storage (Web Environment: In-memory or PostgreSQL BYTEA)
+    # Production: S3 or network file system
+    file_storage_backend: str = "postgresql"  # postgresql, s3, filesystem
+    max_file_size_mb: int = 50
 
-    # Performance
-    BACKEND_WORKERS: int = Field(default=4)
+    # Data Retention (NHS requirement: 8 years)
+    data_retention_years: int = 8
 
-    @property
-    def is_development(self) -> bool:
-        """Check if running in development mode."""
-        return self.ENVIRONMENT == "development"
-
-    @property
-    def is_production(self) -> bool:
-        """Check if running in production mode."""
-        return self.ENVIRONMENT == "production"
-
-
-@lru_cache
-def get_settings() -> Settings:
-    """Get cached settings instance."""
-    return Settings()
+    # Pagination
+    default_page_size: int = 20
+    max_page_size: int = 100
 
 
 # Global settings instance
-settings = get_settings()
+settings = Settings()

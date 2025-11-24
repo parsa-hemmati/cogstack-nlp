@@ -1,0 +1,396 @@
+# Mission Queue for CogStack NLP Clinical Care Tools
+# Generated: 2025-11-17
+# Framework: Autonomous Execution Framework v1.0.0 (AB Method + RIPER + TSK + Spec-Kit)
+# Source: .specify/tasks/clinical-care-tools-base-tasks.md (v1.1.0)
+
+# =============================================================================
+# Phase 0: Environment Setup & MedCAT Model Preparation (7 missions, ~20 hours)
+# =============================================================================
+
+missions:
+  # ---------------------------------------------------------------------------
+  # Mission 0.1: Install Docker and Docker Compose (MANUAL - USER MACHINE)
+  # ---------------------------------------------------------------------------
+  - mission_id: mvp-phase-0-task-1
+    phase: mvp-phase-0
+    task_number: 1
+    title: "Install Docker and Docker Compose"
+    spec_file: .specify/specifications/clinical-care-tools-base-app.md
+    spec_section: "Phase 0: Environment Setup"
+    estimated_hours: 1.0
+    dependencies: []
+    status: blocked
+    blocker_reason: "Manual installation on user's workstation required"
+    execution_type: manual
+
+    riper_cycle:
+      research:
+        - "Read Docker installation requirements from spec"
+        - "Verify workstation meets requirements (8GB RAM, 4 CPU cores)"
+      innovate:
+        - "User must download Docker Desktop 24.0+ from docker.com"
+      plan:
+        - "Document installation steps"
+        - "Create verification checklist"
+      execute:
+        - "MANUAL: User installs Docker Desktop"
+        - "MANUAL: User configures resources (8GB RAM, 4 CPU cores)"
+      review:
+        - "Verify: docker --version >= 24.0"
+        - "Verify: docker-compose --version >= 2.20"
+        - "Verify: docker run hello-world succeeds"
+
+    sub_agents: []
+    output:
+      code_files: []
+      documentation: ["Blocker file with installation instructions"]
+      tests: []
+
+    success_criteria:
+      - "Docker version >= 24.0"
+      - "Docker Compose version >= 2.20"
+      - "Docker Desktop shows 8GB RAM, 4 CPU cores allocated"
+      - "docker run hello-world executes successfully"
+
+  # ---------------------------------------------------------------------------
+  # Mission 0.2: Download MedCAT Models (MANUAL - REQUIRES CREDENTIALS)
+  # ---------------------------------------------------------------------------
+  - mission_id: mvp-phase-0-task-2
+    phase: mvp-phase-0
+    task_number: 2
+    title: "Download MedCAT Models"
+    spec_file: .specify/specifications/clinical-care-tools-base-app.md
+    spec_section: "Phase 0: Environment Setup"
+    estimated_hours: 8.0
+    dependencies: [mvp-phase-0-task-1]
+    status: blocked
+    blocker_reason: "Requires MedCAT model URLs and credentials (not in spec)"
+    execution_type: manual
+
+    riper_cycle:
+      research:
+        - "Read MedCAT model requirements from spec"
+        - "Identify required models: SNOMED-CT (2-5 GB), de-identification"
+      innovate:
+        - "Create models directory structure"
+        - "Document download instructions"
+      plan:
+        - "Create medcat_models/ directory"
+        - "Create subdirectories: snomed/, umls/, deid/"
+        - "Document download commands with placeholders"
+      execute:
+        - "AUTONOMOUS: Create directory structure"
+        - "MANUAL: User downloads models (requires credentials)"
+        - "AUTONOMOUS: Create verification script"
+      review:
+        - "Verify directory structure exists"
+        - "Document verification steps for user"
+
+    sub_agents: []
+    output:
+      code_files: []
+      documentation: ["Blocker file with download instructions", "Directory structure", "Verification script"]
+      tests: []
+
+    success_criteria:
+      - "medcat_models/snomed/ directory exists"
+      - "Model files extracted successfully (user action)"
+      - "Checksum verification passed (user action)"
+      - "Model size >= 1 GB (typical SNOMED model)"
+
+  # ---------------------------------------------------------------------------
+  # Mission 0.3: Create Initial Docker Compose Configuration (AUTONOMOUS)
+  # ---------------------------------------------------------------------------
+  - mission_id: mvp-phase-0-task-3
+    phase: mvp-phase-0
+    task_number: 3
+    title: "Create Initial Docker Compose Configuration"
+    spec_file: .specify/specifications/clinical-care-tools-base-app.md
+    spec_section: "Phase 0: Environment Setup - Docker Compose"
+    estimated_hours: 3.0
+    dependencies: [mvp-phase-0-task-1]
+    status: pending
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Read Docker Compose requirements from spec"
+        - "Read technical plan for service definitions"
+        - "Review MedCAT Trainer docker-compose.yml for patterns"
+        - "Check CLAUDE.md for Docker conventions"
+      innovate:
+        - "Design 5-service architecture: frontend, backend, postgres, redis, cogstack-modelserve"
+        - "Design network topology (single bridge network)"
+        - "Design volume strategy: postgres_data, redis_data, medcat_models, backend_logs"
+        - "Design health check strategy for all services"
+      plan:
+        - "Create docker-compose.yml with 5 services"
+        - "Create .env.template with all required variables"
+        - "Create .gitignore entry for .env"
+        - "Configure health checks for monitoring"
+      execute:
+        - "Write docker-compose.yml"
+        - "Write .env.template"
+        - "Update .gitignore"
+        - "Validate with docker-compose config"
+      review:
+        - "Verify all 5 services defined"
+        - "Verify all volumes defined"
+        - "Verify health checks configured"
+        - "Verify docker-compose config validates"
+        - "Update CONTEXT.md with Docker architecture ADR"
+
+    sub_agents:
+      - infrastructure-expert: "Guidance on Docker Compose best practices, health checks, volume strategy"
+
+    output:
+      code_files:
+        - docker-compose.yml
+        - .env.template
+      documentation:
+        - CONTEXT.md entry (Docker architecture ADR)
+      tests:
+        - "Validation: docker-compose config"
+
+    success_criteria:
+      - "docker-compose.yml exists with all 5 services defined"
+      - ".env.template exists with all required variables"
+      - "All volumes defined in docker-compose.yml"
+      - "Health checks configured for all services"
+      - "docker-compose config validates successfully"
+
+  # ---------------------------------------------------------------------------
+  # Mission 0.4: Setup PostgreSQL Database (SEMI-AUTONOMOUS)
+  # ---------------------------------------------------------------------------
+  - mission_id: mvp-phase-0-task-4
+    phase: mvp-phase-0
+    task_number: 4
+    title: "Setup PostgreSQL Database"
+    spec_file: .specify/specifications/clinical-care-tools-base-app.md
+    spec_section: "Phase 0: Environment Setup - PostgreSQL"
+    estimated_hours: 2.0
+    dependencies: [mvp-phase-0-task-3]
+    status: pending
+    execution_type: semi_autonomous
+
+    riper_cycle:
+      research:
+        - "Read PostgreSQL requirements from spec (PostgreSQL 15+)"
+        - "Read database configuration from technical plan"
+      innovate:
+        - "Design database initialization script"
+        - "Design secure password generation"
+      plan:
+        - "Create .env from .env.template"
+        - "Generate secure database password"
+        - "Start PostgreSQL container"
+        - "Create clinical_care_tools database"
+      execute:
+        - "Copy .env.template to .env"
+        - "Generate secure password (pwgen or openssl)"
+        - "Run docker-compose up -d postgres"
+        - "Wait for health check"
+        - "Verify connection"
+      review:
+        - "Verify PostgreSQL container running"
+        - "Verify database created"
+        - "Verify connection works"
+        - "Verify SELECT version() returns PostgreSQL 15+"
+
+    sub_agents:
+      - infrastructure-expert: "PostgreSQL configuration, security best practices"
+
+    output:
+      code_files:
+        - .env (gitignored, contains generated password)
+      documentation:
+        - README.md update with PostgreSQL setup instructions
+      tests:
+        - "Manual: docker-compose ps shows postgres as healthy"
+        - "Manual: psql connection successful"
+
+    success_criteria:
+      - "PostgreSQL container running"
+      - "Database clinical_care_tools created"
+      - "Can connect from host machine"
+      - "Health check passing"
+      - "SELECT version() returns PostgreSQL 15+"
+
+  # ---------------------------------------------------------------------------
+  # Mission 0.5: Setup Redis Cache (AUTONOMOUS)
+  # ---------------------------------------------------------------------------
+  - mission_id: mvp-phase-0-task-5
+    phase: mvp-phase-0
+    task_number: 5
+    title: "Setup Redis Cache"
+    spec_file: .specify/specifications/clinical-care-tools-base-app.md
+    spec_section: "Phase 0: Environment Setup - Redis"
+    estimated_hours: 1.0
+    dependencies: [mvp-phase-0-task-3]
+    status: pending
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Read Redis requirements from spec"
+        - "Read caching strategy from technical plan"
+      innovate:
+        - "Design Redis configuration (persistence: RDB + AOF)"
+        - "Design eviction policy (allkeys-lru)"
+        - "Design maxmemory limit (512mb)"
+      plan:
+        - "Update docker-compose.yml with Redis command args"
+        - "Start Redis container"
+        - "Verify persistence configuration"
+      execute:
+        - "Update docker-compose.yml (Redis args)"
+        - "Run docker-compose up -d redis"
+        - "Test PING command"
+        - "Test TTL expiration"
+      review:
+        - "Verify Redis container running"
+        - "Verify PING returns PONG"
+        - "Verify TTL expiration works"
+        - "Verify persistence configured (RDB + AOF)"
+
+    sub_agents:
+      - infrastructure-expert: "Redis configuration, persistence strategy"
+
+    output:
+      code_files:
+        - docker-compose.yml (updated)
+      documentation: []
+      tests:
+        - "Manual: redis-cli PING returns PONG"
+        - "Manual: TTL test passes"
+
+    success_criteria:
+      - "Redis container running"
+      - "PING returns PONG"
+      - "TTL expiration works correctly"
+      - "Health check passing"
+      - "Persistence configured (RDB + AOF)"
+
+  # ---------------------------------------------------------------------------
+  # Mission 0.6: Setup CogStack-ModelServe (SEMI-AUTONOMOUS)
+  # ---------------------------------------------------------------------------
+  - mission_id: mvp-phase-0-task-6
+    phase: mvp-phase-0
+    task_number: 6
+    title: "Setup CogStack-ModelServe"
+    spec_file: .specify/specifications/clinical-care-tools-base-app.md
+    spec_section: "Phase 0: Environment Setup - CogStack-ModelServe"
+    estimated_hours: 3.0
+    dependencies: [mvp-phase-0-task-2, mvp-phase-0-task-3]
+    status: pending
+    execution_type: semi_autonomous
+
+    riper_cycle:
+      research:
+        - "Read CogStack-ModelServe requirements from spec"
+        - "Research CogStack-ModelServe documentation at https://github.com/CogStack/CogStack-ModelServe"
+        - "Identify official Docker image or build requirements"
+      innovate:
+        - "Design CogStack-ModelServe service definition"
+        - "Design model volume mounting strategy"
+        - "Design health check for model loading"
+      plan:
+        - "Add CogStack-ModelServe to docker-compose.yml"
+        - "Configure model paths in .env"
+        - "Start service and wait for model loading"
+        - "Test SNOMED and de-identification models"
+      execute:
+        - "Update docker-compose.yml with CogStack-ModelServe service"
+        - "Run docker-compose up -d cogstack-modelserve"
+        - "Monitor logs for model loading completion"
+        - "Test SNOMED model with sample text"
+        - "Test de-identification model with PHI text"
+      review:
+        - "Verify CogStack-ModelServe container running"
+        - "Verify SNOMED model loads (<90 seconds)"
+        - "Verify SNOMED extracts clinical concepts with meta-annotations"
+        - "Verify de-identification detects PHI"
+        - "Verify response time <2 seconds per document"
+
+    sub_agents:
+      - infrastructure-expert: "CogStack-ModelServe deployment, model serving"
+      - medcat-meta-annotations: "Verify meta-annotation output format"
+
+    output:
+      code_files:
+        - docker-compose.yml (updated)
+        - .env (updated with MODELSERVE_URL)
+      documentation:
+        - README.md update with ModelServe testing instructions
+      tests:
+        - "Manual: curl http://localhost:8001/api/health returns 200"
+        - "Manual: SNOMED model extracts diabetes with meta-annotations"
+        - "Manual: DeID model detects PHI (names, NHS numbers)"
+
+    success_criteria:
+      - "CogStack-ModelServe container running and healthy"
+      - "SNOMED model loads successfully (<90 seconds)"
+      - "SNOMED model extracts clinical concepts with CUI codes"
+      - "SNOMED model returns meta-annotations (Negation, Experiencer, etc.)"
+      - "De-identification model detects PHI"
+      - "Response time <2 seconds per document"
+      - "OpenAPI docs accessible at http://localhost:8001/docs"
+
+  # ---------------------------------------------------------------------------
+  # Mission 0.7: Create Environment Verification Script (AUTONOMOUS)
+  # ---------------------------------------------------------------------------
+  - mission_id: mvp-phase-0-task-7
+    phase: mvp-phase-0
+    task_number: 7
+    title: "Create Environment Verification Script"
+    spec_file: .specify/specifications/clinical-care-tools-base-app.md
+    spec_section: "Phase 0: Environment Setup - Verification"
+    estimated_hours: 1.0
+    dependencies: [mvp-phase-0-task-3, mvp-phase-0-task-4, mvp-phase-0-task-5, mvp-phase-0-task-6]
+    status: pending
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Read verification requirements from spec"
+        - "Review all Phase 0 tasks for verification points"
+      innovate:
+        - "Design comprehensive verification script"
+        - "Design clear success/failure output format"
+        - "Design exit codes (0 = success, 1 = failure)"
+      plan:
+        - "Create scripts/verify-environment.sh"
+        - "Check Docker installed"
+        - "Check Docker Compose installed"
+        - "Check all volumes exist"
+        - "Check PostgreSQL connection"
+        - "Check Redis PING"
+        - "Check CogStack-ModelServe health"
+      execute:
+        - "Write scripts/verify-environment.sh"
+        - "Make script executable (chmod +x)"
+        - "Test script with all services up"
+        - "Test script with services down (error handling)"
+      review:
+        - "Verify all checks pass with services running"
+        - "Verify clear error messages on failure"
+        - "Verify exit code 0 on success, 1 on failure"
+        - "Update README.md with script usage"
+
+    sub_agents: []
+
+    output:
+      code_files:
+        - scripts/verify-environment.sh
+      documentation:
+        - README.md update (Environment Setup section)
+      tests:
+        - "Manual: Run script with all services up → exit code 0"
+        - "Manual: Stop postgres → run script → exit code 1 with clear error"
+
+    success_criteria:
+      - "Script exists and is executable"
+      - "All checks pass (Docker, Compose, volumes, services)"
+      - "Script exits with code 0 on success"
+      - "Script exits with code 1 on any failure"
+      - "Clear error messages for each failure"

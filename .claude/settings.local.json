@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git for-each-ref:*)",
+      "Bash(column -t -s '|':*)",
+      "Bash(git log:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(git checkout:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(.ccpm/ccpm.yaml)",
+      "Bash(.claude/autonomous/AUTONOMOUS_EXECUTION_FRAMEWORK.md)",
+      "Bash(.claude/autonomous/mission-queue.yaml)",
+      "Bash(.claude/agents.yaml)",
+      "Bash(git ls-tree:*)",
+      "Bash(.claude/autonomous/YOLO_MODE_PROMPT.md)",
+      "Bash(.claude/autonomous/progress.json)",
+      "Bash(.claude/GIT_HOOK_ORCHESTRATION.md)",
+      "Bash(.claude/SAFEGUARDS.md)",
+      "Bash(.claude/START_AUTONOMOUS_MODE.md)",
+      "Bash(.claude/agents/auditor.md)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

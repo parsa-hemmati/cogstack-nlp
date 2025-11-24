@@ -1,140 +1,142 @@
-"""Audit log model for HIPAA compliance."""
+"""
+Audit Log model for comprehensive action logging.
+
+Immutable logs for HIPAA compliance tracking WHO/WHAT/WHEN/WHERE.
+"""
 
 from datetime import datetime
-from enum import Enum as PyEnum
-from typing import Optional
-from uuid import UUID
+import uuid
 
-from sqlalchemy import Enum, JSON, String, Text
-from sqlalchemy.dialects.postgresql import INET
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Column, String, DateTime, Text
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 
-from app.db.base import Base
-
-
-class AuditAction(str, PyEnum):
-    """Audit actions for tracking user activities."""
-
-    # Authentication
-    LOGIN = "login"
-    LOGOUT = "logout"
-    LOGIN_FAILED = "login_failed"
-    PASSWORD_CHANGED = "password_changed"
-
-    # Patient Data Access (PHI)
-    VIEW_PATIENT = "view_patient"
-    SEARCH_PATIENTS = "search_patients"
-    VIEW_DOCUMENT = "view_document"
-    EXPORT_DATA = "export_data"
-
-    # Emergency Access
-    BREAK_GLASS_ACCESS = "break_glass_access"
-
-    # Data Modification
-    CREATE_RECORD = "create_record"
-    UPDATE_RECORD = "update_record"
-    DELETE_RECORD = "delete_record"
-
-    # Admin Actions
-    CREATE_USER = "create_user"
-    UPDATE_USER = "update_user"
-    DELETE_USER = "delete_user"
-    CHANGE_PERMISSIONS = "change_permissions"
+from app.core.database import Base
 
 
 class AuditLog(Base):
     """
-    Audit log for HIPAA compliance.
+    Immutable audit log for all user actions.
 
-    Tracks all PHI access and system actions for regulatory compliance.
-    Retention: 8 years (configurable via AUDIT_LOG_RETENTION_DAYS).
+    Compliance: HIPAA requires audit trails for all PHI access.
+    Captures: WHO (user), WHAT (action), WHEN (timestamp), WHERE (IP/UA).
 
-    Attributes:
-        user_id: User who performed the action
-        username: Username (denormalized for performance)
-        action: Type of action performed
-        resource_type: Type of resource accessed (e.g., "Patient", "Document")
-        resource_id: ID of resource accessed
-        patient_id: Patient ID if action involves patient data
-        ip_address: IP address of the request
-        user_agent: User agent string
-        details: Additional details in JSON format
-        success: Whether action succeeded
-        error_message: Error message if action failed
-        session_id: Session identifier for correlation
+    Immutability enforced by PostgreSQL rules (see migration).
+    UPDATE and DELETE operations blocked at database level.
     """
 
     __tablename__ = "audit_logs"
 
-    user_id: Mapped[UUID] = mapped_column(
-        nullable=False,
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
         index=True,
+        doc="Unique audit log identifier"
     )
 
-    username: Mapped[str] = mapped_column(
+    timestamp = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+        index=True,
+        doc="When the action occurred (UTC)"
+    )
+
+    # WHO: User identification
+    user_id = Column(
+        String(255),
+        nullable=False,
+        index=True,
+        doc="User ID who performed the action"
+    )
+
+    username = Column(
         String(50),
         nullable=False,
         index=True,
+        doc="Username who performed the action (for human readability)"
     )
 
-    action: Mapped[AuditAction] = mapped_column(
-        Enum(AuditAction),
+    # WHAT: Action details
+    action = Column(
+        String(100),
         nullable=False,
         index=True,
+        doc="Action performed (e.g., VIEW_PATIENT, UPDATE_DOCUMENT, DELETE_USER)"
     )
 
-    resource_type: Mapped[Optional[str]] = mapped_column(
+    resource_type = Column(
         String(50),
-        nullable=True,
-    )
-
-    resource_id: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        index=True,
-    )
-
-    patient_id: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        index=True,
-        comment="Patient ID if action involves PHI",
-    )
-
-    ip_address: Mapped[Optional[str]] = mapped_column(
-        INET,
-        nullable=True,
-    )
-
-    user_agent: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    details: Mapped[Optional[dict]] = mapped_column(
-        JSON,
-        nullable=True,
-    )
-
-    success: Mapped[bool] = mapped_column(
-        default=True,
         nullable=False,
-    )
-
-    error_message: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    session_id: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
         index=True,
+        doc="Type of resource affected (e.g., patient, document, user)"
+    )
+
+    resource_id = Column(
+        String(255),
+        nullable=False,
+        index=True,
+        doc="ID of specific resource affected"
+    )
+
+    # WHERE: Source information
+    ip_address = Column(
+        String(45),
+        nullable=False,
+        doc="IP address of request (IPv4 or IPv6)"
+    )
+
+    user_agent = Column(
+        Text,
+        nullable=False,
+        doc="User-Agent header from request"
+    )
+
+    # Additional context (flexible JSONB for any extra data)
+    details = Column(
+        JSONB,
+        nullable=True,
+        doc="Additional action context (JSONB for flexible schema)"
     )
 
     def __repr__(self) -> str:
-        """String representation."""
+        """String representation of audit log."""
         return (
-            f"<AuditLog(user='{self.username}', action='{self.action}', "
-            f"resource='{self.resource_type}:{self.resource_id}')>"
+            f"<AuditLog(id={self.id}, timestamp={self.timestamp}, "
+            f"user={self.username}, action={self.action}, "
+            f"resource={self.resource_type}:{self.resource_id})>"
         )
+
+    def to_dict(self) -> dict:
+        """
+        Convert audit log to dictionary.
+
+        Returns:
+            Dictionary with all audit log fields
+
+        Example:
+            {
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "timestamp": "2025-01-08T12:34:56",
+                "user_id": "user-123",
+                "username": "john_doe",
+                "action": "VIEW_PATIENT",
+                "resource_type": "patient",
+                "resource_id": "patient-456",
+                "ip_address": "192.168.1.100",
+                "user_agent": "Mozilla/5.0...",
+                "details": {"reason": "routine checkup"}
+            }
+        """
+        return {
+            "id": str(self.id),
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "user_id": self.user_id,
+            "username": self.username,
+            "action": self.action,
+            "resource_type": self.resource_type,
+            "resource_id": self.resource_id,
+            "ip_address": self.ip_address,
+            "user_agent": self.user_agent,
+            "details": self.details,
+        }
