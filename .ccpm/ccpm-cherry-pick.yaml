@@ -1,0 +1,422 @@
+# CCPM Cherry-Pick Configuration for Branch Consolidation
+# Parallel Workers for Identifying and Merging Best Implementations
+# Version: 1.0.0
+
+project:
+  name: cogstack-nlp-consolidation
+  description: Parallel cherry-picking from multiple branches to consolidate best implementations
+  target_branch: ccpm-consolidated
+  base_path: C:\Users\paurs\OneDrive\Desktop\cogstack-nlp
+
+  # Shared analysis results
+  shared_results:
+    - .ccpm/cherry-pick-analysis.md
+    - .ccpm/conflict-resolution.md
+    - .ccpm/integration-log.md
+
+# ===== WORKER DEFINITIONS =====
+workers:
+  # Worker 1: MedCAT Core Components
+  medcat-core-worker:
+    id: worker-1
+    description: "Analyzes and cherry-picks best MedCAT core implementations"
+    parallel: true
+    modules:
+      - medcat-v2/
+      - medcat-scripts/
+      - medcat-service/
+    branches_to_scan:
+      - origin/medcat/v2.3       # Latest version
+      - origin/medcat/v2.2
+      - origin/medcat/v2.1
+      - origin/medcat/v2.0
+      - origin/medcat-v1/production
+      - origin/medcat-v1/v1.16.post
+      - myfork/development
+      - development
+      - main
+    selection_criteria:
+      - latest_stable_version
+      - test_coverage
+      - bug_fixes
+      - performance_improvements
+    output: .ccpm/analysis/medcat-core-analysis.md
+
+  # Worker 2: UI/Frontend Components
+  ui-frontend-worker:
+    id: worker-2
+    description: "Analyzes and cherry-picks best UI/frontend implementations"
+    parallel: true
+    modules:
+      - medcat-trainer/
+      - medcat-demo-app/
+      - frontend/
+      - */ui/
+      - */components/
+    branches_to_scan:
+      - myfork/claude/develop-roadmap-phases-01AA61yzporwCFfD6BQpAerL
+      - myfork/claude/create-ccweb-dev-branch-015zpMnefWaNr28fLqHR9E1A
+      - myfork/claude/development-on-ccweb-014NeWxCVzNfcbd6R6RFpo18
+      - myfork/development
+      - development
+      - origin/trainer-remove-medcat-utils
+      - origin/main
+    selection_criteria:
+      - vue3_components
+      - react_components
+      - ui_patterns
+      - accessibility_compliance
+      - responsive_design
+    output: .ccpm/analysis/ui-frontend-analysis.md
+
+  # Worker 3: Search & NLP Features
+  search-nlp-worker:
+    id: worker-3
+    description: "Analyzes and cherry-picks best search and NLP feature implementations"
+    parallel: true
+    modules:
+      - */search/
+      - */query/
+      - */nlp/
+      - */elasticsearch/
+      - backend/app/services/search/
+    branches_to_scan:
+      - development  # Has Sprint 3 search features
+      - myfork/development
+      - myfork/claude/develop-roadmap-phases-01AA61yzporwCFfD6BQpAerL
+      - origin/main
+      - origin/CU-8698qtu6y-docs-differences
+    selection_criteria:
+      - advanced_query_parsing
+      - boolean_operators
+      - fuzzy_matching
+      - proximity_search
+      - performance_optimization
+      - caching_implementation
+    output: .ccpm/analysis/search-nlp-analysis.md
+
+  # Worker 4: Infrastructure & DevOps
+  infrastructure-worker:
+    id: worker-4
+    description: "Analyzes and cherry-picks best infrastructure and DevOps implementations"
+    parallel: true
+    modules:
+      - docker/
+      - .github/
+      - deploy/
+      - kubernetes/
+      - scripts/
+      - .ccpm/
+      - .claude/
+    branches_to_scan:
+      - myfork/claude/setup-ai-agent-onboarding-015LJGj2rWtJvBbL6GBaXGat
+      - myfork/autonomous/mvp-execution
+      - origin/build/medcat-demo-web-aoo/CU-869b6nm32-avoid-disk-space-issues
+      - origin/build/medcat/CU-869awf45h-release-after-pre-release
+      - development
+      - main
+    selection_criteria:
+      - docker_optimization
+      - ci_cd_pipelines
+      - deployment_scripts
+      - monitoring_setup
+      - security_hardening
+    output: .ccpm/analysis/infrastructure-analysis.md
+
+  # Worker 5: Documentation & Specifications
+  documentation-worker:
+    id: worker-5
+    description: "Analyzes and cherry-picks best documentation and specifications"
+    parallel: true
+    modules:
+      - docs/
+      - .specify/
+      - README.md
+      - CONTEXT.md
+      - CLAUDE.md
+      - "*.md"
+    branches_to_scan:
+      - myfork/claude/create-comparison-doc-011M46D5vbdi9FbGxSzThebK
+      - myfork/claude/understand-codebase-01Snfj6ziqMUNHxa6sBuv9eB
+      - development
+      - origin/docs/add-pr-template
+      - origin/CU-8698qtu6y-docs-differences
+      - main
+    selection_criteria:
+      - completeness
+      - clarity
+      - technical_accuracy
+      - compliance_documentation
+      - api_documentation
+    output: .ccpm/analysis/documentation-analysis.md
+
+  # Worker 6: Testing & Quality
+  testing-quality-worker:
+    id: worker-6
+    description: "Analyzes and cherry-picks best testing and quality implementations"
+    parallel: true
+    modules:
+      - tests/
+      - */tests/
+      - backend/tests/
+      - frontend/tests/
+      - e2e/
+    branches_to_scan:
+      - development  # Has comprehensive tests from Sprint 3
+      - myfork/development
+      - origin/main
+      - origin/CU-8698x6x0d-remove-flake8
+    selection_criteria:
+      - test_coverage
+      - test_quality
+      - e2e_tests
+      - performance_tests
+      - security_tests
+    output: .ccpm/analysis/testing-quality-analysis.md
+
+  # Worker 7: Clinical/Healthcare Features
+  clinical-features-worker:
+    id: worker-7
+    description: "Analyzes and cherry-picks best clinical/healthcare feature implementations"
+    parallel: true
+    modules:
+      - */clinical/
+      - */patient/
+      - */fhir/
+      - */icd10/
+      - */snomed/
+      - backend/app/services/clinical/
+    branches_to_scan:
+      - development  # Has Sprint implementations
+      - myfork/development
+      - myfork/claude/develop-roadmap-phases-01AA61yzporwCFfD6BQpAerL
+      - origin/main
+      - origin/medcat-stats-import
+    selection_criteria:
+      - hipaa_compliance
+      - fhir_compliance
+      - clinical_accuracy
+      - meta_annotations
+      - patient_safety
+    output: .ccpm/analysis/clinical-features-analysis.md
+
+  # Worker 8: API & Backend Services
+  api-backend-worker:
+    id: worker-8
+    description: "Analyzes and cherry-picks best API and backend service implementations"
+    parallel: true
+    modules:
+      - backend/
+      - api/
+      - */services/
+      - */models/
+      - */schemas/
+    branches_to_scan:
+      - development
+      - myfork/development
+      - myfork/claude/develop-roadmap-phases-01AA61yzporwCFfD6BQpAerL
+      - origin/main
+      - origin/CU-8699h2yv2-avoid-pkg-resources
+    selection_criteria:
+      - api_design
+      - performance
+      - security
+      - scalability
+      - error_handling
+    output: .ccpm/analysis/api-backend-analysis.md
+
+# ===== CHERRY-PICK WORKFLOW =====
+workflow:
+  name: parallel-cherry-pick
+  stages:
+    # Stage 1: Parallel Analysis
+    - name: analysis
+      description: "All workers analyze their assigned branches in parallel"
+      parallel:
+        workers:
+          - medcat-core-worker
+          - ui-frontend-worker
+          - search-nlp-worker
+          - infrastructure-worker
+          - documentation-worker
+          - testing-quality-worker
+          - clinical-features-worker
+          - api-backend-worker
+      timeout: 30min
+      outputs:
+        - worker_analysis_reports
+        - candidate_commits_list
+        - conflict_predictions
+
+    # Stage 2: Consolidation Planning
+    - name: planning
+      description: "Analyze worker results and create consolidation plan"
+      sequential:
+        - aggregate_results
+        - identify_conflicts
+        - create_dependency_graph
+        - optimize_merge_order
+      outputs:
+        - consolidation_plan.md
+        - merge_sequence.txt
+        - conflict_resolution_strategy.md
+
+    # Stage 3: Parallel Cherry-Picking
+    - name: cherry-pick
+      description: "Execute cherry-picks in parallel where possible"
+      parallel_groups:
+        # Group 1: Independent modules (no conflicts)
+        group1:
+          workers:
+            - documentation-worker
+            - testing-quality-worker
+          strategy: cherry-pick-independent
+
+        # Group 2: Core components
+        group2:
+          workers:
+            - medcat-core-worker
+            - api-backend-worker
+          strategy: cherry-pick-with-merge
+          depends_on: group1
+
+        # Group 3: Frontend components
+        group3:
+          workers:
+            - ui-frontend-worker
+            - search-nlp-worker
+          strategy: cherry-pick-with-merge
+          depends_on: group1
+
+        # Group 4: Clinical and infrastructure
+        group4:
+          workers:
+            - clinical-features-worker
+            - infrastructure-worker
+          strategy: cherry-pick-final
+          depends_on: [group2, group3]
+
+    # Stage 4: Conflict Resolution
+    - name: resolution
+      description: "Resolve conflicts from cherry-picking"
+      sequential:
+        - auto_resolve_simple_conflicts
+        - manual_conflict_review
+        - test_merged_code
+        - validate_functionality
+      outputs:
+        - conflict_resolution_report.md
+        - test_results.md
+
+    # Stage 5: Validation
+    - name: validation
+      description: "Validate consolidated branch"
+      parallel:
+        - run_all_tests
+        - check_build
+        - lint_code
+        - security_scan
+        - compliance_check
+      success_criteria:
+        - all_tests_passing
+        - no_build_errors
+        - no_critical_security_issues
+        - hipaa_compliant
+
+# ===== SELECTION ALGORITHMS =====
+selection:
+  algorithms:
+    # Algorithm for selecting best implementation
+    best_implementation:
+      factors:
+        - commit_date: 0.15      # Newer is better
+        - test_coverage: 0.25    # Higher coverage wins
+        - bug_fixes: 0.20        # More fixes is better
+        - performance: 0.20      # Better benchmarks
+        - code_quality: 0.10     # Cleaner code
+        - documentation: 0.10    # Better documented
+
+    # Algorithm for conflict resolution
+    conflict_resolution:
+      strategies:
+        - prefer_latest_stable
+        - prefer_higher_test_coverage
+        - prefer_production_branch
+        - manual_review_if_uncertain
+
+# ===== GIT OPERATIONS =====
+git:
+  operations:
+    fetch_all:
+      command: "git fetch --all --prune"
+      before: analysis
+
+    create_analysis_branches:
+      command: "git checkout -b ccpm-analysis-{worker_id}"
+      for_each: worker
+
+    cherry_pick:
+      command: "git cherry-pick {commit_sha}"
+      strategy:
+        - no_commit_first
+        - resolve_conflicts
+        - commit_with_message
+
+    merge_strategy:
+      - option: "--strategy=recursive"
+      - option: "--strategy-option=patience"
+      - option: "--no-ff"
+
+# ===== MONITORING =====
+monitoring:
+  real_time:
+    enabled: true
+    dashboard: .ccpm/dashboard.html
+    refresh_rate: 5s
+
+  metrics:
+    - commits_analyzed
+    - commits_selected
+    - conflicts_found
+    - conflicts_resolved
+    - worker_progress
+    - estimated_time_remaining
+
+  notifications:
+    - on: conflict_found
+      action: log_and_continue
+    - on: worker_blocked
+      action: alert_user
+    - on: stage_complete
+      action: update_dashboard
+
+# ===== REPORTING =====
+reporting:
+  analysis_report:
+    format: markdown
+    location: .ccpm/reports/analysis-report.md
+    includes:
+      - commits_analyzed_per_branch
+      - selected_commits
+      - rejection_reasons
+      - conflict_predictions
+
+  consolidation_report:
+    format: markdown
+    location: .ccpm/reports/consolidation-report.md
+    includes:
+      - modules_updated
+      - commits_merged
+      - conflicts_resolved
+      - test_results
+      - compliance_status
+
+  final_report:
+    format: html
+    location: .ccpm/reports/final-report.html
+    includes:
+      - executive_summary
+      - detailed_changes
+      - performance_improvements
+      - known_issues
+      - next_steps
