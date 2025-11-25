@@ -1,8 +1,8 @@
 ---
 name: sprint-2-timeline
-status: backlog
+status: in_progress
 created: 2025-11-25T19:22:50Z
-progress: 0%
+progress: 75%
 prd: .claude/prds/sprint-2-timeline.md
 github: https://github.com/parsa-hemmati/cogstack-nlp/issues/12
 ---
