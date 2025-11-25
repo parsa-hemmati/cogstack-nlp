@@ -271,3 +271,111 @@ async def export_patient_timeline(
         media_type=media_type,
         filename=filename,
     )
+
+
+@router.get("/documents/{document_id}")
+async def get_document_details(
+    request: Request,
+    document_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    Get document details with content and annotations for preview.
+
+    Returns document text with annotation highlights for timeline document preview.
+
+    Args:
+        request: FastAPI request
+        document_id: Document UUID
+        current_user: Authenticated user
+        db: Database session
+
+    Returns:
+        Document with decrypted content and annotations
+
+    Raises:
+        HTTPException: 404 if document not found
+    """
+    from app.models.document import Document
+    from app.models.annotation import Annotation
+    from app.services.encryption_service import decrypt_content
+
+    audit_service = AuditService(db)
+
+    # Get document
+    result = await db.execute(
+        select(Document).where(Document.id == document_id)
+    )
+    document = result.scalar_one_or_none()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found",
+        )
+
+    # Get annotations for this document
+    annotations_result = await db.execute(
+        select(Annotation).where(Annotation.document_id == document_id)
+    )
+    annotations = annotations_result.scalars().all()
+
+    # Decrypt document content
+    try:
+        content = decrypt_content(document.encrypted_content)
+        content_text = content.decode('utf-8', errors='replace')
+    except Exception as e:
+        logger.error(f"Error decrypting document {document_id}: {e}")
+        content_text = "[Unable to decrypt document content]"
+
+    # Build annotations list
+    annotations_list = [
+        {
+            "id": str(ann.id),
+            "cui": ann.cui,
+            "preferredName": ann.preferred_name,
+            "conceptType": ann.concept_type or "unknown",
+            "startChar": ann.start_char,
+            "endChar": ann.end_char,
+            "text": ann.text,
+            "metaAnnotations": {
+                "negation": ann.negation,
+                "temporality": ann.temporality,
+                "experiencer": ann.experiencer,
+                "certainty": getattr(ann, 'certainty', None),
+            }
+        }
+        for ann in annotations
+    ]
+
+    # Audit log (PHI access)
+    patient_id = document.patient_id if hasattr(document, 'patient_id') else None
+    await audit_service.log(
+        user=current_user,
+        action=AuditAction.VIEW_RECORD,
+        resource_type="Document",
+        resource_id=str(document_id),
+        patient_id=str(patient_id) if patient_id else None,
+        ip_address=request.client.host if request.client else None,
+        details={
+            "document_title": document.title if hasattr(document, 'title') else document.filename,
+            "annotation_count": len(annotations_list),
+        },
+        success=True,
+    )
+
+    logger.info(
+        f"Document {document_id} retrieved by {current_user.username}: "
+        f"{len(annotations_list)} annotations"
+    )
+
+    return {
+        "id": str(document.id),
+        "title": document.title if hasattr(document, 'title') else document.filename,
+        "documentType": document.document_type.value if hasattr(document, 'document_type') else "unknown",
+        "date": document.document_date.isoformat() + "Z" if hasattr(document, 'document_date') and document.document_date else document.created_at.isoformat() + "Z",
+        "author": document.author if hasattr(document, 'author') else None,
+        "content": content_text,
+        "annotations": annotations_list,
+    }
