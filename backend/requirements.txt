@@ -1,0 +1,73 @@
+# FastAPI Web Framework
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-multipart==0.0.12
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0  # Async driver for FastAPI
+psycopg2-binary==2.9.10  # Sync driver for Alembic migrations
+alembic==1.14.0
+aiosqlite==0.21.0  # Async SQLite for testing
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.0
+
+# Environment & Configuration
+python-dotenv==1.0.1
+pydantic==2.10.2
+pydantic-settings==2.6.1
+email-validator==2.1.1  # Required by Pydantic for email validation
+
+# Redis Integration
+redis[hiredis]==5.2.0
+aioredis==2.0.1
+
+# Background Task Processing
+celery==5.5.3
+
+# Elasticsearch (Full-Text Search)
+elasticsearch[async]==8.11.0
+
+# Query Parsing (Advanced Search Syntax)
+lark>=1.1.9
+
+# HTTP Client
+httpx==0.27.2
+aiohttp==3.11.7
+
+# Retry Logic
+tenacity==9.0.0
+
+# Utilities
+python-dateutil==2.9.0.post0
+pytz==2024.2
+
+# Testing
+pytest==8.3.3
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+pytest-mock==3.14.0
+httpx==0.27.2  # For TestClient
+
+# Code Quality
+black==24.10.0
+flake8==7.1.1
+isort==5.13.2
+mypy==1.13.0
+
+# HIPAA Compliance & Audit Logging
+cryptography==44.0.0
+
+# Monitoring (optional)
+prometheus-client==0.21.0
+
+# Export Capabilities
+weasyprint==62.3  # PDF generation from HTML
+fhir.resources==7.1.0  # FHIR R4 compliance
+jinja2==3.1.4  # Template rendering for PDF export
+
+# Performance Testing
+locust==2.20.0  # Load testing framework

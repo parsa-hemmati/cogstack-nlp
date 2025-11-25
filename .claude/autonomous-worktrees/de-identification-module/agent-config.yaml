@@ -1,0 +1,45 @@
+# Agent Configuration for Worktree
+# This config is used by agents working in this worktree
+
+agents:
+  developer:
+    model: sonnet
+    max_concurrent: 2
+    timeout: 2hours
+    skills:
+      - infrastructure-expert
+      - vue3-component-reuse
+      - medcat-architecture
+
+  auditor:
+    model: sonnet
+    max_concurrent: 1
+    timeout: 1hour
+    skills:
+      - healthcare-compliance-checker
+      - prd-compliance-checker
+
+  tester:
+    model: haiku
+    max_concurrent: 2
+    timeout: 1hour
+    skills:
+      - prd-test-generator
+
+  documentation:
+    model: haiku
+    max_concurrent: 1
+    timeout: 30min
+    skills:
+      - documentation
+
+coordination:
+  delegation_rules:
+    - developer → auditor + tester + documentation
+    - auditor (if issues) → developer
+    - tester (if failures) → debugger
+    - documentation (needs examples) → developer
+
+  task_queue: TASK_QUEUE.md
+  status_file: loop-status.md
+  lock_dir: .locks/

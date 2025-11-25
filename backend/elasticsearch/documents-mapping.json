@@ -1,0 +1,103 @@
+{
+  "settings": {
+    "number_of_shards": 2,
+    "number_of_replicas": 1,
+    "refresh_interval": "30s",
+    "analysis": {
+      "analyzer": {
+        "clinical_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "english_stop",
+            "english_stemmer",
+            "clinical_synonyms"
+          ]
+        }
+      },
+      "filter": {
+        "english_stop": {
+          "type": "stop",
+          "stopwords": "_english_"
+        },
+        "english_stemmer": {
+          "type": "stemmer",
+          "language": "english"
+        },
+        "clinical_synonyms": {
+          "type": "synonym",
+          "synonyms": [
+            "MI, myocardial infarction",
+            "CAD, coronary artery disease",
+            "DM, diabetes mellitus",
+            "HTN, hypertension",
+            "CVA, cerebrovascular accident, stroke",
+            "COPD, chronic obstructive pulmonary disease",
+            "CHF, congestive heart failure",
+            "AF, atrial fibrillation",
+            "DVT, deep vein thrombosis",
+            "PE, pulmonary embolism",
+            "CKD, chronic kidney disease",
+            "ESRD, end stage renal disease",
+            "T2DM, type 2 diabetes mellitus",
+            "HbA1c, hemoglobin A1c, glycated hemoglobin"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "document_id": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "text",
+        "analyzer": "clinical_analyzer",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
+      },
+      "content": {
+        "type": "text",
+        "analyzer": "clinical_analyzer"
+      },
+      "document_type": {
+        "type": "keyword"
+      },
+      "author": {
+        "type": "keyword"
+      },
+      "department": {
+        "type": "keyword"
+      },
+      "date": {
+        "type": "date",
+        "format": "strict_date_optional_time"
+      },
+      "patient_id": {
+        "type": "keyword"
+      },
+      "concepts": {
+        "type": "nested",
+        "properties": {
+          "cui": {
+            "type": "keyword"
+          },
+          "name": {
+            "type": "text"
+          },
+          "type": {
+            "type": "keyword"
+          }
+        }
+      },
+      "indexed_at": {
+        "type": "date"
+      }
+    }
+  }
+}

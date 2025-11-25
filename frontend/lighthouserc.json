@@ -1,0 +1,34 @@
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "http://localhost:5173/patients/P12345/timeline",
+        "http://localhost:5173/patients/P_MEDIUM/timeline",
+        "http://localhost:5173/patients/P_LARGE/timeline"
+      ],
+      "numberOfRuns": 3,
+      "startServerCommand": "npm run preview",
+      "startServerReadyPattern": "Local:",
+      "settings": {
+        "preset": "desktop",
+        "onlyCategories": ["performance", "accessibility"]
+      }
+    },
+    "assert": {
+      "preset": "lighthouse:recommended",
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.9 }],
+        "categories:accessibility": ["error", { "minScore": 0.95 }],
+        "first-contentful-paint": ["error", { "maxNumericValue": 1500 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
+        "interactive": ["error", { "maxNumericValue": 3500 }],
+        "total-blocking-time": ["error", { "maxNumericValue": 300 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "speed-index": ["error", { "maxNumericValue": 3000 }]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}

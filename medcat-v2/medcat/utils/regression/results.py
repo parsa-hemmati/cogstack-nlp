@@ -369,9 +369,9 @@ class SingleResultDescriptor(pydantic.BaseModel):
     """
     name: str
     """The name of the part that was checked"""
-    findings: dict[Finding, int] = {}
+    findings: dict[Finding, int] = pydantic.Field(default_factory=dict)
     """The description of failures"""
-    examples: list[tuple[FinalTarget, tuple[Finding, Optional[str]]]] = []
+    examples: list[tuple[FinalTarget, tuple[Finding, Optional[str]]]] = pydantic.Field(default_factory=list)
     """The examples of non-perfect alignment."""
 
     def report_success(self, target: FinalTarget,

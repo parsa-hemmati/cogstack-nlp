@@ -98,6 +98,106 @@ def get_patient_data(
 - WHERE: ip_address, endpoint
 - WHICH: resource_type, resource_id
 
+### 2a. ⚠️ CRITICAL: Immutable Audit Logs (HIPAA 164.312(b))
+
+**VIOLATION - Audit logs can be modified or deleted**:
+```sql
+-- BAD: Default table allows UPDATE/DELETE
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY,
+    user_id UUID,
+    action VARCHAR(100),
+    timestamp TIMESTAMP
+);
+-- Attacker can: UPDATE audit_logs SET action='BENIGN' WHERE...
+-- Attacker can: DELETE FROM audit_logs WHERE...
+```
+
+**COMPLIANT - Database-enforced immutability (Phase 3 implementation)**:
+```sql
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    username VARCHAR(50) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    resource_type VARCHAR(50) NOT NULL,
+    resource_id VARCHAR(255),
+    details JSONB,
+    timestamp TIMESTAMP DEFAULT NOW(),
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    success VARCHAR(10) DEFAULT 'success',
+    error_message TEXT
+);
+
+-- CRITICAL: Make audit logs IMMUTABLE at database level
+CREATE RULE no_update_audit_logs AS
+ON UPDATE TO audit_logs
+DO INSTEAD NOTHING;
+
+CREATE RULE no_delete_audit_logs AS
+ON DELETE TO audit_logs
+DO INSTEAD NOTHING;
+```
+
+**Why PostgreSQL rules instead of application-level protection**:
+- **Enforced by database kernel**: Even superuser cannot bypass (must drop rules first)
+- **Survives compromised application code**: Malicious code cannot modify logs
+- **Compliance-ready**: Provable immutability for HIPAA audits
+- **DO INSTEAD NOTHING**: Silently ignores violations (prevents application crashes)
+
+**Testing immutability**:
+```python
+# Verify audit logs cannot be modified
+async def test_audit_log_immutability(db):
+    # Create audit log
+    log = AuditLog(user_id="user-123", action="DOCUMENT_VIEW", ...)
+    db.add(log)
+    await db.commit()
+
+    # Attempt to modify (should be silently ignored)
+    log.action = "MALICIOUS_ACTION"
+    await db.commit()
+
+    # Verify original value unchanged
+    refreshed_log = await db.get(AuditLog, log.id)
+    assert refreshed_log.action == "DOCUMENT_VIEW"  # ✅ Immutable
+
+    # Attempt to delete (should be silently ignored)
+    db.delete(log)
+    await db.commit()
+
+    # Verify still exists
+    still_exists = await db.get(AuditLog, log.id)
+    assert still_exists is not None  # ✅ Cannot delete
+```
+
+**Alembic migration pattern**:
+```python
+def upgrade():
+    # Create table
+    op.create_table('audit_logs', ...)
+
+    # Add immutability rules
+    op.execute("""
+        CREATE RULE no_update_audit_logs AS
+        ON UPDATE TO audit_logs
+        DO INSTEAD NOTHING;
+    """)
+
+    op.execute("""
+        CREATE RULE no_delete_audit_logs AS
+        ON DELETE TO audit_logs
+        DO INSTEAD NOTHING;
+    """)
+
+def downgrade():
+    # Drop rules BEFORE dropping table
+    op.execute("DROP RULE IF EXISTS no_delete_audit_logs ON audit_logs;")
+    op.execute("DROP RULE IF EXISTS no_update_audit_logs ON audit_logs;")
+    op.drop_table('audit_logs')
+```
+
 ### 3. Insufficient encryption
 
 **Check for**:
@@ -111,6 +211,170 @@ def get_patient_data(
 ```python
 # COMPLIANT
 DATABASE_URL = "postgresql://user:pass@host:5432/db?sslmode=require&sslrootcert=ca.pem"
+```
+
+### 3a. Document Encryption at Rest (Phase 3 implementation - AES-256-GCM)
+
+**VIOLATION - No encryption or weak encryption**:
+```python
+# BAD: Storing plaintext PHI
+document = Document(content=raw_text.encode())
+
+# BAD: CBC mode without authentication (vulnerable to padding oracle)
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
+```
+
+**COMPLIANT - AES-256-GCM with authentication (Phase 3 implementation)**:
+```python
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import os
+import base64
+
+class EncryptionService:
+    """AES-256-GCM encryption for clinical documents (HIPAA compliant)."""
+
+    def __init__(self, key: bytes):
+        """Initialize with 32-byte key (256 bits)."""
+        if len(key) != 32:
+            raise ValueError("Key must be 32 bytes (256 bits)")
+        self.aesgcm = AESGCM(key)
+
+    def encrypt(self, plaintext: bytes) -> bytes:
+        """
+        Encrypt with AES-256-GCM (authenticated encryption).
+
+        Returns: IV (96 bits) + ciphertext + authentication tag (128 bits)
+        """
+        # Generate random 96-bit nonce (never reuse!)
+        nonce = os.urandom(12)  # 96 bits
+
+        # Encrypt + compute authentication tag
+        ciphertext = self.aesgcm.encrypt(nonce, plaintext, associated_data=None)
+
+        # Prepend nonce (first 12 bytes = nonce, rest = ciphertext + tag)
+        return nonce + ciphertext
+
+    def decrypt(self, encrypted_data: bytes) -> bytes:
+        """
+        Decrypt AES-256-GCM ciphertext.
+
+        Raises: InvalidTag if data has been tampered with
+        """
+        # Extract nonce (first 12 bytes)
+        nonce = encrypted_data[:12]
+        ciphertext = encrypted_data[12:]
+
+        # Decrypt + verify authentication tag
+        plaintext = self.aesgcm.decrypt(nonce, ciphertext, associated_data=None)
+        return plaintext
+
+    @classmethod
+    def from_env(cls):
+        """Load key from environment variable (base64-encoded)."""
+        key_b64 = os.getenv("ENCRYPTION_KEY")
+        if not key_b64:
+            raise ValueError("ENCRYPTION_KEY not set")
+        key = base64.b64decode(key_b64)
+        return cls(key)
+```
+
+**Key generation (one-time setup)**:
+```python
+import secrets
+import base64
+
+# Generate 32-byte (256-bit) key
+key = secrets.token_bytes(32)
+
+# Base64 encode for environment variable
+key_b64 = base64.b64encode(key).decode()
+print(f"ENCRYPTION_KEY={key_b64}")  # Store in .env file
+```
+
+**Usage in document upload**:
+```python
+@router.post("/documents/upload")
+async def upload_document(
+    file: UploadFile,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # Read plaintext content
+    content = await file.read()
+
+    # Encrypt before storing
+    encryption_service = EncryptionService.from_env()
+    encrypted_content = encryption_service.encrypt(content)
+
+    # Store encrypted content in database
+    document = Document(
+        filename=file.filename,
+        encrypted_content=encrypted_content,  # BYTEA column
+        uploaded_by=user.id
+    )
+    db.add(document)
+    await db.commit()
+
+    # Audit log
+    await audit_service.log_action(
+        user_id=user.id,
+        action="DOCUMENT_UPLOAD",
+        resource_type="document",
+        resource_id=str(document.id)
+    )
+
+    return {"document_id": document.id, "status": "encrypted"}
+```
+
+**Why AES-256-GCM over AES-256-CBC**:
+- **Authenticated encryption**: Detects tampering (128-bit authentication tag)
+- **NIST-approved**: FIPS 140-2 compliant
+- **Fast**: Hardware-accelerated on modern CPUs (AES-NI)
+- **No padding oracle vulnerability**: GCM doesn't use padding
+- **Parallel encryption**: Can encrypt blocks in parallel (faster)
+
+**Security properties**:
+- **Confidentiality**: IND-CCA2 secure (indistinguishable under chosen-ciphertext attack)
+- **Integrity**: EUF-CMA secure (existential unforgeability under chosen-message attack)
+- **Nonce uniqueness**: Each encryption uses unique 96-bit random nonce
+- **Key size**: 256-bit key (2^256 brute-force resistance)
+
+**⚠️ CRITICAL: Key management**:
+```python
+# ✅ GOOD: Key in environment variable
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+
+# ✅ GOOD: Key from secrets manager (AWS Secrets Manager, Azure Key Vault)
+import boto3
+client = boto3.client('secretsmanager')
+key = client.get_secret_value(SecretId='encryption-key')['SecretString']
+
+# ❌ BAD: Hardcoded key (NEVER do this!)
+ENCRYPTION_KEY = "aGVsbG93b3JsZGhlbGxvd29ybGQ="
+
+# ❌ BAD: Key in version control (NEVER commit .env files!)
+```
+
+**Key rotation procedure**:
+```python
+async def rotate_encryption_key(old_key: bytes, new_key: bytes, db: AsyncSession):
+    """Re-encrypt all documents with new key."""
+    old_service = EncryptionService(old_key)
+    new_service = EncryptionService(new_key)
+
+    documents = await db.execute(select(Document))
+    for doc in documents.scalars():
+        # Decrypt with old key
+        plaintext = old_service.decrypt(doc.encrypted_content)
+
+        # Re-encrypt with new key
+        doc.encrypted_content = new_service.encrypt(plaintext)
+
+        # Update key version metadata
+        doc.encryption_key_version = 2
+
+    await db.commit()
 ```
 
 ### 4. Weak access controls

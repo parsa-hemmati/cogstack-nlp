@@ -4,6 +4,53 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ## Available Skills
 
+### 🤖 Meta-Skill: Autonomous Developer
+
+#### `autonomous-developer` ✨ NEW
+**When**: User wants continuous development without manual checkpoints ("autonomous mode", "build everything", "don't stop until done")
+
+**What it does**:
+- **Fully autonomous build → audit → test → debug → commit loop**
+- Implements tasks from specifications without stopping for confirmation
+- Auto-spawns auditor subagent to check PRD compliance
+- Auto-generates and runs tests (integration, security, frontend)
+- Auto-fixes issues with max 3 retries per issue (prevents infinite loops)
+- Auto-commits with comprehensive messages (updates CONTEXT.md + AUDIT.md)
+- Continues to next task or exits on: SUCCESS (all done), BLOCKED (can't fix), PAUSE (breaking changes), or ERROR (dependency missing)
+
+**Why game-changing**: Transforms AI assistant from "interactive helper" to "autonomous developer"
+- **Before**: Build → Ask user → Audit → Ask user → Test → Ask user → Commit → Ask user...
+- **After**: Build → Audit → Auto-fix → Test → Auto-debug → Commit → Next task (no stops!)
+
+**Configuration**: `.claude/autonomous-config.yaml` (100+ settings)
+**Quick Start**: [.claude/START_AUTONOMOUS_MODE.md](.claude/START_AUTONOMOUS_MODE.md)
+
+**Safety Features**:
+- Max iterations limit (100 default)
+- Max retries per issue (3 attempts)
+- Rollback on regression (automatic)
+- Breaking change detection (stops for user decision)
+- File/line limits (prevents runaway changes)
+
+**Example**:
+```
+User: "Enter autonomous mode and complete Phase 4"
+
+Claude:
+✅ Autonomous mode activated
+🔄 Loop: 8 tasks remaining
+
+[2 hours later...]
+
+✅ SUCCESS: Phase 4 complete
+📊 8 tasks, 8 commits, 46 tests, 100% PRD compliant
+⏱️  2h 15m total time
+```
+
+**Orchestrates**: All other skills (auditor, test-generator, compliance-checker, etc.)
+
+---
+
 ### 🔴 Priority 1 (Critical for Safety & Accuracy)
 
 #### 1. `healthcare-compliance-checker`
@@ -35,46 +82,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ### 🟡 Priority 2 (Highly Recommended)
 
-#### 3. `elasticsearch-query-expert`
-**When**: Building Elasticsearch queries, implementing search features, optimizing query performance
-
-**What it does**:
-- Provides expertise on all 7 query types from Sprint 3 implementation
-- Shows optimization patterns that achieved 40% performance gains
-- Includes aggregation patterns for faceted search
-- Demonstrates proper index mapping and settings
-
-**Why useful**: Essential for building performant search features, achieved <500ms response times
-
----
-
-#### 4. `redis-caching-patterns`
-**When**: Implementing caching layers, optimizing API response times, managing cache invalidation
-
-**What it does**:
-- Shows deterministic cache key generation patterns
-- Provides TTL strategies by data type
-- Demonstrates PHI-safe caching patterns
-- Includes cache invalidation strategies
-
-**Why useful**: Achieved 73% cache hit rate with <200ms cached response times
-
----
-
-#### 5. `search-performance-optimizer`
-**When**: Diagnosing slow queries, optimizing search performance, scaling search infrastructure
-
-**What it does**:
-- Query optimization rules (wildcard, boolean, fuzzy, regex)
-- Performance benchmarks and profiling techniques
-- Monitoring and alerting patterns
-- Load testing strategies
-
-**Why useful**: Achieved 40% performance improvement through query optimization
-
----
-
-#### 6. `vue3-component-reuse`
+#### 3. `vue3-component-reuse`
 **When**: Building UI features, implementing forms/tables/modals/charts
 
 **What it does**:
@@ -87,7 +95,7 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-#### 7. `fhir-r4-mapper`
+#### 4. `fhir-r4-mapper`
 **When**: Implementing FHIR integration, clinical decision support, EHR interoperability
 
 **What it does**:
@@ -100,9 +108,132 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 
 ---
 
-### 🟢 Priority 3 (Quality Assurance)
+### 🟢 Priority 3 (Sprint 3 - Full-Text Search)
 
-#### 8. `spec-kit-enforcer`
+#### 5. `elasticsearch-query-expert` ✨ NEW
+**When**: Building Elasticsearch queries, configuring analyzers, debugging relevance, optimizing search performance
+
+**What it does**:
+- Elasticsearch DSL query building patterns (match, multi_match, bool, phrase, term)
+- Query context vs filter context (relevance scoring vs exact matching)
+- Custom analyzers and tokenizers (clinical_analyzer with synonyms, stemming)
+- Relevance scoring and field boosting (title^10, content^1, author^2)
+- QueryBuilder class implementation patterns
+- Performance optimization (filter caching, source filtering, pagination)
+- Debugging relevance issues (explain API, validate API)
+
+**Why useful**: Essential for Sprint 3 Full-Text Search Enhancement. Provides battle-tested patterns for building complex Elasticsearch queries, configuring analyzers for clinical text, and optimizing search performance. Covers all query types used in Phase 2 (Advanced Query Parsing).
+
+**Key Patterns**:
+- Multi-field search with boosting (cross-field relevance)
+- Filter context for metadata (document_type, author, date ranges)
+- Custom clinical analyzer (MI → myocardial infarction synonyms)
+- Function score queries (recency boost, popularity)
+- Nested queries for concepts array
+
+**Performance**:
+- Filter context: Cached, no scoring overhead
+- Multi-match: Parallel field searching
+- _source filtering: Reduced network transfer
+- search_after: Efficient deep pagination (vs from/size)
+
+---
+
+#### 6. `query-parsing-patterns` ✨ NEW
+**When**: Implementing QueryParser with Lark, designing EBNF grammars, parsing complex boolean queries, handling parenthesized grouping
+
+**What it does**:
+- Lark parser implementation patterns (LALR parser, EBNF grammar)
+- Query grammar design (boolean operators with correct precedence)
+- Parse tree transformation to Elasticsearch DSL
+- Boolean logic parsing (AND/OR/NOT with operator precedence)
+- Parenthesized grouping: `(diabetes OR hypertension) AND medication`
+- Field query parsing: `author:"Dr. Smith"`
+- Error handling and fallback strategies
+- Performance optimization (parser caching, in-place transformation)
+
+**Why useful**: Critical for Sprint 3 Phase 2 (Advanced Query Parsing). Provides formal grammar-based parsing instead of fragile regex. Handles complex nested queries with correct operator precedence. Complements `elasticsearch-query-expert` (parsing input → building Elasticsearch DSL).
+
+**Key Patterns**:
+- EBNF grammar with operator precedence (NOT > AND > OR)
+- Parse tree transformer class (Lark Transformer)
+- Fallback to simple query on parse errors (graceful degradation)
+- Flattening nested bool queries (performance optimization)
+- QueryParser + QueryBuilder integration pattern
+
+**Advantages over regex**:
+- Correct operator precedence (formal grammar)
+- Handles arbitrary nesting (parentheses)
+- Better error messages (syntax validation)
+- Easier to extend (add wildcards, proximity, fuzzy)
+
+---
+
+### 🟢 Priority 4 (Quality Assurance)
+
+#### 7. `prd-compliance-checker`
+**When**: Modifying API endpoints, changing schemas, updating service layer for APIs, implementing Sprint PRDs
+
+**What it does**:
+- Validates API implementation against PRD specifications
+- Checks endpoint paths, methods, parameters
+- Validates request/response schema field names (camelCase vs snake_case)
+- Detects breaking changes (field renames, type changes, structure changes)
+- Provides quick checklist and deep validation agent prompt
+
+**Why useful**: Prevents API contract drift, catches PRD discrepancies early (during development, not after), avoids breaking frontend integration
+
+**Key Features**:
+- Quick compliance checklist for manual validation
+- Comprehensive validation agent prompt generator
+- Pre-push hook integration (warns when API files change)
+- Validation script support (`./scripts/validate-code.sh --prd-check`)
+
+---
+
+#### 8. `prd-test-generator` ✨
+**When**: Starting new features (TDD), PRD updates, low test coverage, sprint completion
+
+**What it does**:
+- Reads PRD specifications and extracts testable requirements
+- Generates comprehensive tests (pytest for backend, vitest for frontend)
+- Maps tests to specific PRD requirements (FR1.1, NFR2.3, etc.)
+- Executes tests and collects coverage metrics
+- Creates/updates TEST_REPORT.md with coverage tracking
+- Identifies missing tests and provides recommendations
+
+**Why useful**: Ensures all PRD requirements are tested before deployment, enforces TDD approach, tracks test coverage trends over time, complements auditor (auditor checks compliance, this ensures testability)
+
+**Key Features**:
+- Test generation from PRD acceptance criteria
+- Backend: Unit, integration, contract, security tests (pytest)
+- Frontend: Component, composable, E2E, accessibility tests (vitest, Playwright)
+- Performance test generation (NFR validation)
+- TEST_REPORT.md with requirement-to-test mapping
+- Coverage trend tracking
+- Auto-detects missing tests
+
+**Example Output**:
+```markdown
+# TEST_REPORT.md
+
+## Requirement Coverage
+- ✅ FR1.1: Search by concept → test_search_by_concept_name
+- ✅ FR1.2: Search by CUI → test_search_by_cui
+- ❌ FR5.3: Navigate to page → NO TEST FOUND (HIGH PRIORITY)
+
+## Overall Coverage: 90% FR, 80% NFR
+## Recommendations: Add 5 missing tests (details below)
+```
+
+**Integration**:
+- Complements `auditor` (compliance) and `prd-compliance-checker` (API drift)
+- Can be enforced in pre-commit hook (optional)
+- CI/CD integration for automated coverage tracking
+
+---
+
+#### 9. `spec-kit-enforcer`
 **When**: Starting new features, before writing code
 
 **What it does**:
@@ -112,19 +243,6 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 - Verifies constitution alignment
 
 **Why useful**: Ensures quality, prevents rework, maintains compliance documentation
-
----
-
-#### 9. `test-coverage-analyzer`
-**When**: Writing tests, analyzing coverage gaps, planning test strategies, debugging failing tests
-
-**What it does**:
-- Analyzes current coverage (5% overall, 92% Sprint 3 new code)
-- Provides test pyramid strategy (60% unit, 30% integration, 10% E2E)
-- Shows pytest patterns and fixtures for healthcare testing
-- Creates coverage improvement plans
-
-**Why useful**: Essential for reaching 80% coverage target, includes patterns from Sprint 3 success
 
 ---
 
@@ -172,6 +290,34 @@ Custom Claude Code skills for healthcare NLP development with MedCAT.
 - Demonstrates backup/restore procedures
 
 **Why useful**: Battle-tested patterns for healthcare infrastructure, ensures security from day one
+
+---
+
+#### 13. `document-management-patterns` (Phase 3)
+**When**: Implementing document upload, file deduplication, async processing, patient aggregation
+
+**What it does**:
+- Document upload with deduplication (SHA-256, two-tier Redis/PostgreSQL cache)
+- AES-256-GCM encryption for clinical documents (HIPAA compliant)
+- Background NLP processing with MedCAT integration (exponential backoff retry)
+- Patient aggregation by NHS number (smart merge strategy)
+- PHI extraction from clinical text
+- Graceful shutdown patterns (zero data loss)
+
+**Why useful**: Production-proven patterns from Phase 3 (70+ tests, zero data loss, HIPAA compliant). Covers complete document processing pipeline: upload → encrypt → deduplicate → background NLP → patient aggregation.
+
+**Key Patterns**:
+- Content-addressable storage (SHA-256 hashing)
+- Two-tier deduplication cache (<10ms duplicate detection)
+- Background job architecture (periodic processing, graceful shutdown)
+- Retry logic with exponential backoff (95% transient error recovery)
+- NHS number-based patient matching (prefer longer names, immutable DOB)
+
+**Performance**:
+- Upload latency: ~50ms (hash + cache + encrypt + store)
+- Duplicate detection: 1-10ms (Redis/PostgreSQL)
+- Background processing: ~10 docs/minute (60s interval, 10 docs/batch)
+- Storage efficiency: 100x duplicate uploads = 1x storage used
 
 ---
 
@@ -261,10 +407,6 @@ Expected: Skill checks for specification, plan, tasks before allowing code
 |-------|----------------|
 | healthcare-compliance-checker | Code involves: `Patient`, `auth`, `API`, `logs`, `/patients/` |
 | medcat-meta-annotations | Working with: NLP results, medical concepts, queries, filtering |
-| elasticsearch-query-expert | Building: Elasticsearch queries, search features, aggregations |
-| redis-caching-patterns | Implementing: caching, TTL strategies, cache invalidation |
-| search-performance-optimizer | Diagnosing: slow queries, timeouts, performance issues |
-| test-coverage-analyzer | Writing: tests, analyzing coverage, test strategies |
 | vue3-component-reuse | Building: UI components, forms, tables, frontend |
 | fhir-r4-mapper | Mentions: FHIR, EHR integration, clinical decision support |
 | spec-kit-enforcer | Requests: new feature, implementation, "build X" |
@@ -379,25 +521,22 @@ Complete Feature Implementation Flow:
 
 ## Metrics
 
-**Total Skills**: 16 (4 new skills added from Sprint 3)
-**Lines of Guidance**: ~10,000+ (compressed via progressive loading)
+**Total Skills**: 19 (13 documented + 6 specialized)
+**Lines of Guidance**: ~12,000+ (compressed via progressive loading)
 **Coverage**:
 - ✅ Compliance & Safety (healthcare-compliance-checker)
 - ✅ NLP Accuracy (medcat-meta-annotations)
-- ✅ Search & Query (elasticsearch-query-expert) **NEW**
-- ✅ Caching Strategy (redis-caching-patterns) **NEW**
-- ✅ Performance Tuning (search-performance-optimizer) **NEW**
-- ✅ Test Coverage (test-coverage-analyzer) **NEW**
 - ✅ Frontend Development (vue3-component-reuse)
 - ✅ Healthcare Standards (fhir-r4-mapper)
+- ✅ Elasticsearch & Search (elasticsearch-query-expert) ✨ NEW
+- ✅ Query Parsing (query-parsing-patterns) ✨ NEW
+- ✅ PRD Compliance (prd-compliance-checker)
+- ✅ Test Generation (prd-test-generator)
 - ✅ Workflow Enforcement (spec-kit-enforcer)
 - ✅ Technical Planning (spec-to-tech-plan)
 - ✅ Task Breakdown (tech-plan-to-tasks)
 - ✅ Infrastructure Implementation (infrastructure-expert)
-- ✅ Modular Architecture (modular-app-architect)
-- ✅ MedCAT Architecture (medcat-architecture)
-- ✅ UI Patterns (medcat-ui-patterns)
-- ✅ PRD Conversion (prd-to-spec)
+- ✅ Document Management (document-management-patterns)
 
 ---
 

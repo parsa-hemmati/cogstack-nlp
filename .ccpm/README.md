@@ -1,290 +1,359 @@
-# CCPM-Consolidated Branch - Critical Chain Project Management
+# CCPM Multi-Agent Workflow - Pilot Setup
 
-**Created**: 2025-11-23
-**Purpose**: Consolidate best implementations from all fork branches using CCPM methodology
-**Based on**: https://github.com/automazeio/ccpm
-
----
-
-## CCPM Framework Overview
-
-**CCPM (Critical Chain Project Management)** is a methodology for managing complex development projects with:
-
-### 5 Core Phases
-
-1. **Brainstorming** - Deep exploration of requirements
-2. **Documentation** - Creating detailed specifications (PRDs)
-3. **Planning** - Architectural decisions and task breakdown
-4. **Execution** - Building to specification
-5. **Tracking** - Maintaining transparent progress
-
-### Key Principles
-
-- **No Vibe Coding**: Every line of code traces back to explicit specification
-- **Parallel Execution**: Multiple simultaneous work streams using Git worktrees
-- **Spec-Driven Development**: Complete traceability from concept through production
-- **Transparent Progress**: GitHub as single source of truth
+**Version**: 1.0.0
+**Status**: Pilot Phase
+**Target**: Task 2.4 - Boolean Query Parsing
 
 ---
 
-## This Branch's Mission
+## Overview
 
-**Goal**: Create a unified, production-ready branch that combines the best implementations from all fork branches:
+This directory contains configuration for **CCPM (Claude Code Project Manager)** - a multi-agent orchestration system that enables parallel development with 8 specialized agents.
 
-### Source Branches Analyzed
-
-1. **myfork/development** - Sprint planning + Search implementation
-2. **myfork/autonomous/mvp-execution** - CCPM + Autonomous execution
-3. **myfork/claude/development-on-ccweb** - Extended CCPM + Parallel execution
-4. **myfork/claude/setup-ai-agent-onboarding** - Clinical care tools backend
-5. **myfork/claude/create-ccweb-dev-branch** - Timeline + Testing infrastructure
-6. **myfork/claude/develop-roadmap-phases** - Roadmap architecture
-
-### Integration Strategy
-
-Rather than direct cherry-picking (too many conflicts), we use **selective integration**:
-
-1. **Foundation** - Start with development branch (has complete sprint planning)
-2. **CCPM Framework** - Add `.ccpm/` structure from autonomous/mvp-execution
-3. **Agents** - Add agent definitions from development-on-ccweb
-4. **Skills** - Merge all unique skills from all branches
-5. **Implementation** - Select best implementation for each feature area
-6. **Testing** - Integrate comprehensive test infrastructure
-7. **Documentation** - Merge all implementation reports
+**Pilot Configuration**:
+- **3 agents**: Developer, Auditor, Tester
+- **1 task**: Task 2.4 - Boolean Query Parsing
+- **Goal**: Validate workflow, measure time savings, test coordination
 
 ---
 
-## Branch Structure
+## Prerequisites
 
+### Install CCPM
+
+```bash
+# Option 1: npm (recommended)
+npm install -g @automazeio/ccpm
+
+# Option 2: From source
+git clone https://github.com/automazeio/ccpm
+cd ccpm
+npm install
+npm link
 ```
-ccpm-consolidated/
-├── .ccpm/                              # CCPM framework configuration
-│   ├── README.md (this file)
-│   ├── ccpm.yaml                       # Agent configuration
-│   ├── phases/                         # CCPM phase organization
-│   │   ├── 1-brainstorming/
-│   │   ├── 2-documentation/
-│   │   ├── 3-planning/
-│   │   ├── 4-execution/
-│   │   └── 5-tracking/
-│   └── integration-log.md              # Track what was integrated from where
-│
-├── .claude/
-│   ├── agents/                         # Specialized AI agents
-│   ├── autonomous/                     # Autonomous execution framework
-│   ├── skills/                         # Production skills (merged from all branches)
-│   └── CCPM_QUICKSTART.md
-│
-├── .specify/
-│   ├── specifications/
-│   ├── plans/                          # Sprint 2-9.5 plans
-│   └── tasks/                          # Sprint 2-9.5 tasks
-│
-├── clinical-care-tools/
-│   ├── backend/                        # FastAPI implementation
-│   ├── frontend/                       # Vue 3 implementation
-│   └── .github/workflows/              # CI/CD
-│
-├── CONTEXT.md                          # Living project memory
-├── BRANCH_ANALYSIS.md                  # Analysis of all source branches
-└── INTEGRATION_REPORT.md               # What was integrated and why
+
+### Verify Installation
+
+```bash
+ccpm --version
+# Expected: ccpm/1.x.x
+
+ccpm help
+# Shows available commands
 ```
 
 ---
 
-## CCPM Phase Mapping
+## Configuration Files
 
-### Phase 1: Brainstorming
-**Location**: `.ccpm/phases/1-brainstorming/`
+```
+.ccpm/
+├── ccpm.yaml          # Main configuration (8 agents, workflows)
+├── README.md          # This file
+└── pilot-results.md   # Pilot metrics (created after run)
+```
 
-**Content**:
-- Sprint specifications from `.specify/specifications/`
-- Roadmap architecture
-- Requirements analysis
-- Feature exploration notes
-
-**Sources**:
-- `myfork/development` - Sprint specs
-- `myfork/develop-roadmap-phases` - Roadmap
-
----
-
-### Phase 2: Documentation
-**Location**: `.ccpm/phases/2-documentation/`
-
-**Content**:
-- All sprint plans (`.specify/plans/*.md`)
-- Implementation reports
-- Schema documentation
-- API documentation
-
-**Sources**:
-- `myfork/development` - Sprint 2-9.5 plans
-- `myfork/create-ccweb-dev-branch` - Implementation reports
-- `myfork/setup-ai-agent-onboarding` - Schema docs
+**Key Config Sections**:
+1. **Agents** (lines 20-215): 8 agent definitions
+2. **Workflows** (lines 217-320): 3 workflows (feature, sprint, pilot)
+3. **Coordination** (lines 322-380): Communication, conflicts, priorities
+4. **Git Integration** (lines 382-440): Pre-commit, post-commit, pre-push hooks
+5. **Monitoring** (lines 442-500): Dashboard, metrics, alerts
 
 ---
 
-### Phase 3: Planning
-**Location**: `.ccpm/phases/3-planning/`
+## Pilot Execution
 
-**Content**:
-- All sprint tasks (`.specify/tasks/*.md`)
-- Agent coordination plans
-- CCPM workflow setup
-- Task breakdown methodologies
+### Step 1: Validate Configuration
 
-**Sources**:
-- `myfork/development` - Sprint tasks
-- `myfork/development-on-ccweb` - Agent coordination
-- `myfork/autonomous/mvp-execution` - CCPM setup
+```bash
+# From project root
+cd /var/lib/docker/codespacemount/workspace/cogstack-nlp
 
----
+# Validate ccpm.yaml syntax
+ccpm validate .ccpm/ccpm.yaml
 
-### Phase 4: Execution
-**Location**: `.ccpm/phases/4-execution/`
+# Expected output:
+# ✓ Configuration valid
+# ✓ 8 agents defined
+# ✓ 3 workflows configured
+# ✓ No syntax errors
+```
 
-**Content**:
-- Backend implementation (`clinical-care-tools/backend/`)
-- Frontend implementation (`clinical-care-tools/frontend/`)
-- Search features
-- Testing infrastructure
-- Autonomous agents
+### Step 2: Dry Run (Simulation)
 
-**Sources**:
-- `myfork/setup-ai-agent-onboarding` - Backend/Module registry
-- `myfork/development` - Search features
-- `myfork/create-ccweb-dev-branch` - Testing infrastructure
-- `myfork/development-on-ccweb` - Autonomous agents
+```bash
+# Simulate pilot workflow without actually running agents
+ccpm run --workflow pilot --dry-run
 
----
+# Expected output:
+# ┌─────────────────────────────────────────┐
+# │ CCPM Pilot Workflow (DRY RUN)           │
+# ├─────────────────────────────────────────┤
+# │ Stage 1: Task Assignment                │
+# │   → task-definer: Read Task 2.4 spec    │
+# │                                         │
+# │ Stage 2: Parallel Development           │
+# │   → developer (1 instance): Task 2.4    │
+# │   → auditor (concurrent): Quick audit   │
+# │                                         │
+# │ Stage 3: Validation                     │
+# │   → tester: Run test suite              │
+# │   → debugger (conditional): Fix fails   │
+# │                                         │
+# │ Success Criteria:                       │
+# │   ✓ Task complete                       │
+# │   ✓ Tests passing                       │
+# │   ✓ Audit warnings ≤ 2                  │
+# └─────────────────────────────────────────┘
+```
 
-### Phase 5: Tracking
-**Location**: `.ccpm/phases/5-tracking/`
+### Step 3: Run Pilot (Live)
 
-**Content**:
-- Mission queue
-- Progress tracking
-- Agent status
-- Task queue
-- Implementation reports
-- Performance metrics
+```bash
+# Run pilot with 3 agents
+ccpm run --workflow pilot \
+  --agents developer,auditor,tester \
+  --output .ccpm/pilot-results.md \
+  --dashboard
 
-**Sources**:
-- `myfork/autonomous/mvp-execution` - Mission queue, progress tracking
-- `myfork/development-on-ccweb` - Agent status, task queue
-- All branches - Implementation reports
+# Flags:
+#   --workflow pilot       Use pilot workflow (limited agents)
+#   --agents ...          Specify which agents to use
+#   --output FILE         Save results to file
+#   --dashboard           Start web dashboard (port 8080)
+```
 
----
+**What Happens**:
+1. **Task Definer**: Reads `.specify/tasks/sprint-3-full-text-search-tasks.md`, extracts Task 2.4
+2. **Developer**: Implements Task 2.4 (Boolean Query Parsing)
+   - Writes tests first (TDD)
+   - Implements `_build_boolean_query()` method
+   - Updates CONTEXT.md with changes
+3. **Auditor** (concurrent): Reviews code for HIPAA/GDPR compliance
+   - Quick audit mode (fast validation)
+   - Updates AUDIT.md with findings
+4. **Tester**: Runs test suite
+   - Executes pytest for backend tests
+   - Reports results to TESTING.md
+5. **Debugger** (conditional): Only runs if tests fail
+   - Max 3 retry attempts
+   - Escalates to user if can't fix
 
-## Integration Log
+### Step 4: Monitor Dashboard
 
-### Integration Rules
+Open http://localhost:8080/ccpm-dashboard in your browser
 
-1. **Conflicts**: Newer implementation wins (unless quality is lower)
-2. **Skills**: Merge all unique skills from all branches
-3. **Documentation**: Keep all unique docs, merge overlapping ones
-4. **Implementation**: Choose best version per feature area
-5. **Tests**: Integrate all tests, deduplicate where necessary
+```
+╔═══════════════════════════════════════════════════════════╗
+║  CogStack NLP - Pilot: Task 2.4                          ║
+╠═══════════════════════════════════════════════════════════╣
+║  Status: In Progress                                      ║
+║  Active Agents: 2/3 (Developer, Auditor)                 ║
+║  Progress: 45%                                            ║
+║  Elapsed: 1h 15m                                          ║
+║  ETA: 1h 45m                                              ║
+╚═══════════════════════════════════════════════════════════╝
 
-### What Gets Integrated
-
-#### From `myfork/development` ⭐⭐⭐⭐⭐
-- ✅ Sprint 2-9.5 plans and tasks
-- ✅ 4 Production skills (elasticsearch, redis, search-performance, test-coverage)
-- ✅ Advanced query parsing implementation
-- ✅ Query optimization and Redis caching
-- ✅ Comprehensive documentation
-
-**Why**: Most complete planning, best search implementation
-
-#### From `myfork/autonomous/mvp-execution` ⭐⭐⭐⭐⭐
-- ✅ CCPM framework (`.ccpm/`)
-- ✅ Autonomous execution framework
-- ✅ Mission queue and progress tracking
-- ✅ 5 Autonomous skills
-- ✅ Git hooks for orchestration
-
-**Why**: Complete CCPM implementation, autonomous task execution
-
-#### From `myfork/claude/development-on-ccweb` ⭐⭐⭐⭐⭐
-- ✅ Extended CCPM integration docs
-- ✅ Parallel execution demos
-- ✅ Agent coordination (orchestrator.py, 5 specialized agents)
-- ✅ Task queue and agent status tracking
-- ✅ Autonomous loop design
-
-**Why**: Production-ready CCPM workflow, parallel execution capability
-
-#### From `myfork/claude/setup-ai-agent-onboarding` ⭐⭐⭐⭐⭐
-- ✅ Complete backend (FastAPI, Alembic migrations, API endpoints)
-- ✅ Module registry system
-- ✅ Database models (users, sessions, projects, tasks, documents, entities, patients, modules, audit logs)
-- ✅ Pipeline and todo management
-
-**Why**: Best backend implementation, modular service design
-
-#### From `myfork/claude/create-ccweb-dev-branch` ⭐⭐⭐⭐⭐
-- ✅ Complete testing infrastructure (CI/CD workflows)
-- ✅ Deployment infrastructure (Docker, environment templates)
-- ✅ Implementation documentation (Phase 5-7 reports)
-- ✅ Testing guide
-
-**Why**: Comprehensive testing setup, deployment automation
-
-#### From `myfork/claude/develop-roadmap-phases` ⭐⭐⭐⭐
-- ✅ High-level roadmap architecture
-- ✅ Clinical care tools structure
-
-**Why**: Complete platform vision
+TIMELINE:
+[14:00] Pilot started
+[14:05] Task Definer: Task 2.4 loaded (acceptance criteria: 7 items)
+[14:10] Developer: Writing tests (4/7 tests complete)
+[14:12] Auditor: Quick audit started
+[14:20] Developer: Tests complete, implementing _build_boolean_query()
+[14:25] Auditor: No HIPAA violations detected ✓
+[14:35] Developer: Implementation 80% complete
+[14:45] Developer: Committed code, updating CONTEXT.md
+[14:50] Auditor: Comprehensive audit started
+[14:55] Tester: Running pytest... [Current]
+```
 
 ---
 
-## How to Use This Branch
+## Expected Results
 
-### For Development
+### Success Criteria
 
-1. **Check the phase** - What CCPM phase are you in?
-2. **Review specs** - Read `.specify/specifications/` for requirements
-3. **Review plans** - Read `.specify/plans/` for technical approach
-4. **Review tasks** - Read `.specify/tasks/` for task breakdown
-5. **Implement** - Follow TDD approach from tasks
-6. **Track progress** - Update `.ccpm/phases/5-tracking/`
+✅ **Task Complete**: `_build_boolean_query()` method implemented
+✅ **Tests Passing**: 100% (all Task 2.4 tests pass)
+✅ **Audit Pass**: 0 blocking issues, ≤2 warnings
+✅ **No Merge Conflicts**: Clean commit history
+✅ **Time Saved**: ≥30% vs single agent (target: 1.5h vs 2h)
 
-### For AI Agents
+### Metrics Tracked
 
-1. **Read agent definition** - `.claude/agents/<agent-name>.md`
-2. **Check CCPM config** - `.ccpm/ccpm.yaml` for your role
-3. **Review current phase** - What's the active CCPM phase?
-4. **Execute your role** - Follow agent-specific guidelines
-5. **Update status** - `.claude/AGENT_STATUS.md`
-6. **Log progress** - `.ccpm/phases/5-tracking/progress.json`
+**Time Comparison**:
+- **Single Agent** (historical): ~2 hours
+- **CCPM Pilot** (3 agents): Target 1.5 hours (25% savings)
 
-### For Parallel Execution
+**Quality Metrics**:
+- Test coverage: ≥90%
+- Code review: Automated (Auditor)
+- Compliance: Continuous validation
 
-1. **Use git worktrees** - One worktree per agent
-2. **Check task queue** - `.claude/TASK_QUEUE.md`
-3. **Claim a task** - Add lock file
-4. **Execute in parallel** - Multiple agents work simultaneously
-5. **Merge when done** - Resolve conflicts by priority
+**Agent Performance**:
+- Developer: Task implementation time
+- Auditor: Issues detected (want: early detection)
+- Tester: Time to validate
+- Coordination: Blocking events, deadlocks (want: 0)
 
----
+### Output Files
 
-## Success Criteria
+After pilot completion:
 
-This branch is successful when:
-
-1. ✅ **Complete CCPM Structure** - All 5 phases represented with content
-2. ✅ **Full Planning Documentation** - Sprint 2-9.5 plans and tasks
-3. ✅ **9 Production Skills** - All search/performance + autonomous skills
-4. ✅ **Production Backend** - Complete FastAPI implementation with migrations
-5. ✅ **CI/CD Infrastructure** - All test workflows and deployment automation
-6. ✅ **No Merge Conflicts** - Clean integration from all source branches
-7. ✅ **Updated Documentation** - CONTEXT.md, integration reports
-8. ✅ **All Tests Passing** - >80% coverage maintained
+```
+.ccpm/pilot-results.md    # Comprehensive metrics report
+CONTEXT.md                # Updated with Task 2.4 entry
+AUDIT.md                  # Updated with compliance review
+TESTING.md                # Updated with test results
+backend/app/search/       # Updated query_builder.py
+backend/tests/            # New test_boolean_query.py
+```
 
 ---
 
-## Next Steps
+## Troubleshooting
 
-See `INTEGRATION_REPORT.md` for detailed integration progress and next steps.
+### Issue: CCPM not found
+
+```bash
+# Check installation
+which ccpm
+npm list -g @automazeio/ccpm
+
+# Reinstall
+npm install -g @automazeio/ccpm
+```
+
+### Issue: Configuration validation fails
+
+```bash
+# Check YAML syntax
+yamllint .ccpm/ccpm.yaml
+
+# Common issues:
+# - Indentation (use 2 spaces, not tabs)
+# - Missing colons
+# - Invalid agent names
+```
+
+### Issue: Dashboard not loading
+
+```bash
+# Check port availability
+lsof -i :8080
+
+# Try different port
+ccpm run --workflow pilot --dashboard --port 8081
+```
+
+### Issue: Agent timeout
+
+```bash
+# Increase timeout in ccpm.yaml (line 42):
+timeout: 60min  # Was: 30min
+
+# Or pass via CLI:
+ccpm run --workflow pilot --timeout 60
+```
+
+### Issue: File locking conflicts
+
+```bash
+# Check active locks
+ccpm status --locks
+
+# Clear stale locks
+ccpm clean --locks
+```
+
+---
+
+## Next Steps After Pilot
+
+### Analyze Results
+
+```bash
+# View pilot report
+cat .ccpm/pilot-results.md
+
+# Key metrics to check:
+# - Time saved (target: ≥25%)
+# - Quality (coverage, bugs caught)
+# - Compliance (violations detected)
+# - Coordination (blocking events)
+```
+
+### Scale to Full Workflow
+
+If pilot successful (all criteria met):
+
+```bash
+# Scale to 8 agents for Sprint 3 Phase 3
+ccpm run --workflow feature-development \
+  --agents all \
+  --feature "Sprint 3 Phase 3: Frontend Search UI"
+
+# Expected results:
+# - 3 developers building in parallel
+# - Tests/audit/docs happen concurrently
+# - 3x faster than single agent
+# - Continuous compliance validation
+```
+
+### Enable Git Hooks
+
+```bash
+# Install CCPM git hooks
+ccpm install-hooks
+
+# This adds:
+# .git/hooks/pre-commit    → Auditor (quick) + Tester (modified)
+# .git/hooks/post-commit   → Auditor (full) + Documentation
+# .git/hooks/pre-push      → Auditor (comprehensive) + Tester (full)
+```
+
+---
+
+## Configuration Reference
+
+### Agent Models
+
+- **Sonnet**: Complex tasks (architecture, developer, auditor, debugger)
+- **Haiku**: Simple/formulaic tasks (test-generator, tester, documentation)
+
+**Cost per task**:
+- Sonnet: ~$0.50-1.00
+- Haiku: ~$0.10-0.20
+- **Pilot total**: ~$2-3 (3 agents, 1 task)
+
+### Workflows
+
+1. **pilot**: Limited (3 agents, 1 task) - For testing
+2. **feature-development**: Full (8 agents, 1 feature) - Single feature
+3. **sprint-execution**: Maximum (8 agents, 3 features) - Entire sprint
+
+### Concurrency Limits
+
+- Max concurrent agents: 8
+- Max instances per agent: 3 (developer)
+- Rate limit: 50 requests/minute
+
+---
+
+## Support
+
+**Issues**: https://github.com/automazeio/ccpm/issues
+**Docs**: https://ccpm.automaze.io/docs
+**Project**: See CONTEXT.md "Development Workflow" section
+
+---
+
+## Changelog
+
+### v1.0.0 (2025-11-20)
+- Initial pilot configuration
+- 8 agents defined (3 active for pilot)
+- 3 workflows configured
+- Git hook integration
+- Dashboard monitoring
