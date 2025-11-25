@@ -1,0 +1,29 @@
+/**
+ * Global Styles
+ *
+ * Main stylesheet for the Clinical Care Tools application.
+ */
+
+// Import Vuetify styles
+@import 'vuetify/styles';
+
+// Global styles
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Utility classes
+.text-center {
+  text-align: center;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}

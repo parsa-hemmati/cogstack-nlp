@@ -1,91 +1,71 @@
 /**
- * Vue Router configuration
+ * Vue Router Configuration
+ *
+ * Defines application routes and navigation.
  */
 
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import type { RouteRecordRaw } from 'vue-router'
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    name: 'home',
+    component: () => import('@/views/HomeView.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/patients',
+    name: 'patients',
+    component: () => import('@/views/PatientSearchView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/timeline',
+    name: 'timeline',
+    component: () => import('@/views/TimelineView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/users',
+    name: 'users',
+    component: () => import('@/views/UserManagement.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/projects',
+    name: 'projects',
+    component: () => import('@/views/ProjectManagement.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/projects/:id',
+    name: 'project-detail',
+    component: () => import('@/views/ProjectDetail.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/tasks',
+    name: 'tasks',
+    component: () => import('@/views/TaskList.vue'),
+    meta: { requiresAuth: true },
+  },
+]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      redirect: '/dashboard',
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/views/LoginView.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: () => import('@/views/RegisterView.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('@/views/DashboardView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/patients',
-      name: 'patients',
-      component: () => import('@/views/PatientSearchView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/patients/:id',
-      name: 'patient-detail',
-      component: () => import('@/views/PatientDetailView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/timeline/:id',
-      name: 'timeline',
-      component: () => import('@/views/TimelineView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/:pathMatch(.*)*',
-      name: 'not-found',
-      component: () => import('@/views/NotFoundView.vue'),
-    },
-  ],
+  routes,
 })
 
-// Navigation guards
-router.beforeEach(async (to, from, next) => {
-  const authStore = useAuthStore()
+// Navigation guard for authentication
+router.beforeEach((to, _from, next) => {
+  const isAuthenticated = false // TODO: Implement authentication check
 
-  // Check if route requires authentication
-  if (to.meta.requiresAuth) {
-    if (!authStore.isAuthenticated) {
-      // Redirect to login
-      next({ name: 'login', query: { redirect: to.fullPath } })
-      return
-    }
-
-    // Fetch current user if not already loaded
-    if (!authStore.user) {
-      try {
-        await authStore.fetchCurrentUser()
-      } catch (err) {
-        next({ name: 'login' })
-        return
-      }
-    }
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next({ name: 'home' })
+  } else {
+    next()
   }
-
-  // Redirect to dashboard if already authenticated and trying to access login/register
-  if ((to.name === 'login' || to.name === 'register') && authStore.isAuthenticated) {
-    next({ name: 'dashboard' })
-    return
-  }
-
-  next()
 })
 
 export default router
