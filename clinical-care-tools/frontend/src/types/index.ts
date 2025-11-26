@@ -58,3 +58,9 @@ export interface TimelineEvent {
   description: string
   concepts: MedicalConcept[]
 }
+
+// Re-export domain types
+export * from './alerting'
+export * from './analytics'
+export * from './timeline'
+export * from './user'
