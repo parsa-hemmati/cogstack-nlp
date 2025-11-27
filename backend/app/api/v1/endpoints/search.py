@@ -448,13 +448,13 @@ async def create_saved_search(
         await db.refresh(saved_search)
 
         # Log audit trail
-        audit_service = AuditService(db)
-        await audit_service.log_action(
-            user_id=current_user.id,
+        await AuditService.log_action(
+            db=db,
+            user=current_user,
             action="SEARCH_SAVED",
             resource_type="saved_search",
             resource_id=str(saved_search.id),
-            metadata={
+            details={
                 "name": saved_search.name,
                 "query": saved_search.query,
                 "is_shared": saved_search.is_shared
@@ -603,13 +603,13 @@ async def delete_saved_search(
         await db.commit()
 
         # Log audit trail
-        audit_service = AuditService(db)
-        await audit_service.log_action(
-            user_id=current_user.id,
+        await AuditService.log_action(
+            db=db,
+            user=current_user,
             action="SEARCH_DELETED",
             resource_type="saved_search",
             resource_id=str(search_id),
-            metadata={
+            details={
                 "name": search_name,
                 "deleted_at": "now"
             },

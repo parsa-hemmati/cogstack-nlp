@@ -14,7 +14,75 @@ APP_NAME = "Clinical Care Tools Backend"
 APP_VERSION = "0.1.0"
 APP_DESCRIPTION = "Backend API for Clinical Care Tools - Patient Search and Timeline Visualization"
 
-# Create FastAPI application
+# OpenAPI Tags metadata for better API documentation organization
+tags_metadata = [
+    {
+        "name": "authentication",
+        "description": "User authentication endpoints. Login, logout, and token refresh operations.",
+    },
+    {
+        "name": "users",
+        "description": "User management endpoints. Create, read, update, and delete users.",
+    },
+    {
+        "name": "profile",
+        "description": "User profile management. View and update user profile information.",
+    },
+    {
+        "name": "roles",
+        "description": "Role-based access control (RBAC) management. Assign and manage user roles.",
+    },
+    {
+        "name": "sessions",
+        "description": "User session management. Manage active sessions and logins.",
+    },
+    {
+        "name": "break-glass",
+        "description": "Break-glass access control. Emergency access procedures for critical situations.",
+    },
+    {
+        "name": "patients",
+        "description": "Patient management and search. Retrieve patients, search by concepts with meta-annotation filtering.",
+    },
+    {
+        "name": "documents",
+        "description": "Document upload and processing. Upload RTF documents with encryption and deduplication.",
+    },
+    {
+        "name": "search",
+        "description": "Full-text search endpoints. Search documents using Elasticsearch with advanced query options.",
+    },
+    {
+        "name": "timeline",
+        "description": "Patient timeline visualization. View patient history, documents, and clinical events.",
+    },
+    {
+        "name": "timeline-filters",
+        "description": "Timeline filter presets. Manage and retrieve saved timeline filter configurations.",
+    },
+    {
+        "name": "audit",
+        "description": "Audit logging and compliance. View audit trails and compliance information.",
+    },
+    {
+        "name": "de-identification",
+        "description": "De-identification operations. Remove or mask personally identifiable information (PII).",
+    },
+    {
+        "name": "manual-annotations",
+        "description": "Manual annotation management. Create and manage manual clinical annotations.",
+    },
+    {
+        "name": "cds-guidelines",
+        "description": "Clinical Decision Support (CDS) guidelines. Manage clinical guidelines and protocols.",
+    },
+    {
+        "name": "cds-rules",
+        "description": "Clinical Decision Support (CDS) rules. Manage CDS rules and decision logic.",
+    },
+]
+
+# Create FastAPI application with OpenAPI configuration
 app = FastAPI(
     title=APP_NAME,
     version=APP_VERSION,
@@ -22,6 +90,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/api/openapi.json",
+    openapi_tags=tags_metadata,
 )
 
 # Configure CORS (will be restricted in production)

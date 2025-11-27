@@ -276,9 +276,9 @@ async def get_concept_highlights(
 
         # Audit logging (non-blocking)
         try:
-            audit_service = AuditService(db)
-            await audit_service.log(
-                user_id=current_user.id,
+            await AuditService.log_action(
+                db=db,
+                user=current_user,
                 action="VIEW_CONCEPT_HIGHLIGHTS",
                 resource_type="patient",
                 resource_id=str(patient_id),

@@ -32,6 +32,40 @@ class Settings(BaseSettings):
     DATABASE_POOL_RECYCLE: int = 3600  # 1 hour
     DATABASE_ECHO: bool = False  # SQL logging (True in development)
 
+    @field_validator('DATABASE_URL')
+    @classmethod
+    def validate_database_url_ssl(cls, v: PostgresDsn) -> PostgresDsn:
+        """
+        Validate DATABASE_URL has sslmode parameter.
+
+        Warns if sslmode is not set or not 'require' in production.
+        Issue #24: Enforce TLS for database connections.
+        """
+        import logging
+        import warnings
+
+        url_str = str(v)
+
+        # Check if sslmode is present in query string
+        if 'sslmode' not in url_str:
+            warnings.warn(
+                "DATABASE_URL missing 'sslmode' parameter. "
+                "For HIPAA compliance, add '?sslmode=require' to enforce TLS encryption. "
+                "See Issue #24.",
+                UserWarning,
+                stacklevel=2
+            )
+        elif 'sslmode=disable' in url_str or 'sslmode=allow' in url_str:
+            warnings.warn(
+                "DATABASE_URL has weak sslmode setting. "
+                "Use 'sslmode=require' for HIPAA compliance. "
+                "See Issue #24.",
+                UserWarning,
+                stacklevel=2
+            )
+
+        return v
+
     # Redis (sessions & cache)
     # Note: Using str instead of RedisDsn because passwords with special chars (+, /, =)
     # cause URL parsing errors. Redis client handles raw URLs correctly.
@@ -72,8 +106,46 @@ class Settings(BaseSettings):
     USE_MOCK_FHIR: bool = True  # Use mock FHIR service (default True for local development)
 
     # Security
-    ENCRYPTION_KEY: str  # AES-256 encryption key for PHI
+    ENCRYPTION_KEY: str  # AES-256 encryption key for PHI (64 hex characters = 32 bytes)
     BREAK_GLASS_LOG_RETENTION_DAYS: int = 2920  # 8 years (HIPAA compliance)
+
+    @field_validator('ENCRYPTION_KEY')
+    @classmethod
+    def validate_encryption_key(cls, v: str) -> str:
+        """
+        Validate ENCRYPTION_KEY is cryptographically strong (32 bytes / 64 hex chars).
+
+        Args:
+            v: ENCRYPTION_KEY value from environment
+
+        Returns:
+            Validated encryption key (hex string)
+
+        Raises:
+            ValueError: If key is missing, wrong format, or wrong length
+        """
+        if not v:
+            raise ValueError(
+                "ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32"
+            )
+
+        # Check if hex-encoded
+        try:
+            key_bytes = bytes.fromhex(v)
+        except ValueError:
+            raise ValueError(
+                "ENCRYPTION_KEY must be 64 hexadecimal characters. "
+                "Generate with: openssl rand -hex 32"
+            )
+
+        # Check length (must be 32 bytes = 256 bits for AES-256)
+        if len(key_bytes) != 32:
+            raise ValueError(
+                f"ENCRYPTION_KEY must be 32 bytes (64 hex chars), got {len(key_bytes)} bytes. "
+                "Generate with: openssl rand -hex 32"
+            )
+
+        return v
 
     # Audit Logging
     AUDIT_LOG_RETENTION_DAYS: int = 2920  # 8 years

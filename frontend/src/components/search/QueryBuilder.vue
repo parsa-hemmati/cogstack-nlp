@@ -258,6 +258,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import draggable from 'vuedraggable'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 // ============================================================================
 // TYPES
@@ -357,6 +358,9 @@ const highlightedQuery = computed(() => {
     return '<span class="text-grey">No conditions added</span>'
   }
 
+  // SECURITY: Sanitize input FIRST to prevent XSS
+  highlighted = sanitizeHtml(highlighted)
+
   // Highlight operators
   highlighted = highlighted.replace(/\b(AND|OR|NOT)\b/g, '<span class="highlight-operator text-blue font-weight-bold">$1</span>')
 
@@ -366,7 +370,8 @@ const highlightedQuery = computed(() => {
   // Highlight values (anything not an operator or field)
   highlighted = highlighted.replace(/(?<!<span[^>]*>)([a-zA-Z0-9_\-\.]+)(?![^<]*<\/span>)/g, '<span class="highlight-value text-green">$1</span>')
 
-  return highlighted
+  // SECURITY: Sanitize final HTML to allow only safe tags (span with class)
+  return sanitizeHtml(highlighted)
 })
 
 /**

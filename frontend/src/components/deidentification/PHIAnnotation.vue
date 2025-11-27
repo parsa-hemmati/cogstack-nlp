@@ -113,6 +113,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAnnotations } from '@/composables/useAnnotations'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 interface Props {
   noteId: string
@@ -159,17 +160,20 @@ const loadAnnotations = async () => {
 
 // Highlighted text with annotations
 const highlightedText = computed(() => {
-  let text = props.noteText
+  // SECURITY: Sanitize noteText FIRST to prevent XSS
+  let text = sanitizeHtml(props.noteText)
   const sortedAnnotations = [...annotations.value].sort((a, b) => b.start_offset - a.start_offset)
 
   for (const ann of sortedAnnotations) {
     const before = text.substring(0, ann.start_offset)
     const highlighted = text.substring(ann.start_offset, ann.end_offset)
     const after = text.substring(ann.end_offset)
+    // Note: getEntityColor returns hex color codes (safe, not user input)
     text = `${before}<span class="annotation-highlight" style="background-color: ${getEntityColor(ann.entity_type)}33;">${highlighted}</span>${after}`
   }
 
-  return text
+  // SECURITY: Sanitize final HTML to allow only safe tags (span with style)
+  return sanitizeHtml(text)
 })
 
 // Handle text selection

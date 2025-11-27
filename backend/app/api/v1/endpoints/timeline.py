@@ -189,6 +189,7 @@ async def get_patient_timeline_post(
     patient_id: UUID,
     request_body: TimelineRequest,
     request: Request,
+    deidentify: bool = Query(False, description="Return de-identified data (patient_name will be None)"),
     current_user: User = Depends(require_role("clinician", "researcher", "admin")),
     db: AsyncSession = Depends(get_db),
 ):
@@ -209,6 +210,9 @@ async def get_patient_timeline_post(
     6. Log audit trail (HIPAA compliance)
     7. Return timeline with events and metadata
 
+    **Query Parameters**:
+    - **deidentify**: If true, patient_name will be None in response (default: false)
+
     **Request Body**:
     - **date_range**: Start and end dates for timeline (required)
     - **event_types**: Types of events to include (diagnosis, procedure, medication, lab, visit)
@@ -224,7 +228,7 @@ async def get_patient_timeline_post(
 
     **Response**:
     - **patient_id**: UUID of the patient
-    - **patient_name**: Patient's full name
+    - **patient_name**: Patient's full name (None if deidentify=true)
     - **date_range**: Date range that was queried
     - **events**: List of clinical events (chronologically ordered)
     - **total_events**: Total count of events matching filters
@@ -245,6 +249,7 @@ async def get_patient_timeline_post(
     - Audit log entry created for every timeline access (HIPAA requirement)
     - Logs include: user, patient, filters, IP address, timestamp
     - Error messages never expose PHI
+    - De-identified exports supported via deidentify parameter
     """
     import time
     start_time = time.time()
@@ -358,9 +363,12 @@ async def get_patient_timeline_post(
     )
 
     # Build response
+    # Apply de-identification if requested
+    patient_name = None if deidentify else (patient.full_name if hasattr(patient, 'full_name') else "Unknown Patient")
+
     response = TimelineResponse(
         patient_id=str(patient_id),
-        patient_name=patient.full_name if hasattr(patient, 'full_name') else "Unknown Patient",
+        patient_name=patient_name,
         date_range=request_body.date_range,
         events=events,
         total_events=total_events,

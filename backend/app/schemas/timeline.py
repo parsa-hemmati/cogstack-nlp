@@ -531,9 +531,9 @@ class TimelineResponse(BaseModel):
         ...,
         description="UUID of the patient"
     )
-    patient_name: str = Field(
-        ...,
-        description="Patient's full name",
+    patient_name: Optional[str] = Field(
+        None,
+        description="Patient's full name (None when de-identified)",
         example="John Doe"
     )
     date_range: DateRangeSchema = Field(

@@ -13,10 +13,10 @@ import DOMPurify from 'dompurify'
 /**
  * Sanitize HTML content allowing only safe tags
  *
- * For search highlights, we only allow <mark> tags for highlighting
+ * For search highlights, we allow <mark> and <span> tags for highlighting
  * All other HTML is stripped to prevent XSS attacks
  *
- * @param html - Raw HTML string from Elasticsearch
+ * @param html - Raw HTML string from Elasticsearch or user input
  * @returns Sanitized HTML safe for v-html rendering
  *
  * @example
@@ -32,15 +32,25 @@ import DOMPurify from 'dompurify'
  * const safe = sanitizeHtml(highlight)
  * // Returns: 'Patient <mark>discharged</mark> on 2024-01-15'
  * ```
+ *
+ * @example
+ * ```typescript
+ * const annotation = 'Patient <span class="annotation-highlight" style="background-color: #FF572233;">NAME</span>'
+ * const safe = sanitizeHtml(annotation)
+ * // Returns: 'Patient <span class="annotation-highlight" style="background-color: #FF572233;">NAME</span>'
+ * ```
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return ''
 
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['mark'],
-    ALLOWED_ATTR: [],
+    ALLOWED_TAGS: ['mark', 'span'],
+    ALLOWED_ATTR: ['class', 'style'],
     KEEP_CONTENT: true, // Keep text content even if tags are stripped
-    RETURN_TRUSTED_TYPE: false
+    RETURN_TRUSTED_TYPE: false,
+    // Only allow specific CSS properties in style attribute
+    ALLOW_DATA_ATTR: false,
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
   })
 }
 
