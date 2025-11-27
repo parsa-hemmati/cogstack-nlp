@@ -24,7 +24,7 @@
 | **7** | Alerting | ✅ Complete | `[██████████]` 100% | 40h/40h | Full implementation |
 | **8** | Population Health | ✅ Complete | `[██████████]` 100% | 50h/50h | Full implementation |
 | **9** | Analytics | ✅ Complete | `[██████████]` 100% | 50h/50h | Full implementation |
-| **9.5** | Hardening | 🚧 Active | `[█████░░░░░]` 55% | 44h/80h | Test infra + Auth guards done |
+| **9.5** | Hardening | 🚧 Active | `[██████░░░░]` 65% | 52h/80h | Security bug fixes + auth tests |
 
 ---
 
@@ -80,7 +80,7 @@ Sprint 8: Pop Health    [██████████] Complete ✅ (Cherry-pi
 Sprint 9: Analytics     [██████████] Complete ✅ (Cherry-picked)
 ```
 
-### 🚧 Sprint 9.5: Security Hardening (55%)
+### 🚧 Sprint 9.5: Security Hardening (65%)
 ```
 Rate Limiting           [██████████] Complete ✅ (Auth endpoints)
 Database TLS            [██████████] Complete ✅ (sslmode support)
@@ -88,6 +88,8 @@ Secret Management       [██████████] Complete ✅ (No hardco
 Encryption Docs         [██████████] Complete ✅ (Key management guide)
 Test Infrastructure     [████░░░░░░] 40% (Fixtures + scripts added)
 Frontend Auth Guard     [██████████] Complete ✅ (Pinia store + router guards)
+Security Bug Fixes      [██████████] Complete ✅ (4 P0/P1 issues fixed) ✨ NEW
+Auth Unit Tests         [██████████] Complete ✅ (15+ tests) ✨ NEW
 Monitoring Stack        [░░░░░░░░░░] Not Started ❌
 CI/CD Pipeline          [░░░░░░░░░░] Not Started ❌
 ```
@@ -229,6 +231,12 @@ Backup System     [░░░░░░░░░░] 0% (pg_dump automation)
 
 - **Current Focus**: Sprint 9.5 - Security Hardening
 - **Recent Completions**:
+  - **Security Bug Fixes** (P0/P1 - Agent-identified):
+    - Session timeout race condition fixed (check before activity reset)
+    - Token refresh mutex added (prevents concurrent refresh calls)
+    - API 401 handler race condition fixed (uses auth store, Vue Router)
+    - Open redirect vulnerability fixed (validates relative paths only)
+  - **Auth Unit Tests**: 15+ new tests in test_auth.py
   - Frontend auth store (Pinia) with JWT handling and role-based access
   - Router guards with token refresh and session timeout
   - HomeView, LoginView, NotFoundView, AccessDeniedView pages
@@ -247,7 +255,7 @@ Backup System     [░░░░░░░░░░] 0% (pg_dump automation)
 
 ---
 
-*This roadmap is updated weekly. Last major update: Nov 27, 2025 - Test infrastructure + Frontend auth guards.*
+*This roadmap is updated weekly. Last major update: Nov 27, 2025 - Security bug fixes + auth tests.*
 
 **Legend**:
 - ✅ Complete
