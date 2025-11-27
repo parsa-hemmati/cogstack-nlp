@@ -161,9 +161,10 @@ const router = createRouter({
  * Navigation guard for authentication and authorization
  *
  * Checks:
- * 1. If route requires authentication and user is not authenticated
- * 2. If route requires specific roles and user doesn't have them
- * 3. Token expiration and automatic refresh
+ * 1. Session expiration (BEFORE updating activity timestamp)
+ * 2. If route requires authentication and user is not authenticated
+ * 3. If route requires specific roles and user doesn't have them
+ * 4. Token expiration and automatic refresh
  */
 router.beforeEach(async (to: RouteLocationNormalized, from, next) => {
   // Import auth store dynamically to avoid circular dependency
@@ -175,11 +176,19 @@ router.beforeEach(async (to: RouteLocationNormalized, from, next) => {
     ? `${to.meta.title} | CogStack NLP`
     : 'CogStack NLP Clinical Care Tools'
 
-  // Update activity timestamp for session management
-  authStore.updateActivity()
-
   // Check if route requires authentication
   if (to.meta.requiresAuth) {
+    // CRITICAL: Check session expiration BEFORE updating activity timestamp
+    // This prevents the race condition where updateActivity() resets the timer
+    // before we can detect an expired session
+    if (authStore.isSessionExpired) {
+      await authStore.logout()
+      return next({
+        name: 'login',
+        query: { redirect: to.fullPath, reason: 'session_expired' }
+      })
+    }
+
     // Check if user is authenticated
     if (!authStore.isAuthenticated) {
       // Try to refresh token if available
@@ -208,14 +217,9 @@ router.beforeEach(async (to: RouteLocationNormalized, from, next) => {
       return next({ name: 'access-denied' })
     }
 
-    // Check session expiration
-    if (authStore.isSessionExpired) {
-      await authStore.logout()
-      return next({
-        name: 'login',
-        query: { redirect: to.fullPath, reason: 'session_expired' }
-      })
-    }
+    // Update activity timestamp AFTER all auth checks pass
+    // This ensures we only reset the timer for valid authenticated requests
+    authStore.updateActivity()
   }
 
   // Redirect authenticated users away from login page

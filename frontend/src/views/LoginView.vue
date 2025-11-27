@@ -138,6 +138,24 @@ const sessionExpired = computed(() => {
   return route.query.reason === 'session_expired'
 })
 
+/**
+ * Validate redirect URL to prevent open redirect attacks
+ *
+ * Only allows relative paths starting with '/' and not containing '//'
+ * which could be interpreted as protocol-relative URLs (//evil.com)
+ */
+function isValidRedirect(url: string): boolean {
+  // Must start with single forward slash (relative path)
+  if (!url.startsWith('/')) return false
+  // Must not be protocol-relative (//evil.com)
+  if (url.startsWith('//')) return false
+  // Must not contain protocol indicators
+  if (url.includes('://')) return false
+  // Must not contain backslash (potential bypass)
+  if (url.includes('\\')) return false
+  return true
+}
+
 // Handle login
 async function handleLogin() {
   const { valid } = await formRef.value.validate()
@@ -149,9 +167,14 @@ async function handleLogin() {
   })
 
   if (success) {
-    // Redirect to original destination or home
-    const redirect = route.query.redirect as string || '/'
-    router.push(redirect)
+    // Validate redirect URL to prevent open redirect attacks
+    const redirect = route.query.redirect as string
+    if (redirect && isValidRedirect(redirect)) {
+      router.push(redirect)
+    } else {
+      // Invalid or missing redirect - go to home
+      router.push('/')
+    }
   }
 }
 

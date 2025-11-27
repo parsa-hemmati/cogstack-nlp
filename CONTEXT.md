@@ -340,6 +340,48 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 
 ### Recent Changes
 
+#### [2025-11-27] - Security Bug Fixes (Agent-Identified Issues)
+
+**Branch**: `ccpm-consolidated`
+**Session Focus**: Sprint 9.5 - Fix critical security bugs identified by parallel agent audit
+
+**Bugs Fixed**:
+1. **Session Timeout Race Condition** (P0 - router/index.ts):
+   - **Issue**: `updateActivity()` was called BEFORE `isSessionExpired` check, so session timeout never triggered
+   - **Fix**: Moved `updateActivity()` AFTER all auth checks pass
+   - **Impact**: Session timeout now properly detects 30-minute inactivity
+
+2. **Token Refresh Race Condition** (P0 - auth.ts):
+   - **Issue**: Multiple concurrent token refresh calls could race and cause duplicate requests
+   - **Fix**: Added `refreshPromise` mutex to ensure only one refresh at a time
+   - **Impact**: Prevents 401 cascades and duplicate token refresh requests
+
+3. **API 401 Race Condition** (P0 - api.ts):
+   - **Issue**: API interceptor used `window.location.href` which caused full page reload, disrupting ongoing refreshes
+   - **Fix**: Integrated with auth store's mutex-protected refresh, use Vue Router, prevent infinite loops
+   - **Impact**: Seamless token refresh without page reload or redirect loops
+
+4. **Open Redirect Vulnerability** (P1 - LoginView.vue):
+   - **Issue**: Redirect URL from query params was not validated, allowing `?redirect=//evil.com`
+   - **Fix**: Added `isValidRedirect()` function to validate relative paths only
+   - **Impact**: Prevents phishing attacks via malicious redirect URLs
+
+**Files Created**:
+- `backend/tests/unit/api/test_auth.py` - 15+ authentication tests (login, logout, password verification)
+
+**Files Modified**:
+- `frontend/src/router/index.ts` - Session timeout check reordering
+- `frontend/src/stores/auth.ts` - Token refresh mutex
+- `frontend/src/services/api.ts` - 401 handler with store coordination
+- `frontend/src/views/LoginView.vue` - Redirect URL validation
+
+**Security Audit Results** (from parallel agents):
+- **Auditor Agent**: Identified 3 critical issues, all fixed
+- **Test Agent**: Coverage increased with new test_auth.py
+- **Code Analyzer**: All P0/P1 issues resolved
+
+---
+
 #### [2025-11-27] - Test Infrastructure & Frontend Auth Guards
 
 **Branch**: `ccpm-consolidated`

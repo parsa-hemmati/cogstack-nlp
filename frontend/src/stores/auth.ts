@@ -75,6 +75,9 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref<string | null>(null)
   const lastActivity = ref<number>(Date.now())
 
+  // Mutex for token refresh to prevent concurrent refresh calls
+  let refreshPromise: Promise<boolean> | null = null
+
   // Session timeout (30 minutes of inactivity)
   const SESSION_TIMEOUT = 30 * 60 * 1000
 
@@ -158,25 +161,43 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Refresh the access token
+   * Refresh the access token with mutex to prevent concurrent refresh calls
+   *
+   * Uses a shared promise to ensure only one refresh request is made at a time.
+   * Concurrent calls will wait for and share the result of the first request.
    */
   async function refresh(): Promise<boolean> {
     if (!refreshToken.value) return false
 
-    try {
-      const response = await apiClient.post('/api/v1/auth/refresh', {
-        refresh_token: refreshToken.value
-      })
-
-      const { access_token, refresh_token: newRefreshToken } = response.data
-      setTokens(access_token, newRefreshToken || refreshToken.value)
-
-      return true
-    } catch {
-      // Refresh failed - clear auth and redirect to login
-      clearAuth()
-      return false
+    // If a refresh is already in progress, return the existing promise
+    // This prevents race conditions when multiple components/guards
+    // try to refresh the token simultaneously
+    if (refreshPromise) {
+      return refreshPromise
     }
+
+    // Create new refresh promise with mutex
+    refreshPromise = (async () => {
+      try {
+        const response = await apiClient.post('/api/v1/auth/refresh', {
+          refresh_token: refreshToken.value
+        })
+
+        const { access_token, refresh_token: newRefreshToken } = response.data
+        setTokens(access_token, newRefreshToken || refreshToken.value)
+
+        return true
+      } catch {
+        // Refresh failed - clear auth and redirect to login
+        clearAuth()
+        return false
+      } finally {
+        // Clear the mutex after completion (success or failure)
+        refreshPromise = null
+      }
+    })()
+
+    return refreshPromise
   }
 
   /**
