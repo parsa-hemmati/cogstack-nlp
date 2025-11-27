@@ -1,0 +1,221 @@
+{
+  "title": "Timeline Module - Production Monitoring",
+  "description": "Real-time monitoring for Timeline API, Frontend, and Infrastructure",
+  "template_variables": [
+    {
+      "name": "env",
+      "prefix": "env",
+      "default": "production"
+    }
+  ],
+  "widgets": [
+    {
+      "id": 1,
+      "definition": {
+        "title": "Timeline API - Request Rate",
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "sum:timeline.api.requests{$env} by {endpoint}.as_rate()",
+            "display_type": "line"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "definition": {
+        "title": "Timeline API - Response Time (P50, P95, P99)",
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "p50:timeline.api.response_time{$env}",
+            "display_type": "line",
+            "style": {
+              "palette": "green"
+            }
+          },
+          {
+            "q": "p95:timeline.api.response_time{$env}",
+            "display_type": "line",
+            "style": {
+              "palette": "yellow"
+            }
+          },
+          {
+            "q": "p99:timeline.api.response_time{$env}",
+            "display_type": "line",
+            "style": {
+              "palette": "red"
+            }
+          }
+        ],
+        "markers": [
+          {
+            "value": "y = 500",
+            "display_type": "error dashed",
+            "label": "P95 Target (500ms)"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "definition": {
+        "title": "Timeline API - Error Rate",
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "(sum:timeline.api.errors{$env}.as_count() / sum:timeline.api.requests{$env}.as_count()) * 100",
+            "display_type": "line"
+          }
+        ],
+        "markers": [
+          {
+            "value": "y = 5",
+            "display_type": "error dashed",
+            "label": "Critical Threshold (5%)"
+          },
+          {
+            "value": "y = 2",
+            "display_type": "warning dashed",
+            "label": "Warning Threshold (2%)"
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "definition": {
+        "title": "Redis Cache - Hit Rate",
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "(sum:redis.cache.hits{$env}.as_count() / (sum:redis.cache.hits{$env}.as_count() + sum:redis.cache.misses{$env}.as_count())) * 100",
+            "display_type": "area"
+          }
+        ],
+        "markers": [
+          {
+            "value": "y = 50",
+            "display_type": "warning dashed",
+            "label": "Minimum Target (50%)"
+          },
+          {
+            "value": "y = 70",
+            "display_type": "ok dashed",
+            "label": "Healthy Target (70%)"
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "definition": {
+        "title": "Elasticsearch - Query Time",
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:elasticsearch.search.query_time_ms{index:clinical_concepts,$env}",
+            "display_type": "line"
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "definition": {
+        "title": "Frontend - Page Load Time",
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "p95:rum.page_load_time{view.name:timeline,$env}",
+            "display_type": "line"
+          }
+        ],
+        "markers": [
+          {
+            "value": "y = 3000",
+            "display_type": "warning dashed",
+            "label": "Target (3s)"
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "definition": {
+        "title": "Frontend - Largest Contentful Paint",
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "p95:rum.lcp{view.name:timeline,$env}",
+            "display_type": "line"
+          }
+        ],
+        "markers": [
+          {
+            "value": "y = 2500",
+            "display_type": "warning dashed",
+            "label": "Target (2.5s)"
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "definition": {
+        "title": "Database - Connection Pool Usage",
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:postgresql.connections.active{db:clinicaldb,$env}",
+            "display_type": "area"
+          }
+        ],
+        "markers": [
+          {
+            "value": "y = 80",
+            "display_type": "warning dashed",
+            "label": "High Usage (80%)"
+          }
+        ]
+      }
+    }
+  ],
+  "monitors": [
+    {
+      "name": "Timeline API - High Error Rate",
+      "type": "metric alert",
+      "query": "(sum:timeline.api.errors{env:production}.as_count() / sum:timeline.api.requests{env:production}.as_count()) * 100 > 5",
+      "message": "@pagerduty-oncall Timeline API error rate exceeded 5% threshold. Check logs and APM dashboard immediately.",
+      "tags": ["service:timeline", "severity:critical"],
+      "priority": 1,
+      "notify_no_data": false,
+      "timeout_h": 0,
+      "renotify_interval": 5
+    },
+    {
+      "name": "Timeline API - Slow Response Time",
+      "type": "metric alert",
+      "query": "p95:timeline.api.response_time{env:production} > 1000",
+      "message": "@pagerduty-oncall Timeline API P95 response time exceeded 1s. Check database and Elasticsearch performance.",
+      "tags": ["service:timeline", "severity:critical"],
+      "priority": 1,
+      "notify_no_data": false,
+      "timeout_h": 0,
+      "renotify_interval": 5
+    },
+    {
+      "name": "Redis Cache - Low Hit Rate",
+      "type": "metric alert",
+      "query": "(sum:redis.cache.hits{env:production}.as_count() / (sum:redis.cache.hits{env:production}.as_count() + sum:redis.cache.misses{env:production}.as_count())) * 100 < 50",
+      "message": "@slack-ops-channel Redis cache hit rate below 50%. Check Redis memory and eviction policy.",
+      "tags": ["service:timeline", "severity:warning"],
+      "priority": 3,
+      "notify_no_data": false,
+      "timeout_h": 1,
+      "renotify_interval": 60
+    }
+  ]
+}

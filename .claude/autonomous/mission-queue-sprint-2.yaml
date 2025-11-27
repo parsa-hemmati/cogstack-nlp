@@ -1,0 +1,381 @@
+# Mission Queue: Sprint 2 - Timeline View Module
+# Generated: 2025-11-24
+# Framework: CCPM Autonomous Execution v2.0.0
+# Source: .specify/tasks/sprint-2-timeline-view-tasks.md
+# Target: Parallel multi-agent execution with 3 developer agents + support agents
+
+# =============================================================================
+# Sprint 2: Timeline View Module (144 hours → 48 hours with 3 parallel agents)
+# =============================================================================
+
+project:
+  sprint: sprint-2
+  feature: timeline-view-module
+  specification: .specify/specifications/sprint-2-timeline-view.md
+  plan: .specify/plans/sprint-2-timeline-view-plan.md
+  tasks: .specify/tasks/sprint-2-timeline-view-tasks.md
+  target_completion: 2-3 weeks (with parallel execution)
+
+# Agent assignments for parallel execution
+agent_assignments:
+  developer-1:
+    focus: Backend API (Timeline Service + Schemas)
+    tasks: [1.1, 1.2, 1.3, 1.4, 1.5]
+    worktree: ../cogstack-timeline-backend
+
+  developer-2:
+    focus: Frontend Components (Timeline UI)
+    tasks: [2.1, 2.2, 2.3, 2.4, 2.5]
+    worktree: ../cogstack-timeline-frontend
+
+  developer-3:
+    focus: Integration & Testing
+    tasks: [3.1, 3.2, 3.3]
+    worktree: ../cogstack-timeline-integration
+
+  test-generator:
+    focus: TDD test generation (runs before each developer task)
+    coordination: "Generates tests before developers implement"
+
+  auditor:
+    focus: Compliance validation (runs after each commit)
+    coordination: "Blocks merges if HIPAA/GDPR violations detected"
+
+# =============================================================================
+# PHASE 1: Core Timeline API (30 hours → 10 hours parallel)
+# =============================================================================
+
+missions:
+  # ---------------------------------------------------------------------------
+  # Mission 1.1: Timeline Pydantic Schemas
+  # Agent: developer-1 (Backend focus)
+  # ---------------------------------------------------------------------------
+  - mission_id: sprint-2-task-1.1
+    phase: phase-1-core-api
+    task_number: 1.1
+    title: "Create Timeline Pydantic Schemas"
+    assigned_to: developer-1
+    spec_file: .specify/specifications/sprint-2-timeline-view.md
+    spec_section: "API Design - Timeline Endpoint"
+    plan_file: .specify/plans/sprint-2-timeline-view-plan.md
+    task_file: .specify/tasks/sprint-2-timeline-view-tasks.md
+    estimated_hours: 2.0
+    dependencies: []
+    status: ready
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Read Task 1.1 from sprint-2-timeline-view-tasks.md"
+        - "Review TimelineQueryParams requirements"
+        - "Review TimelineDocument/TimelineConcept schemas"
+        - "Check existing schema patterns in backend/app/schemas/"
+
+      innovate:
+        - "Use Pydantic v2 features (Field validators, computed fields)"
+        - "Leverage existing schema patterns from patient search"
+        - "Add meta-annotation filtering at schema level"
+
+      plan:
+        - "Create tests/unit/schemas/test_timeline_schemas.py (TDD)"
+        - "Define TimelineQueryParams with Optional filters"
+        - "Define TimelineDocument with all required fields"
+        - "Define TimelineConcept with meta_annotations"
+        - "Define TimelineResponse with metadata"
+
+      execute:
+        - "Write 12 unit tests (validation, serialization, edge cases)"
+        - "Implement backend/app/schemas/timeline.py"
+        - "Run pytest tests/unit/schemas/test_timeline_schemas.py"
+        - "Achieve ≥90% test coverage"
+
+      review:
+        - "Verify: TimelineQueryParams validates date format (ISO 8601)"
+        - "Verify: TimelineDocument includes id, title, type, date"
+        - "Verify: TimelineConcept includes meta_annotations dict"
+        - "Verify: TimelineResponse calculates date_range"
+        - "Verify: All 12 tests passing"
+
+    coordination:
+      before_start:
+        - "test-generator creates test stubs"
+      after_complete:
+        - "auditor validates schema design"
+        - "Notify developer-2 (schemas ready for frontend types)"
+
+    output:
+      code_files:
+        - "backend/app/schemas/timeline.py"
+      test_files:
+        - "tests/unit/schemas/test_timeline_schemas.py"
+      documentation: []
+
+    success_criteria:
+      - "TimelineQueryParams validates date format (ISO 8601)"
+      - "TimelineDocument includes all required fields"
+      - "TimelineConcept includes meta_annotations dict"
+      - "TimelineResponse includes date_range calculation"
+      - "12 tests passing with ≥90% coverage"
+
+  # ---------------------------------------------------------------------------
+  # Mission 1.2: Timeline Service - Document Retrieval
+  # Agent: developer-1 (Backend focus)
+  # ---------------------------------------------------------------------------
+  - mission_id: sprint-2-task-1.2
+    phase: phase-1-core-api
+    task_number: 1.2
+    title: "Timeline Service - Document Retrieval"
+    assigned_to: developer-1
+    spec_file: .specify/specifications/sprint-2-timeline-view.md
+    task_file: .specify/tasks/sprint-2-timeline-view-tasks.md
+    estimated_hours: 4.0
+    dependencies: [sprint-2-task-1.1]
+    status: pending
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Read Task 1.2 from sprint-2-timeline-view-tasks.md"
+        - "Review document retrieval requirements"
+        - "Check existing service patterns in backend/app/services/"
+        - "Review Document model and relationships"
+
+      innovate:
+        - "Optimize SQL query with JOINs (Document → Task → Project)"
+        - "Use SQLAlchemy async patterns"
+        - "Add Redis caching for repeated timeline requests"
+
+      plan:
+        - "Create tests/unit/services/test_timeline_service.py (TDD)"
+        - "Create TimelineService class with async methods"
+        - "Implement _get_timeline_documents() method"
+        - "Build SQL query with filters (date range, document type)"
+        - "Aggregate annotation count"
+
+      execute:
+        - "Write 8 unit tests (retrieval, filters, edge cases)"
+        - "Implement backend/app/services/timeline_service.py"
+        - "Run pytest tests/unit/services/test_timeline_service.py"
+        - "Achieve ≥85% test coverage"
+
+      review:
+        - "Verify: Service returns documents for valid patient_id"
+        - "Verify: Date range filter works correctly"
+        - "Verify: Document type filter works correctly"
+        - "Verify: Annotation count aggregated correctly"
+        - "Verify: Empty list for patient with no documents"
+
+    coordination:
+      after_complete:
+        - "auditor validates database query security"
+        - "Notify developer-3 (service ready for integration tests)"
+
+    output:
+      code_files:
+        - "backend/app/services/timeline_service.py"
+      test_files:
+        - "tests/unit/services/test_timeline_service.py"
+      documentation: []
+
+    success_criteria:
+      - "Service returns documents for valid patient_id"
+      - "Date range filter works correctly"
+      - "Document type filter works correctly"
+      - "Annotation count aggregated correctly"
+      - "8 tests passing with ≥85% coverage"
+
+  # ---------------------------------------------------------------------------
+  # Mission 1.3: Timeline Service - Concept Retrieval
+  # Agent: developer-1 (Backend focus)
+  # ---------------------------------------------------------------------------
+  - mission_id: sprint-2-task-1.3
+    phase: phase-1-core-api
+    task_number: 1.3
+    title: "Timeline Service - Concept Retrieval"
+    assigned_to: developer-1
+    spec_file: .specify/specifications/sprint-2-timeline-view.md
+    task_file: .specify/tasks/sprint-2-timeline-view-tasks.md
+    estimated_hours: 4.0
+    dependencies: [sprint-2-task-1.2]
+    status: pending
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Read Task 1.3 from sprint-2-timeline-view-tasks.md"
+        - "Review concept retrieval requirements"
+        - "Check meta-annotation filtering patterns"
+        - "Review ExtractedEntity model"
+
+      innovate:
+        - "Use SQL aggregations (MIN/MAX dates, COUNT)"
+        - "Apply meta-annotation filters at query level (performance)"
+        - "Group by CUI for concept deduplication"
+
+      plan:
+        - "Add tests to test_timeline_service.py (TDD)"
+        - "Implement _get_timeline_concepts() method"
+        - "Build aggregation query (GROUP BY CUI)"
+        - "Apply meta-annotation filters (exclude negated/family)"
+        - "Calculate first/last mentioned dates"
+
+      execute:
+        - "Write 8 unit tests (retrieval, aggregation, filters)"
+        - "Implement concept retrieval in timeline_service.py"
+        - "Run pytest tests/unit/services/test_timeline_service.py"
+        - "Achieve ≥85% test coverage"
+
+      review:
+        - "Verify: Service returns aggregated concepts (CUI grouped)"
+        - "Verify: First/last mentioned dates correct"
+        - "Verify: Occurrence count matches database"
+        - "Verify: Meta-annotation filters applied correctly"
+        - "Verify: Concept type filter works"
+
+    coordination:
+      after_complete:
+        - "auditor validates meta-annotation filtering (accuracy)"
+        - "Notify developer-2 (concept data structure ready)"
+
+    output:
+      code_files:
+        - "backend/app/services/timeline_service.py (updated)"
+      test_files:
+        - "tests/unit/services/test_timeline_service.py (updated)"
+      documentation: []
+
+    success_criteria:
+      - "Service returns aggregated concepts (CUI grouped)"
+      - "First/last mentioned dates correct"
+      - "Occurrence count matches database"
+      - "Meta-annotation filters applied (include_negated=False works)"
+      - "8 tests passing with ≥85% coverage"
+
+  # ---------------------------------------------------------------------------
+  # Mission 2.1: Frontend Timeline Component Setup (PARALLEL)
+  # Agent: developer-2 (Frontend focus)
+  # ---------------------------------------------------------------------------
+  - mission_id: sprint-2-task-2.1
+    phase: phase-2-frontend-ui
+    task_number: 2.1
+    title: "Frontend Timeline Component Setup"
+    assigned_to: developer-2
+    spec_file: .specify/specifications/sprint-2-timeline-view.md
+    task_file: .specify/tasks/sprint-2-timeline-view-tasks.md
+    estimated_hours: 3.0
+    dependencies: [sprint-2-task-1.1]  # Only needs schemas
+    status: ready  # Can start in parallel!
+    execution_type: autonomous
+
+    riper_cycle:
+      research:
+        - "Read Phase 2 tasks from sprint-2-timeline-view-tasks.md"
+        - "Review Vue 3 Composition API patterns"
+        - "Check existing frontend structure"
+        - "Review D3.js timeline visualization patterns"
+
+      innovate:
+        - "Use Vue 3 Composition API with TypeScript"
+        - "Leverage Vuetify 3 components"
+        - "Use D3.js for timeline visualization"
+        - "Reuse existing API client patterns"
+
+      plan:
+        - "Create frontend/src/components/Timeline/"
+        - "Set up TypeScript types from backend schemas"
+        - "Create timeline API client composable"
+        - "Set up D3.js timeline axis component"
+
+      execute:
+        - "Create component structure"
+        - "Write Vitest unit tests"
+        - "Implement timeline components"
+        - "Achieve ≥85% test coverage"
+
+      review:
+        - "Verify: Components render without errors"
+        - "Verify: TypeScript types match backend schemas"
+        - "Verify: API client composable works"
+        - "Verify: Tests passing"
+
+    coordination:
+      before_start:
+        - "Wait for sprint-2-task-1.1 (schemas)"
+      parallel_execution:
+        - "Runs in parallel with developer-1 backend tasks"
+      after_complete:
+        - "Notify developer-3 (frontend ready for integration)"
+
+    output:
+      code_files:
+        - "frontend/src/components/Timeline/TimelineView.vue"
+        - "frontend/src/composables/useTimeline.ts"
+        - "frontend/src/api/timelineApi.ts"
+      test_files:
+        - "frontend/tests/components/Timeline/TimelineView.spec.ts"
+      documentation: []
+
+    success_criteria:
+      - "Timeline component structure created"
+      - "TypeScript types defined"
+      - "API client composable implemented"
+      - "Tests passing with ≥85% coverage"
+
+# =============================================================================
+# Parallel Execution Summary
+# =============================================================================
+
+execution_strategy:
+  parallel_phases:
+    - name: "Phase 1 + 2 Parallel Execution"
+      duration: "10 hours (was 30 hours sequential)"
+      agents:
+        - developer-1: "Backend API (Tasks 1.1-1.5)"
+        - developer-2: "Frontend UI (Tasks 2.1-2.5) - starts after 1.1"
+        - test-generator: "Generates tests for both"
+      speedup: "3x (30h → 10h)"
+
+  coordination_mechanism:
+    - "Shared CONTEXT.md for agent communication"
+    - "File locking prevents write conflicts"
+    - "Git worktrees allow simultaneous work"
+    - "Auditor blocks merges with compliance issues"
+
+  merge_strategy:
+    - "developer-1 merges backend changes first"
+    - "developer-2 merges frontend after backend schemas ready"
+    - "developer-3 adds integration tests"
+    - "Final merge after all tests pass"
+
+# =============================================================================
+# Blockers & Manual Steps
+# =============================================================================
+
+blockers:
+  - blocker_id: "sprint-2-blocker-1"
+    title: "Frontend directory doesn't exist yet"
+    severity: "high"
+    resolution: "Create frontend/ directory structure first"
+    estimated_resolution_time: "1 hour"
+
+  - blocker_id: "sprint-2-blocker-2"
+    title: "D3.js not installed"
+    severity: "medium"
+    resolution: "npm install d3 @types/d3"
+    estimated_resolution_time: "15 minutes"
+
+# =============================================================================
+# Success Metrics
+# =============================================================================
+
+success_metrics:
+  target_completion_time: "48 hours (3 agents parallel)"
+  traditional_completion_time: "144 hours (1 agent sequential)"
+  speedup_factor: "3x"
+  test_coverage_target: "≥85%"
+  acceptance_criteria:
+    - "All Phase 1 tasks complete (Timeline API working)"
+    - "All Phase 2 tasks complete (Timeline UI working)"
+    - "Integration tests passing"
+    - "No HIPAA/GDPR compliance violations"
+    - "Performance: Timeline loads in <500ms"

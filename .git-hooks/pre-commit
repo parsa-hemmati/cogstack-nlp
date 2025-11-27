@@ -21,33 +21,44 @@ else
     against=$(git hash-object -t tree /dev/null)
 fi
 
-# Get list of staged files (excluding CONTEXT.md itself and documentation-only changes)
-staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -v '^CONTEXT.md$' | grep -v '^docs/' | grep -v '^\.specify/' | grep -v '\.md$')
+# Get list of staged files (excluding CONTEXT.md, AUDIT.md and documentation-only changes)
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -v '^CONTEXT.md$' | grep -v '^AUDIT.md$' | grep -v '^docs/' | grep -v '^\.specify/' | grep -v '\.md$')
 
 # If there are code changes (non-documentation files)
 if [ -n "$staged_files" ]; then
     # Check if CONTEXT.md is also being committed
     context_modified=$(git diff --cached --name-only | grep '^CONTEXT.md$')
 
-    if [ -z "$context_modified" ]; then
-        echo -e "${RED}❌ ERROR: CONTEXT.md must be updated with code changes!${NC}"
+    # Check if AUDIT.md is also being committed
+    audit_modified=$(git diff --cached --name-only | grep '^AUDIT.md$')
+
+    if [ -z "$context_modified" ] || [ -z "$audit_modified" ]; then
+        echo -e "${RED}❌ ERROR: Both CONTEXT.md and AUDIT.md must be updated with code changes!${NC}"
         echo ""
-        echo -e "${YELLOW}You're committing code changes but CONTEXT.md wasn't modified.${NC}"
+        echo -e "${YELLOW}You're committing code changes but required files weren't modified:${NC}"
+        [ -z "$context_modified" ] && echo "  ❌ CONTEXT.md (missing)"
+        [ -n "$context_modified" ] && echo "  ✅ CONTEXT.md (included)"
+        [ -z "$audit_modified" ] && echo "  ❌ AUDIT.md (missing)"
+        [ -n "$audit_modified" ] && echo "  ✅ AUDIT.md (included)"
         echo ""
         echo "Files being committed:"
         echo "$staged_files" | sed 's/^/  - /'
         echo ""
         echo "Required actions:"
-        echo "  1. Update CONTEXT.md with your changes"
-        echo "  2. Add relevant information:"
+        echo "  1. Spawn audit agent to review changes against PRD"
+        echo "     See: .claude/skills/audit-agent/SKILL.md"
+        echo "  2. Update AUDIT.md based on audit findings"
+        echo "     - Update compliance scores"
+        echo "     - Document any drift detected"
+        echo "     - Add feature-specific audit section"
+        echo "  3. Update CONTEXT.md with technical details"
         echo "     - Update 'Recent Changes' section"
         echo "     - Add ADR if architecture changed"
-        echo "     - Update 'Implemented Features' or 'In Progress'"
-        echo "     - Note any technical debt"
-        echo "  3. Stage CONTEXT.md: git add CONTEXT.md"
-        echo "  4. Commit again"
+        echo "     - Update 'Implemented Features'"
+        echo "  4. Stage both files: git add CONTEXT.md AUDIT.md"
+        echo "  5. Commit again"
         echo ""
-        echo "See CONTEXT.md for what to update."
+        echo "See AUDIT.md and CONTEXT.md for what to update."
         echo ""
         echo -e "${YELLOW}To bypass this check (NOT recommended):${NC}"
         echo "  git commit --no-verify"
@@ -75,10 +86,146 @@ if [ -n "$staged_files" ]; then
         fi
     fi
 
+    # Check if AUDIT.md actually has meaningful changes (not just date)
+    audit_diff=$(git diff --cached AUDIT.md | grep '^+' | grep -v '^+++' | grep -v '^+\*\*Last Updated\*\*' | grep -v '^+\*\*Last.*Audit\*\*' | wc -l)
+
+    if [ "$audit_diff" -lt 3 ]; then
+        echo -e "${YELLOW}⚠️  WARNING: AUDIT.md has minimal changes${NC}"
+        echo ""
+        echo "AUDIT.md was modified but changes seem minimal."
+        echo "Did you:"
+        echo "  - Run audit agent to review changes?"
+        echo "  - Update compliance scores?"
+        echo "  - Update feature-specific audit section?"
+        echo "  - Document any drift detected?"
+        echo ""
+        read -p "Continue anyway? (y/N) " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Commit aborted. Please update AUDIT.md with meaningful audit findings."
+            exit 1
+        fi
+    fi
+
     echo -e "${GREEN}✅ CONTEXT.md is being updated${NC}"
+    echo -e "${GREEN}✅ AUDIT.md is being updated${NC}"
 else
-    # Only documentation changes, CONTEXT.md update not required
-    echo -e "${GREEN}✅ Documentation-only changes, CONTEXT.md update not required${NC}"
+    # Only documentation changes, dual-file update not required
+    echo -e "${GREEN}✅ Documentation-only changes, CONTEXT.md and AUDIT.md update not required${NC}"
+fi
+
+# Check AUDIT.md status for blocking issues
+echo -e "${YELLOW}🔍 Checking AUDIT.md status...${NC}"
+
+# Extract the commit status line from AUDIT.md
+if [ -f "AUDIT.md" ]; then
+    commit_status=$(grep -E '^### Commit Status:' AUDIT.md || echo "")
+
+    if [ -n "$commit_status" ]; then
+        # Check if status contains BLOCKING
+        if echo "$commit_status" | grep -q "BLOCKING"; then
+            # Extract blocking count
+            blocking_count=$(echo "$commit_status" | grep -oE '[0-9]+' | head -1)
+
+            echo ""
+            echo -e "${RED}🚫 COMMIT BLOCKED: AUDIT.md shows ${blocking_count} blocking issues${NC}"
+            echo ""
+            echo -e "${YELLOW}Status from AUDIT.md:${NC}"
+            echo "  $commit_status"
+            echo ""
+
+            # Show the breaking changes section
+            echo -e "${YELLOW}Breaking Changes:${NC}"
+            sed -n '/^\*\*Breaking Changes\*\*:/,/^\*\*Action Required\*\*/p' AUDIT.md | grep -E '^[0-9]+\.' | sed 's/^/  /'
+            echo ""
+
+            echo -e "${RED}⚠️  BLOCKING ISSUES DETECTED${NC}"
+            echo ""
+
+            # Check if autonomous mode is enabled
+            AUTONOMOUS_CONFIG=".claude/autonomous-config.yaml"
+            AUTO_FIX_ENABLED=false
+
+            if [ -f "$AUTONOMOUS_CONFIG" ]; then
+                AUTO_FIX_ENABLED=$(grep "^  enabled:" "$AUTONOMOUS_CONFIG" -A 10 | grep "fix_auditor_issues:" | awk '{print $2}')
+            fi
+
+            if [ "$AUTO_FIX_ENABLED" = "true" ]; then
+                echo -e "${BLUE}🤖 Autonomous mode enabled - Triggering development agent to auto-fix...${NC}"
+                echo ""
+
+                # Trigger development agent
+                if [ -f ".git-hooks/development-agent.sh" ]; then
+                    bash .git-hooks/development-agent.sh
+                    DEV_AGENT_EXIT=$?
+
+                    if [ $DEV_AGENT_EXIT -eq 0 ]; then
+                        echo ""
+                        echo -e "${GREEN}✅ Development agent fixed issues${NC}"
+                        echo -e "${GREEN}   Re-running auditor to verify...${NC}"
+                        echo ""
+                        # Auditor will run post-commit
+                        # Allow this commit (fixes applied)
+                        exit 0
+                    else
+                        echo ""
+                        echo -e "${RED}❌ Development agent failed to fix issues${NC}"
+                        echo -e "${RED}   Manual intervention required${NC}"
+                        echo ""
+                        exit 1
+                    fi
+                else
+                    echo -e "${YELLOW}⚠️  Development agent script not found${NC}"
+                    echo -e "${YELLOW}   Expected: .git-hooks/development-agent.sh${NC}"
+                    echo ""
+                fi
+            fi
+
+            # Manual mode - require human to fix
+            echo "Steps to resolve (MANUAL MODE):"
+            echo "  1. Fix the breaking changes listed above"
+            echo "  2. Run auditor subagent to verify fixes"
+            echo "  3. Update AUDIT.md status to '✅ CLEAR'"
+            echo "  4. Retry commit"
+            echo ""
+            echo "Or enable autonomous mode:"
+            echo "  1. Edit .claude/autonomous-config.yaml"
+            echo "  2. Set: auto_fix.enabled: true"
+            echo "  3. Retry commit (development agent will auto-fix)"
+            echo ""
+            echo "This check CANNOT be bypassed (--no-verify will not work for audit status)."
+            echo ""
+            exit 1
+        fi
+
+        # Check if status is CLEAR
+        if echo "$commit_status" | grep -q "✅ CLEAR"; then
+            echo -e "${GREEN}✅ AUDIT.md status: CLEAR (no blocking issues)${NC}"
+        else
+            # Unknown status, warn but allow
+            echo -e "${YELLOW}⚠️  WARNING: Unknown AUDIT.md status${NC}"
+            echo "  $commit_status"
+            echo ""
+            read -p "Continue anyway? (y/N) " -n 1 -r
+            echo ""
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Commit aborted. Please check AUDIT.md status."
+                exit 1
+            fi
+        fi
+    else
+        echo -e "${YELLOW}⚠️  WARNING: No commit status found in AUDIT.md${NC}"
+        echo "Expected format: '### Commit Status: ✅ CLEAR' or '### Commit Status: 🚨 BLOCKING: X issues'"
+        echo ""
+        read -p "Continue anyway? (y/N) " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Commit aborted. Please update AUDIT.md with commit status."
+            exit 1
+        fi
+    fi
+else
+    echo -e "${YELLOW}⚠️  WARNING: AUDIT.md not found${NC}"
 fi
 
 # Additional checks
@@ -124,6 +271,49 @@ if git diff --cached | grep -E '^\+.*TODO' >/dev/null; then
         echo "Commit aborted. Please address TODOs properly."
         exit 1
     fi
+fi
+
+# PRD Compliance Check for API Changes (BLOCKING for AI agents)
+api_files_changed=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^backend/app/(api/v[0-9]+/endpoints|schemas)/.*\.py$' || true)
+
+if [ -n "$api_files_changed" ]; then
+    echo ""
+    echo -e "${RED}🚫 API FILES CHANGED - PRD VALIDATION REQUIRED${NC}"
+    echo ""
+    echo -e "${YELLOW}The following API files are being committed:${NC}"
+    for file in $api_files_changed; do
+        echo "  - $file"
+    done
+    echo ""
+    echo -e "${RED}⚠️  MANDATORY: PRD compliance validation required before commit${NC}"
+    echo ""
+    echo "AI Agent Workflow:"
+    echo "  1. Run: ./scripts/validate-code.sh --prd-check"
+    echo "  2. Copy the generated Task(...) prompt"
+    echo "  3. Paste into current AI session to spawn validation agent"
+    echo "  4. Wait for validation results"
+    echo "  5. Fix any breaking changes found"
+    echo "  6. Re-run validation to confirm fixes"
+    echo "  7. Answer 'y' below when validation passes"
+    echo ""
+    echo -e "${YELLOW}Has PRD validation PASSED with 0 breaking changes? (y/N) ${NC}"
+    read -p "" -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -e "${RED}❌ Commit BLOCKED: PRD validation failed or not run${NC}"
+        echo ""
+        echo "PRD validation is MANDATORY for API changes in AI agent workflow."
+        echo "This prevents API contract drift and breaking changes."
+        echo ""
+        echo "Run validation, fix issues, then retry commit."
+        echo ""
+        exit 1
+    fi
+
+    echo ""
+    echo -e "${GREEN}✅ PRD validation confirmed - proceeding with commit${NC}"
+    echo ""
 fi
 
 echo -e "${GREEN}✅ Pre-commit checks passed${NC}"

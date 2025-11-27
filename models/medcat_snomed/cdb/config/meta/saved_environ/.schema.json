@@ -1,0 +1,1 @@
+{"serialised-class": "medcat.utils.envsnapshot.Environment", "init-parts": ["dependencies", "transitive_deps", "os", "cpu_arcitecture", "python_version"]}

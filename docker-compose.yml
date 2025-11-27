@@ -1,0 +1,452 @@
+# Docker Compose Configuration for Clinical Care Tools Base Application
+# Version: 1.0.0
+# Architecture: 5 services (frontend, backend, postgres, redis, cogstack-modelserve)
+# Deployment Model: Single workstation with shared MedCAT models
+# Documentation: .specify/plans/clinical-care-tools-base-plan.md
+
+services:
+  # ===========================================================================
+  # PostgreSQL Database
+  # Purpose: Primary data store for users, projects, tasks, documents, audit logs
+  # Security: HIPAA/GDPR compliant with encrypted connections
+  # ===========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: clinical_care_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-clinicaltools}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env file}
+      POSTGRES_DB: ${POSTGRES_DB:-clinical_care_tools}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+      # Security: Use scram-sha-256 password encryption
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - clinical_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clinicaltools} -d ${POSTGRES_DB:-clinical_care_tools}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Security: Run as postgres user (non-root)
+    user: postgres
+    # Security: Read-only root filesystem (except data directory)
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+
+  # ===========================================================================
+  # Redis Cache & Session Store
+  # Purpose: Session management, caching layer, document deduplication, search result cache
+  # Persistence: RDB + AOF for durability
+  # Sprint 3: Used for search result caching, autocomplete caching, rate limiting
+  # ===========================================================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: clinical_care_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --save 60 1000
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required in .env file}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - clinical_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Elasticsearch (Full-Text Search Engine)
+  # Purpose: Full-text search, relevance ranking (BM25), faceted search, highlighting
+  # Index: documents (clinical documents with MedCAT concept annotations)
+  # Sprint 3: Core search infrastructure for clinical document search
+  # ===========================================================================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: clinical_care_elasticsearch
+    restart: unless-stopped
+    environment:
+      # Single-node cluster (no cluster formation)
+      - discovery.type=single-node
+      # Disable X-Pack Security (auth handled by backend)
+      - xpack.security.enabled=false
+      # Java heap size (1GB for development, scale up in production)
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      # Cluster settings
+      - cluster.name=clinical-care-cluster
+      - node.name=clinical-care-node-1
+      # Index settings
+      - action.auto_create_index=false
+      # Logging
+      - logger.level=INFO
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - clinical_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s  # ES takes ~45-60 seconds to start
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # ===========================================================================
+  # MedCAT Service (NLP Model Serving)
+  # Purpose: Production-ready NLP model serving for clinical document processing
+  # Models: SNOMED-CT (concept extraction via example model pack)
+  # Documentation: https://github.com/CogStack/MedCAT
+  # ===========================================================================
+  medcat-service:
+    image: cogstacksystems/medcat-service:latest
+    container_name: clinical_care_medcat
+    restart: unless-stopped
+    environment:
+      # Application Configuration
+      - APP_NAME=Clinical Care Tools MedCAT
+      - APP_LOG_LEVEL=INFO
+      - APP_MODEL_LANGUAGE=en
+      - APP_MODEL_NAME=Example SNOMED Model
+      # MedCAT Model Pack (overrides individual CDB/Vocab paths)
+      - APP_MEDCAT_MODEL_PACK=/cat/models/medcat_snomed.zip
+      # NLP Processing
+      - APP_BULK_NPROC=8
+      - APP_TRAINING_MODE=False
+      # Server Configuration
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=5000
+      - SERVER_WORKERS=1
+      - SERVER_WORKER_TIMEOUT=300
+      - SERVER_THREADS=1
+      - SERVER_GUNICORN_MAX_REQUESTS=1000
+      - SERVER_GUNICORN_MAX_REQUESTS_JITTER=50
+      # Torch Configuration (CPU)
+      - APP_TORCH_THREADS=8
+      - APP_CUDA_DEVICE_COUNT=-1
+      # MedCAT Configuration
+      - MEDCAT_LOG_LEVEL=40
+      - MEDCAT_SPACY_MODEL=
+      - MEDCAT_ANNOTATIONS_ENTITY_OUTPUT_MODE=dict
+      - MEDCAT_DEID_MODE=False
+      - MEDCAT_DEID_REDACT=False
+    ports:
+      - "${MEDCAT_PORT:-8001}:5000"
+    volumes:
+      # Read-write access to models directory (service needs to load models)
+      - medcat_models:/cat/models:rw
+    networks:
+      - clinical_network
+    shm_size: "1g"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/info').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s  # Model loading takes 60-90 seconds
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+
+  # ===========================================================================
+  # Backend API (FastAPI)
+  # Purpose: REST API, authentication, RBAC, audit logging, MedCAT integration
+  # Architecture: Async FastAPI with SQLAlchemy ORM
+  # ===========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
+    container_name: clinical_care_backend
+    restart: unless-stopped
+    environment:
+      # Application
+      - APP_NAME=Clinical Care Tools
+      - APP_VERSION=1.0.0
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${BACKEND_LOG_LEVEL:-INFO}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+
+      # Database (async PostgreSQL)
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-clinicaltools}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clinical_care_tools}
+      - DATABASE_POOL_SIZE=10
+      - DATABASE_MAX_OVERFLOW=20
+
+      # Redis (sessions & cache)
+      - REDIS_URL=redis://default:${REDIS_PASSWORD}@redis:6379/0
+      - SESSION_EXPIRE_SECONDS=28800  # 8 hours
+
+      # JWT Authentication
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required in .env file}
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRE_HOURS=8
+
+      # MedCAT Service
+      - MEDCAT_SERVICE_URL=http://medcat-service:5000
+      - MEDCAT_SERVICE_TIMEOUT=300
+
+      # CORS (allow frontend access)
+      # Note: Must be JSON array format for Pydantic Settings
+      - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost:8080","http://frontend:8080"]}
+
+      # Audit Logging
+      - AUDIT_LOG_RETENTION_DAYS=${AUDIT_LOG_RETENTION_DAYS:-2920}  # 8 years (NHS compliance)
+
+      # File Upload
+      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-10}
+      - ALLOWED_DOCUMENT_TYPES=.rtf,.txt,.docx,.pdf
+
+      # Encryption (for PHI at rest)
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ENCRYPTION_KEY is required in .env file}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      # Development: Mount source for hot reload (read-only for security)
+      - ./backend:/app:ro
+      # Persistent logs directory (writable)
+      - backend_logs:/var/log/clinical_tools
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      medcat-service:
+        condition: service_healthy
+    networks:
+      - clinical_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+    # Security: Run as non-root user
+    user: "${UID:-1000}:${GID:-1000}"
+    # Security: Limit capabilities
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+  # ===========================================================================
+  # Search Indexer (Background Job)
+  # Purpose: Continuously index documents from PostgreSQL to Elasticsearch
+  # Runs: Every 5 minutes (configurable via SEARCH_BATCH_INTERVAL_MINUTES)
+  # ===========================================================================
+  indexer:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
+    container_name: clinical_care_indexer
+    restart: unless-stopped
+    command: python -m app.jobs.search_indexer_job
+    environment:
+      # Application
+      - APP_NAME=Clinical Care Tools - Search Indexer
+      - APP_VERSION=1.0.0
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${BACKEND_LOG_LEVEL:-INFO}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+
+      # Database (async PostgreSQL)
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-clinicaltools}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clinical_care_tools}
+      - DATABASE_POOL_SIZE=5
+      - DATABASE_MAX_OVERFLOW=10
+
+      # Elasticsearch
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+
+      # Search Indexer Configuration
+      - SEARCH_BATCH_INTERVAL_MINUTES=${SEARCH_BATCH_INTERVAL_MINUTES:-5}
+      - SEARCH_BATCH_SIZE=${SEARCH_BATCH_SIZE:-1000}
+
+      # Encryption (for PHI at rest - needed to decrypt documents)
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ENCRYPTION_KEY is required in .env file}
+    volumes:
+      # Development: Mount source for hot reload (read-only for security)
+      - ./backend:/app:ro
+      # Persistent logs directory (writable)
+      - indexer_logs:/var/log/clinical_tools
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - clinical_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+    # Security: Run as non-root user
+    user: "${UID:-1000}:${GID:-1000}"
+    # Security: Limit capabilities
+    cap_drop:
+      - ALL
+
+  # ===========================================================================
+  # Frontend (Vue 3 + Vuetify)
+  # Purpose: User interface for clinicians and administrators
+  # Framework: Vue 3.5 + TypeScript + Vuetify 3.7
+  # ===========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION:-18}
+    container_name: clinical_care_frontend
+    restart: unless-stopped
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+      - VITE_APP_NAME=Clinical Care Tools
+      - VITE_APP_VERSION=1.0.0
+      - VITE_ENVIRONMENT=${ENVIRONMENT:-development}
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    volumes:
+      # Development: Mount source for hot reload (read-only)
+      - ./frontend:/app:ro
+      # Prevent overwriting node_modules (anonymous volume)
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - clinical_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Security: Run as non-root user
+    user: "${UID:-1000}:${GID:-1000}"
+
+# =============================================================================
+# Docker Networks
+# =============================================================================
+networks:
+  clinical_network:
+    driver: bridge
+    name: clinical_network
+
+# =============================================================================
+# Docker Volumes
+# Purpose: Persistent data storage across container restarts
+# Backup Strategy: See backend/scripts/backup-postgres.sh for automated backups
+# =============================================================================
+volumes:
+  # PostgreSQL data (users, projects, tasks, documents, audit logs)
+  # Retention: 8 years minimum (NHS Data Security and Protection Toolkit compliance)
+  # Backup: Daily automated backups with encryption (AES-256)
+  postgres_data:
+    driver: local
+    name: clinical_care_postgres_data
+
+  # Redis data (sessions, cache, document deduplication hashes)
+  # Persistence: RDB snapshots every 60 seconds (if 1000+ writes) + AOF
+  redis_data:
+    driver: local
+    name: clinical_care_redis_data
+
+  # MedCAT models (Example model packs from repository)
+  # Shared across all users for MedCAT service
+  # Source: Bind mount to ./models/ directory
+  medcat_models:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/models  # Bind mount to local models directory
+    name: clinical_care_medcat_models
+
+  # Backend application logs (application logs + audit logs)
+  # Retention: 8 years for audit compliance (NHS requirement)
+  # Log rotation: Handled by Docker logging driver (50MB max size, 10 files)
+  backend_logs:
+    driver: local
+    name: clinical_care_backend_logs
+
+  # Search Indexer logs (background document indexing job)
+  # Retention: 8 years for audit compliance
+  # Log rotation: Handled by Docker logging driver (50MB max size, 10 files)
+  indexer_logs:
+    driver: local
+    name: clinical_care_indexer_logs
+
+  # Elasticsearch data (full-text search index for clinical documents)
+  # Sprint 3: documents index with clinical_analyzer and BM25 relevance ranking
+  # Backup: Include in daily backup strategy (see backend/scripts/backup-elasticsearch.sh)
+  es_data:
+    driver: local
+    name: clinical_care_es_data

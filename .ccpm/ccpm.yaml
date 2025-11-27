@@ -1,0 +1,549 @@
+# CCPM Configuration for CogStack NLP Clinical Care Tools
+# Multi-Agent Parallel Development Workflow
+# Version: 1.0.0
+
+project:
+  name: cogstack-nlp-clinical-care-tools
+  description: Healthcare NLP platform with spec-driven multi-agent development
+  base_path: /var/lib/docker/codespacemount/workspace/cogstack-nlp
+
+  # Shared context files (all agents read/write these)
+  shared_context:
+    - CONTEXT.md      # Technical state, agent communication, ADRs
+    - AUDIT.md        # Compliance status, PRD drift, blocking issues
+    - TESTING.md      # Test results, coverage, failures, benchmarks
+    - .specify/tasks/ # Task status, dependencies, assignments
+
+# ===== AGENT DEFINITIONS =====
+agents:
+  # ===== PLANNING AGENTS =====
+
+  architecture-designer:
+    description: "Designs system architecture, creates technical plans from specifications"
+    model: sonnet
+    skills:
+      - spec-kit-enforcer
+      - modular-app-architect
+      - medcat-architecture
+    reads:
+      - .specify/constitution/
+      - .specify/specifications/
+      - CONTEXT.md
+      - backend/app/**/
+      - frontend/src/**/
+    writes:
+      - .specify/plans/
+      - CONTEXT.md  # ADRs only
+    max_concurrent: 2
+    timeout: 30min
+    priority: 5
+
+  task-definer:
+    description: "Breaks down technical plans into 1-2 hour implementable tasks"
+    model: sonnet
+    skills:
+      - prd-to-spec
+      - tech-plan-to-tasks
+    reads:
+      - .specify/plans/
+      - .specify/sprints/
+      - .specify/specifications/
+      - CONTEXT.md
+    writes:
+      - .specify/tasks/
+    depends_on:
+      - architecture-designer
+    max_concurrent: 2
+    timeout: 20min
+    priority: 4
+
+  # ===== IMPLEMENTATION AGENTS =====
+
+  developer:
+    description: "Primary code builder - implements tasks following TDD"
+    model: sonnet
+    skills:
+      - infrastructure-expert
+      - vue3-component-reuse
+      - document-management-patterns
+      - medcat-ui-patterns
+      - elasticsearch-query-expert
+      - query-parsing-patterns
+    reads:
+      - .specify/tasks/
+      - .specify/specifications/
+      - CONTEXT.md
+      - AUDIT.md  # Check for blockers
+      - TESTING.md  # Check test status
+      - backend/**
+      - frontend/**
+    writes:
+      - backend/**
+      - frontend/**
+      - CONTEXT.md  # Technical changes
+    depends_on:
+      - task-definer
+    instances: 3  # 3 developers work in parallel
+    work_assignment: task_based
+    conflict_resolution: file_locking
+    timeout: 2hours
+    priority: 3
+
+  test-generator:
+    description: "Generates comprehensive tests from PRD requirements (TDD)"
+    model: haiku  # Cost optimization
+    skills:
+      - prd-test-generator
+    reads:
+      - .specify/sprints/
+      - .specify/tasks/
+      - backend/**/*.py
+      - frontend/**/*.{vue,ts}
+      - TESTING.md
+    writes:
+      - backend/tests/**
+      - frontend/tests/**
+      - TESTING.md  # Test generation status
+    depends_on:
+      - task-definer  # Can start before developer finishes
+    trigger: code_committed
+    concurrent: true  # Runs alongside developers
+    timeout: 30min
+    priority: 4
+
+  # ===== VALIDATION AGENTS =====
+
+  auditor:
+    description: "HIPAA/GDPR compliance checker, PRD drift detector (BLOCKING)"
+    model: sonnet
+    skills:
+      - healthcare-compliance-checker
+      - prd-compliance-checker
+      - medcat-meta-annotations
+    reads:
+      - backend/**
+      - frontend/**
+      - .specify/sprints/
+      - .specify/specifications/
+      - CONTEXT.md
+      - AUDIT.md
+    writes:
+      - AUDIT.md  # Read-only for code (safety)
+    depends_on:
+      - developer
+    concurrent: true  # Reviews WIP code
+    trigger: code_committed
+    blocking: true  # Can block merges if critical issues found
+    timeout: 20min
+    priority: 1  # Highest priority
+
+  tester:
+    description: "Runs test suites, reports failures, tracks coverage"
+    model: haiku
+    reads:
+      - backend/tests/**
+      - frontend/tests/**
+      - TESTING.md
+      - backend/**/*.py
+      - frontend/**/*.{vue,ts}
+    writes:
+      - TESTING.md  # Test results, coverage
+    depends_on:
+      - test-generator
+    runs:
+      - command: "cd backend && pytest tests/ -v --cov=app --cov-report=json"
+        timeout: 10min
+      - command: "cd frontend && npm run test:unit -- --coverage --reporter=json"
+        timeout: 10min
+    instances: 2  # Backend and frontend in parallel
+    timeout: 15min
+    priority: 2
+
+  debugger:
+    description: "Fixes failing tests and bugs automatically"
+    model: sonnet
+    reads:
+      - TESTING.md  # Test failures
+      - backend/**
+      - frontend/**
+      - logs/**
+      - CONTEXT.md
+    writes:
+      - backend/**
+      - frontend/**
+      - CONTEXT.md  # Debug notes
+    depends_on:
+      - tester
+    trigger: test_failure
+    max_retries: 3
+    fallback: escalate_to_user
+    timeout: 30min
+    priority: 2
+
+  documentation:
+    description: "Auto-generates documentation from code and specs"
+    model: haiku
+    reads:
+      - backend/**
+      - frontend/**
+      - .specify/specifications/
+      - .specify/plans/
+      - CONTEXT.md
+    writes:
+      - docs/**
+      - README.md
+      - CHANGELOG.md
+    depends_on:
+      - developer
+    concurrent: true
+    timeout: 20min
+    priority: 5
+
+# ===== WORKFLOWS =====
+workflows:
+  # Feature Development Workflow (Single Feature)
+  feature-development:
+    description: "Complete feature development: plan → build → test → audit → docs"
+    stages:
+      - name: planning
+        description: "Architecture design and task breakdown"
+        parallel:
+          - architecture-designer
+          - task-definer
+        success_criteria:
+          plans_created: true
+          tasks_defined: true
+          tasks_estimated: true
+
+      - name: implementation
+        description: "Parallel development with concurrent validation"
+        parallel:
+          - developer:
+              instances: 3
+              task_distribution: round_robin
+          - test-generator:
+              concurrent: true
+          - auditor:
+              concurrent: true
+          - documentation:
+              concurrent: true
+        success_criteria:
+          all_tasks_complete: true
+          audit_blocking_issues: 0
+          context_updated: true
+
+      - name: validation
+        description: "Run all tests and verify coverage"
+        parallel:
+          - tester:
+              instances: 2
+        success_criteria:
+          tests_passing: 100%
+          coverage_backend: ">= 85%"
+          coverage_frontend: ">= 80%"
+
+      - name: debug
+        description: "Fix failing tests (if any)"
+        conditional: test_failure
+        agent: debugger
+        max_iterations: 3
+        fallback: escalate_to_user
+
+      - name: finalize
+        description: "Final compliance check and documentation"
+        sequential:
+          - auditor:
+              mode: comprehensive
+          - documentation:
+              mode: finalize
+        success_criteria:
+          audit_status: "PASS"
+          hipaa_compliant: true
+          prd_drift: 0
+          docs_complete: true
+
+  # Sprint Workflow (Multiple Features in Parallel)
+  sprint-execution:
+    description: "Execute entire sprint with multiple features in parallel"
+    parallel_features: 3  # Work on 3 features simultaneously
+    feature_workflow: feature-development
+
+    coordination:
+      shared_context:
+        - CONTEXT.md
+        - AUDIT.md
+        - TESTING.md
+      daily_sync: true
+      conflict_resolution: priority_order
+
+    success_criteria:
+      all_features_complete: true
+      all_tests_passing: true
+      audit_status: "PASS"
+      prd_compliance: 100%
+
+  # Pilot Workflow (Limited agents for testing)
+  pilot:
+    description: "Pilot run with 3 agents: Developer, Auditor, Tester"
+    stages:
+      - name: task_assignment
+        agent: task-definer
+        reads:
+          - .specify/tasks/sprint-3-full-text-search-tasks.md
+        output: task_list
+
+      - name: parallel_development
+        parallel:
+          - developer:
+              instances: 1  # Start with 1 developer
+              tasks: [2.4]  # Task 2.4: Boolean Query Parsing
+          - auditor:
+              concurrent: true
+              mode: quick  # Quick audit for pilot
+
+      - name: validation
+        sequential:
+          - tester
+          - debugger:
+              conditional: test_failure
+
+    success_criteria:
+      task_complete: true
+      tests_passing: true
+      audit_warnings: "<= 2"
+
+# ===== COORDINATION =====
+coordination:
+  # Agent Communication Protocol
+  communication:
+    method: shared_documents
+    update_frequency: per_commit
+    format: |
+      ## Agent Communication
+
+      ### [Agent Name] [ISO8601 Timestamp]
+      **Status**: [Working on X / Blocked / Complete]
+      **Progress**: [0-100%]
+      **Findings**: [Issues/Warnings/Notes]
+      **Blocked By**: [Agent Name or "None"]
+      **Blocks**: [Agent Names or "None"]
+      **Requests**: [Actions needed from other agents]
+      **ETA**: [Estimated completion time]
+
+  # Dependency Management
+  dependencies:
+    detection: automatic
+    deadlock_prevention: true
+    max_wait_time: 30min
+    escalation: notify_user
+
+  # Conflict Resolution
+  conflicts:
+    file_locking: true
+    merge_strategy: agent_priority
+    lock_timeout: 5min
+    escalation: user_review
+
+  # Priority Order (for conflict resolution)
+  agent_priority:
+    1: auditor       # Compliance non-negotiable
+    2: tester        # Quality gates must pass
+    3: debugger      # Fixes take precedence
+    4: developer     # Implementation decisions
+    5: task-definer  # Planning decisions
+    6: documentation # Docs updated last
+
+# ===== GIT INTEGRATION =====
+git:
+  hooks:
+    pre-commit:
+      enabled: true
+      agents:
+        - auditor:
+            mode: quick  # Quick HIPAA check
+        - tester:
+            mode: modified_tests  # Only run modified tests
+      blocking: true
+      timeout: 5min
+
+    post-commit:
+      enabled: true
+      agents:
+        - auditor:
+            mode: full  # Full compliance audit
+        - documentation:
+            mode: update  # Update docs
+      blocking: false
+
+    pre-push:
+      enabled: true
+      agents:
+        - auditor:
+            mode: comprehensive  # Full validation
+        - tester:
+            mode: full  # Run all tests
+      blocking: true
+      timeout: 15min
+      success_criteria:
+        audit_blocking_issues: 0
+        tests_passing: 100%
+        coverage: ">= 85%"
+
+  branches:
+    main:
+      protection:
+        require_audit_pass: true
+        require_all_tests_pass: true
+        require_prd_compliance: true
+        min_coverage: 85
+
+    autonomous/*:
+      protection:
+        require_audit_pass: true
+        require_tests_pass: true
+        min_coverage: 80
+
+# ===== MONITORING =====
+monitoring:
+  dashboard:
+    enabled: true
+    port: 8080
+    url: http://localhost:8080/ccpm-dashboard
+
+  metrics:
+    - agent_status
+    - tasks_complete
+    - tasks_in_progress
+    - tasks_blocked
+    - test_coverage
+    - audit_issues
+    - build_status
+    - commit_frequency
+    - time_per_task
+    - parallel_efficiency
+
+  alerts:
+    - trigger: audit_blocking_issue
+      severity: critical
+      action:
+        - notify_user
+        - block_merge
+        - log_to_audit
+
+    - trigger: test_failure_3x
+      severity: high
+      action:
+        - escalate_to_user
+        - assign_debugger
+
+    - trigger: agent_blocked_30min
+      severity: medium
+      action:
+        - notify_user
+        - log_deadlock
+
+    - trigger: coverage_below_threshold
+      severity: medium
+      action:
+        - block_merge
+        - notify_developer
+
+    - trigger: prd_drift_detected
+      severity: high
+      action:
+        - block_merge
+        - notify_auditor
+        - notify_user
+
+# ===== RESOURCE MANAGEMENT =====
+resources:
+  # API Rate Limits
+  api_limits:
+    max_concurrent_agents: 8
+    rate_limit: 50  # requests per minute
+    burst_limit: 100
+    retry_strategy: exponential_backoff
+
+  # Cost Optimization
+  cost_optimization:
+    use_haiku_for:
+      - test-generator
+      - tester
+      - documentation
+    use_sonnet_for:
+      - architecture-designer
+      - task-definer
+      - developer
+      - auditor
+      - debugger
+    cache_context: true
+    cache_ttl: 1hour
+    batch_requests: true
+
+  # Compute Resources
+  compute:
+    max_memory_per_agent: 2GB
+    max_cpu_per_agent: 2
+    timeout_per_agent: 30min
+    cleanup_on_timeout: true
+
+# ===== REPORTING =====
+reporting:
+  # Daily Report
+  daily:
+    enabled: true
+    time: "17:00"
+    recipients: [user]
+    format: markdown
+    include:
+      - tasks_completed
+      - tasks_in_progress
+      - test_coverage
+      - audit_status
+      - blockers
+
+  # Sprint Report
+  sprint:
+    enabled: true
+    trigger: sprint_complete
+    format: markdown
+    include:
+      - velocity
+      - quality_metrics
+      - compliance_status
+      - technical_debt
+      - lessons_learned
+
+  # Real-time Updates
+  realtime:
+    enabled: true
+    websocket_port: 8081
+    events:
+      - agent_started
+      - agent_completed
+      - test_passed
+      - test_failed
+      - audit_issue
+      - task_complete
+
+# ===== PILOT CONFIGURATION =====
+pilot:
+  enabled: true
+  mode: limited
+  agents:
+    - developer
+    - auditor
+    - tester
+  features:
+    - "Task 2.4: Boolean Query Parsing"
+  duration: 1week
+  success_criteria:
+    tasks_complete: 1
+    tests_passing: 100%
+    audit_pass: true
+    no_merge_conflicts: true
+  metrics_tracked:
+    - time_saved
+    - quality_improvement
+    - compliance_score
+    - user_satisfaction

@@ -1,0 +1,194 @@
+# Agent Coordination Configuration
+# Defines how agents spawn each other in continuous autonomous loops
+
+version: "1.0.0"
+max_parallel_agents: 6
+loop_timeout_hours: 24
+
+# Agent types and their capabilities
+agent_types:
+  developer:
+    description: "Implements features, writes code"
+    tools: [Read, Write, Edit, Bash, Grep, Glob]
+    can_spawn: [tester, documentation, debugger]
+    blocking: false
+
+  tester:
+    description: "Runs tests, validates quality"
+    tools: [Read, Bash, Grep, Glob, Write]
+    can_spawn: [debugger, documentation]
+    blocking: true  # Blocks deployment if tests fail
+
+  auditor:
+    description: "HIPAA/GDPR compliance checker"
+    tools: [Read, Grep, Glob]
+    can_spawn: [developer, debugger]
+    blocking: true  # Can block commits if critical issues
+
+  debugger:
+    description: "Fixes bugs and errors"
+    tools: [Read, Write, Edit, Bash, Grep, Glob]
+    can_spawn: [tester]
+    blocking: false
+    max_retries: 3
+
+  documentation:
+    description: "Creates/updates documentation"
+    tools: [Read, Write, Grep, Glob]
+    can_spawn: []
+    blocking: false
+
+  architecture-designer:
+    description: "Designs technical architecture"
+    tools: [Read, Grep, Glob, Write]
+    can_spawn: [developer, task-definer]
+    blocking: false
+
+  task-definer:
+    description: "Breaks down epics into tasks"
+    tools: [Read, Grep, Glob, Write]
+    can_spawn: [developer]
+    blocking: false
+
+  orchestrator:
+    description: "Meta-agent that coordinates all other agents"
+    tools: [Read, Grep, Glob, Task]
+    can_spawn: [developer, tester, auditor, debugger, documentation]
+    blocking: false
+    parallel_spawn: true  # Can spawn multiple agents at once
+
+# Pre-commit hook configuration
+pre_commit:
+  description: "Agents that MUST complete before commit is allowed"
+  timeout_minutes: 10
+  required_agents:
+    - type: developer
+      count: 2  # Spawn 2 developer agents in parallel
+      tasks:
+        - "Validate syntax and imports"
+        - "Verify tests exist for changed code"
+    - type: documentation
+      count: 1
+      tasks:
+        - "Verify CONTEXT.md and AUDIT.md updated"
+    - type: orchestrator
+      count: 1
+      tasks:
+        - "Coordinate all agents and spawn any additional needed"
+
+  blocking_conditions:
+    - "ANY agent reports blocking issues"
+    - "Syntax errors detected"
+    - "Tests not created for new code"
+    - "CONTEXT.md or AUDIT.md not updated"
+
+# Post-commit hook configuration
+post_commit:
+  description: "Agents spawned after successful commit for validation and continuation"
+  required_agents:
+    - type: auditor
+      count: 1
+      tasks:
+        - "HIPAA/GDPR compliance check"
+        - "PRD drift detection"
+    - type: tester
+      count: 1
+      tasks:
+        - "Run full test suite"
+        - "Check coverage thresholds"
+    - type: orchestrator
+      count: 1
+      tasks:
+        - "Read all task queues"
+        - "Spawn agents for next ready tasks"
+        - "Continue development loop"
+
+  spawn_next_wave:
+    condition: "All validation agents pass"
+    strategy: "parallel"  # Spawn all ready tasks in parallel
+    max_agents_per_wave: 6
+
+# Continuous loop configuration
+continuous_loop:
+  enabled: true
+  termination_conditions:
+    - "All tasks in all modules complete"
+    - "No pending tasks in any queue"
+    - "Loop timeout exceeded (24 hours)"
+    - "User manually stops loop"
+
+  wave_strategy:
+    # Phase 1: Spawn parallel tasks
+    - phase: "parallel_tasks"
+      description: "Spawn all tasks that can run in parallel"
+      agents: ["developer", "developer", "developer"]
+      wait_for_completion: true
+
+    # Phase 2: Validation
+    - phase: "validation"
+      description: "Validate completed work"
+      agents: ["auditor", "tester"]
+      wait_for_completion: true
+
+    # Phase 3: Fix issues
+    - phase: "fix_issues"
+      description: "Fix any issues found by validation"
+      condition: "Issues detected by auditor or tester"
+      agents: ["debugger"]
+      wait_for_completion: true
+
+    # Phase 4: Next wave
+    - phase: "next_wave"
+      description: "Spawn next wave of agents"
+      agents: ["orchestrator"]
+      wait_for_completion: false  # Non-blocking, continues loop
+
+# Agent chaining rules
+chaining_rules:
+  developer_completes:
+    spawn: [tester, documentation]
+    reason: "New code needs tests and documentation"
+
+  tester_finds_failures:
+    spawn: [debugger]
+    reason: "Tests failed, need debugging"
+
+  debugger_fixes_code:
+    spawn: [tester]
+    reason: "Re-run tests after fixes"
+
+  auditor_finds_issues:
+    spawn: [developer, debugger]
+    reason: "Compliance issues need fixing"
+    blocking: true
+
+  all_tests_pass:
+    spawn: [orchestrator]
+    reason: "Ready for next task wave"
+
+# Module-specific configuration
+modules:
+  de-identification-module:
+    priority: P0
+    task_count: 8
+    completed: 6
+    worktree: "../epic-deidentification-module"
+
+  search-module:
+    priority: P0
+    task_count: 5
+    completed: 4
+    worktree: "../epic-search-module"
+
+  timeline-module:
+    priority: P1
+    task_count: 8
+    completed: 2
+    worktree: "../epic-timeline-module"
+
+# Safety limits
+safety:
+  max_consecutive_failures: 5  # Stop if 5 agents fail in a row
+  max_loop_iterations: 100  # Safety limit for infinite loop
+  agent_timeout_minutes: 30  # Kill agent if it runs longer than this
+  commit_rate_limit: 50  # Max commits per hour (prevent runaway loop)

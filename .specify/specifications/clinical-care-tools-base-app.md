@@ -1,8 +1,22 @@
 # Specification: Clinical Care Tools Base Application
 
+> ⚠️ **IMPORTANT: This document describes a future/planned architecture that is NOT YET IMPLEMENTED in this repository.**
+>
+> **Current State**: Design specification only. No FastAPI backend or Vue 3 frontend code exists for this application yet.
+>
+> **Existing Systems in This Repo**:
+> - ✅ MedCAT v2 (NLP library) - IMPLEMENTED
+> - ✅ MedCAT Trainer (Django web app for annotation) - IMPLEMENTED
+> - ✅ MedCAT Service (FastAPI model serving) - IMPLEMENTED
+> - ❌ Clinical Care Tools Base App - **NOT IMPLEMENTED** (this spec)
+>
+> **Implementation Status**: See [CONTEXT.md](../../CONTEXT.md) for current development phase. As of 2025-11-18, Phase 3 (Document Management) backend is partially implemented but not the full application described here.
+
+---
+
 **Version**: 1.1.0
 **Date**: 2025-11-08
-**Status**: Draft
+**Status**: Draft (FUTURE ARCHITECTURE)
 **Author**: AI Assistant (Claude Code)
 **Reviewers**: [To be assigned]
 

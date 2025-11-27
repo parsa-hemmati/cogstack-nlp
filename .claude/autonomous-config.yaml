@@ -1,0 +1,296 @@
+# Autonomous Development Loop Configuration
+# Controls fully autonomous build → audit → test → debug → commit cycle
+
+version: 1.0.0
+enabled: true
+
+# =============================================================================
+# LOOP BEHAVIOR
+# =============================================================================
+loop:
+  # Maximum iterations before forcing exit (safety limit)
+  max_iterations: 100
+
+  # Continue to next task after success, or stop and report?
+  stop_on_success: false  # false = continue to next task automatically
+
+  # Stop on blocking issues that can't be auto-fixed?
+  stop_on_blocking: true
+
+  # Stop when all tasks in current phase complete?
+  stop_on_phase_complete: false  # false = continue to next phase
+
+  # Stop when breaking changes detected?
+  stop_on_breaking_changes: true  # true = require user decision
+
+  # Log file for loop execution trace
+  log_file: ".claude/autonomous-loop.log"
+
+# =============================================================================
+# AUTO-FIX BEHAVIOR
+# =============================================================================
+auto_fix:
+  # Enable automatic fixing of issues without user intervention?
+  enabled: true
+
+  # Maximum retry attempts per unique issue (prevent infinite loops)
+  max_retries_per_issue: 3
+
+  # Delay between retries (0 = immediate)
+  retry_delay_seconds: 0
+
+  # What types of issues to auto-fix?
+  fix_auditor_issues: true          # Fix PRD compliance drift
+  fix_test_failures: true            # Fix failing tests
+  fix_breaking_changes: false        # Require user decision (architectural)
+  fix_syntax_errors: true            # Fix Python/TypeScript syntax errors
+  fix_import_errors: true            # Fix missing/incorrect imports
+  fix_type_errors: true              # Fix type annotation issues
+
+  # Auto-fix strategies
+  strategies:
+    # Try multiple fix approaches before giving up?
+    try_alternative_fixes: true
+
+    # Use git stash to save state before risky fixes?
+    stash_before_risky_fix: true
+
+    # Rollback if fix makes things worse?
+    rollback_on_regression: true
+
+# =============================================================================
+# AUDIT BEHAVIOR
+# =============================================================================
+audit:
+  # Run auditor on every code change?
+  run_on_every_change: true
+
+  # Run auditor in parallel while building next feature?
+  spawn_parallel: true
+
+  # Minimum compliance score to continue (0-100)
+  # If score < threshold, trigger auto-fix or stop
+  blocking_threshold: 95
+
+  # Auditor scope
+  scope: "comprehensive"  # "quick" | "full" | "comprehensive"
+
+  # Model for auditor (balance speed vs thoroughness)
+  model: "sonnet"  # "haiku" for speed, "sonnet" for accuracy
+
+  # Auto-commit after auditor passes?
+  auto_commit_on_pass: false  # Wait for tests too
+
+# =============================================================================
+# TESTING BEHAVIOR
+# =============================================================================
+testing:
+  # Run tests on every code change?
+  run_on_every_change: true
+
+  # Auto-generate missing tests for new code?
+  auto_generate_missing: true
+
+  # Required code coverage percentage (0-100)
+  required_line_coverage: 80
+  required_branch_coverage: 70
+
+  # How many test failures are acceptable? (0 = must pass all)
+  allow_failures: 0
+
+  # Test execution timeout (seconds)
+  timeout_seconds: 300
+
+  # Test types to run
+  run_unit_tests: true
+  run_integration_tests: true
+  run_security_tests: true
+  run_frontend_tests: true
+
+  # Auto-fix test failures?
+  auto_fix_failures: true
+
+  # Re-run tests after auto-fix?
+  rerun_after_fix: true
+
+# =============================================================================
+# COMMIT BEHAVIOR
+# =============================================================================
+commits:
+  # Auto-commit without user approval?
+  auto_commit: true
+
+  # When to commit?
+  # Options: "per_task" | "per_fix" | "per_phase" | "on_all_pass"
+  commit_frequency: "per_task"
+
+  # Require both CONTEXT.md and AUDIT.md updated? (dual-file requirement)
+  require_dual_file_update: true
+
+  # Run git hooks on auto-commits? (pre-commit validation)
+  run_hooks: true
+
+  # Allow --no-verify for auditor-validated commits?
+  allow_no_verify_if_auditor_passed: true
+
+  # Auto-push to remote after commit?
+  auto_push: false  # false = local commits only (safer)
+
+  # Commit message format
+  message_format: "detailed"  # "detailed" | "concise"
+
+# =============================================================================
+# TASK MANAGEMENT
+# =============================================================================
+tasks:
+  # Auto-load next task from .specify/tasks/ after current completes?
+  auto_load_next: true
+
+  # Task source priority (which task list to use)
+  # Options: "specification" | "test_report" | "technical_debt"
+  source_priority:
+    - "specification"     # Tasks from .specify/tasks/*.md
+    - "test_report"       # Missing tests from TEST_REPORT.md
+    - "technical_debt"    # Items from CONTEXT.md technical debt
+
+  # Skip tasks that are marked as "optional"?
+  skip_optional: false
+
+# =============================================================================
+# REPORTING BEHAVIOR
+# =============================================================================
+reporting:
+  # Report progress every N iterations?
+  report_every_n_iterations: 5
+
+  # What to include in periodic reports?
+  include_in_progress_report:
+    - current_task
+    - auditor_score
+    - test_results
+    - retry_count
+    - issues_fixed
+
+  # Report comprehensive summary on loop exit?
+  report_on_exit: true
+
+  # Include in exit report?
+  include_in_exit_report:
+    - total_iterations
+    - tasks_completed
+    - tests_created
+    - tests_passed
+    - auditor_scores
+    - commits_made
+    - issues_encountered
+    - fixes_applied
+    - time_elapsed
+
+# =============================================================================
+# EXIT CONDITIONS
+# =============================================================================
+exit_conditions:
+  # Exit loop when any of these conditions are met:
+
+  # All tasks in specification complete?
+  all_tasks_complete: true
+
+  # All tests passing + 100% PRD compliant?
+  success_criteria_met: true
+
+  # Max retries exceeded for any issue?
+  max_retries_exceeded: true
+
+  # Breaking changes detected?
+  breaking_changes_detected: true
+
+  # External dependency missing (can't auto-fix)?
+  external_dependency_missing: true
+
+  # Max iterations reached?
+  max_iterations_reached: true
+
+  # User manually interrupts (Ctrl+C)?
+  manual_interrupt: true
+
+# =============================================================================
+# SAFETY LIMITS
+# =============================================================================
+safety:
+  # Maximum files to modify per iteration (prevent runaway changes)
+  max_files_per_iteration: 10
+
+  # Maximum lines of code to write per iteration
+  max_lines_per_iteration: 2000
+
+  # Require user confirmation for large changes?
+  confirm_if_files_exceed: 20
+  confirm_if_lines_exceed: 5000
+
+  # Create git tags at milestones?
+  tag_on_phase_complete: true
+  tag_format: "autonomous-phase-{phase}-{timestamp}"
+
+  # Backup before risky operations?
+  backup_before_major_refactor: true
+
+# =============================================================================
+# PARALLEL EXECUTION
+# =============================================================================
+parallel:
+  # Run multiple agents in parallel?
+  enabled: true
+
+  # Max concurrent subagents
+  max_concurrent_agents: 3
+
+  # Which agents can run in parallel?
+  parallel_agents:
+    - auditor
+    - test_generator
+    - documentation_updater
+
+# =============================================================================
+# LEARNING & OPTIMIZATION
+# =============================================================================
+learning:
+  # Track successful fixes for future reference?
+  track_successful_fixes: true
+
+  # Save fix patterns to .claude/fix-patterns.yaml?
+  save_fix_patterns: true
+
+  # Use past fixes to improve auto-fix success rate?
+  use_fix_history: true
+
+  # Track time spent per task type?
+  track_time_metrics: true
+
+# =============================================================================
+# NOTIFICATIONS (Future: Slack/Email integration)
+# =============================================================================
+notifications:
+  enabled: false
+
+  # Notify on these events:
+  notify_on_success: false
+  notify_on_blocking: true
+  notify_on_phase_complete: true
+
+  # Notification channels (future)
+  channels:
+    slack_webhook: ""
+    email: ""
+
+# =============================================================================
+# DEBUG MODE
+# =============================================================================
+debug:
+  # Enable verbose logging?
+  verbose: false
+
+  # Save intermediate states?
+  save_intermediate_states: true
+
+  # Dry-run mode (simulate without making changes)?
+  dry_run: false

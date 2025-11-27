@@ -1,8 +1,10 @@
 # AI Assistant Guide for CogStack NLP
 
-**Version**: 1.4.0
-**Last Updated**: 2025-11-08
+**Version**: 1.7.0
+**Last Updated**: 2025-11-19
 **Purpose**: Guide AI assistants (Claude Code, GitHub Copilot, etc.) on project conventions and best practices
+
+**🆕 v1.7.0 Changes**: Multi-agent parallel workflow with 3 specialized agents (Developer, Auditor, Test) working simultaneously via shared documents (CONTEXT.md, AUDIT.md, TESTING.md). See "Multi-Agent Parallel Workflow" section below.
 
 ---
 
@@ -31,9 +33,372 @@
 
 **Why this matters**: Prevents context loss between sessions, ensures you have complete picture before coding.
 
-**Update requirement**: CONTEXT.md MUST be updated with EVERY commit (no exceptions).
+**Update requirement**: THREE shared documents MUST be updated with EVERY code commit (no exceptions):
+- **CONTEXT.md** = Technical memory (what changed, why, how) + Agent Communication
+- **AUDIT.md** = Compliance audit (PRD alignment, drift detection) + Auditor Findings
+- **TESTING.md** = Test results (coverage, failures, benchmarks) + Test Agent Findings
+
+**Why this matters**: These 3 documents enable parallel agent communication and continuous validation.
 
 **Read it now**: [CONTEXT.md](CONTEXT.md) (15-20 minutes)
+
+---
+
+## 🤖 Autonomous Mode Guidelines
+
+**⚠️ CRITICAL**: When in autonomous mode, NO status reporting between tasks
+
+### Rules for Autonomous Development
+
+**DO**:
+- ✅ Complete task → Commit → Load next task → Start immediately
+- ✅ Let git commits be the status updates (user can see via `git log`)
+- ✅ Only stop for blocking issues (missing spec, user decision needed, max retries)
+- ✅ Chain tasks continuously without interruption
+
+**DON'T**:
+- ❌ Send status messages after commits ("Task X complete!")
+- ❌ Wait for user acknowledgment between tasks
+- ❌ Announce what you're about to do next
+- ❌ Treat commits as "checkpoints" requiring user approval
+
+**Example of WRONG behavior**:
+```
+[Completes Task 4.6]
+[Commits code]
+"Task 4.6 Complete! ✅ What was implemented: ..." ← DON'T DO THIS
+[Waits for user]
+```
+
+**Example of CORRECT behavior**:
+```
+[Completes Task 4.6]
+[Commits code]
+[Reads Task 4.7 specification]
+[Starts implementing Task 4.7]
+← No status messages, continuous flow
+```
+
+**When to stop in autonomous mode**:
+1. **Missing specification**: No spec/plan/tasks file exists for next work
+2. **User decision needed**: Multiple valid approaches, architectural choice required
+3. **Blocking error**: Can't auto-fix after max retries (3 attempts)
+4. **Breaking changes**: Require user approval before proceeding
+5. **Context at 80%+**: Must create session summary
+
+**Autonomous mode is about continuous delivery, not continuous status updates.**
+
+---
+
+## 🔀 Multi-Agent Parallel Workflow
+
+**⚠️ NEW PARADIGM**: As of v1.7.0, this project uses **parallel multi-agent collaboration** for continuous development, testing, and auditing.
+
+### Overview
+
+Instead of a single sequential agent, **3 specialized agents work in parallel**, communicating through shared documents:
+
+1. **Developer Agent** (you, primary builder)
+2. **Auditor Agent** (compliance & PRD checker)
+3. **Test Agent** (quality assurance)
+
+**Key Principle**: Agents work **simultaneously** and **communicate via shared documents** (CONTEXT.md, AUDIT.md, TESTING.md).
+
+### Agent Roles & Responsibilities
+
+#### 1. Developer Agent (Primary - Your Role)
+
+**What you do**:
+- Implement features according to specs/plans/tasks
+- Write production code (backend + frontend)
+- Update CONTEXT.md with technical changes
+- Respond to findings from Auditor and Test agents
+
+**Skills you use**:
+- spec-kit-enforcer, infrastructure-expert, vue3-component-reuse, modular-app-architect
+
+**Tools you have**:
+- Full access: Read, Write, Edit, Bash, Grep, Glob, Task
+
+**Communication protocol**:
+```markdown
+## Agent Communication
+
+### Developer Agent [2025-11-19T14:30:00Z]
+**Status**: Working on Task 5.4.1 - Filter UI component
+**Progress**: 60% complete
+**Findings**: None
+**Blockers**: None
+**Requests**: Auditor review of new API endpoint
+```
+
+**Where you write**: CONTEXT.md (Recent Changes, Agent Communication)
+**Where you read**: AUDIT.md (compliance feedback), TESTING.md (test results)
+
+#### 2. Auditor Agent (Compliance Checker)
+
+**What it does**:
+- Reviews all code changes for HIPAA/GDPR compliance
+- Checks API endpoints against PRD specifications (drift detection)
+- Validates meta-annotation usage (NLP accuracy)
+- Documents findings in AUDIT.md
+
+**Skills it uses**:
+- healthcare-compliance-checker, prd-compliance-checker, medcat-meta-annotations, fhir-r4-mapper
+
+**Tools it has**:
+- Read-only: Read, Grep, Glob (NO Write, Edit, Bash for safety)
+
+**Communication protocol**:
+```markdown
+### Auditor Agent [2025-11-19T14:35:00Z]
+**Status**: Reviewing Task 5.4.1 changes
+**Findings**: 2 warnings (see AUDIT.md)
+**Recommendations**: Add RBAC check to new endpoint
+**Blockers**: None
+**Requests**: Developer address findings in AUDIT.md
+```
+
+**Where it writes**: AUDIT.md (compliance status), CONTEXT.md (Agent Communication)
+**Where it reads**: CONTEXT.md (what was built), backend/**/*.py, frontend/**/*.{vue,ts}, .specify/sprints/*.md
+
+#### 3. Test Agent (Quality Assurance)
+
+**What it does**:
+- Generates tests from PRD requirements
+- Runs full test suite (unit + integration + E2E)
+- Tracks coverage metrics and performance benchmarks
+- Documents results in TESTING.md
+
+**Skills it uses**:
+- prd-test-generator, autonomous-developer (TDD loops)
+
+**Tools it has**:
+- Read, Bash (run tests), Grep, Glob, Write (update TESTING.md)
+
+**Communication protocol**:
+```markdown
+### Test Agent [2025-11-19T14:40:00Z]
+**Status**: Tests passing (85% coverage)
+**Failures**: 3 integration tests (see TESTING.md)
+**Recommendations**: Add edge case tests for empty input
+**Blockers**: None
+**Requests**: Developer fix failing integration tests
+```
+
+**Where it writes**: TESTING.md (test results), CONTEXT.md (Agent Communication)
+**Where it reads**: CONTEXT.md (what to test), AUDIT.md (compliance requirements), .specify/sprints/*.md, backend/tests/**, frontend/tests/**
+
+### Shared Document Protocol
+
+#### CONTEXT.md (Technical Memory)
+**Primary Owner**: Developer Agent
+**Sections**:
+- Recent Changes (Developer writes)
+- Architecture Decision Records (Developer writes)
+- Implementation Status (Developer writes)
+- **NEW**: Agent Communication (All agents write)
+
+**Format**:
+```markdown
+## Agent Communication
+
+### Developer Agent [timestamp]
+**Status**: [status]
+**Progress**: [percentage]
+**Findings**: [summary]
+**Blockers**: [list or "None"]
+**Requests**: [requests or "None"]
+
+### Auditor Agent [timestamp]
+... same format ...
+
+### Test Agent [timestamp]
+... same format ...
+```
+
+#### AUDIT.md (Compliance Memory)
+**Primary Owner**: Auditor Agent
+**Sections**:
+- Current Compliance Status (Auditor writes)
+- Compliance Review (Auditor writes)
+- Previous Commits (Auditor writes)
+- **NEW**: Auditor Findings (Auditor writes detailed findings)
+
+#### TESTING.md (Quality Memory)
+**Primary Owner**: Test Agent
+**Sections**:
+- Current Test Status (Test Agent writes)
+- Coverage Metrics (Test Agent writes)
+- Failed Tests (Test Agent writes)
+- Performance Benchmarks (Test Agent writes)
+- **NEW**: Test Agent Findings (Test Agent writes recommendations)
+
+### Git Hook Integration
+
+#### pre-commit (All 3 Agents in Parallel)
+**Trigger**: On every `git commit`
+**Agents**: Developer (validate), Auditor (quick check), Test (smoke tests)
+**Execution**: **PARALLEL** (all run simultaneously)
+**Blocking**: **YES** (commit proceeds only if all agents approve)
+**Timeout**: 5 minutes
+
+**What happens**:
+1. **Developer Agent**: Validates code syntax, checks for secrets, verifies CONTEXT.md updated
+2. **Auditor Agent**: Quick HIPAA check (no PHI in logs), quick PRD alignment (breaking changes?)
+3. **Test Agent**: Runs modified test files, smoke test critical paths
+
+**Success criteria**: All 3 agents report "PASS" in their respective sections
+
+#### post-commit (Auditor + Test Agents in Parallel)
+**Trigger**: After successful commit
+**Agents**: Auditor (full audit), Test (full suite)
+**Execution**: **PARALLEL** (both run simultaneously)
+**Blocking**: **NO** (background work, updates docs)
+**Timeout**: 10 minutes
+
+**What happens**:
+1. **Auditor Agent**: Full HIPAA/GDPR audit, full PRD compliance check, updates AUDIT.md
+2. **Test Agent**: Runs full test suite, updates coverage metrics, updates TESTING.md
+
+**Success criteria**: Both agents complete (warnings allowed, document findings)
+
+#### pre-push (All 3 Agents in Parallel)
+**Trigger**: Before `git push` to remote
+**Agents**: Developer (final check), Auditor (final validation), Test (full validation + benchmarks)
+**Execution**: **PARALLEL** (all run simultaneously)
+**Blocking**: **YES** (push proceeds only if all agents approve with 0 blocking issues)
+**Timeout**: 15 minutes
+
+**What happens**:
+1. **Developer Agent**: Verifies all commits have CONTEXT.md updates, checks for TODO/FIXME
+2. **Auditor Agent**: Final compliance validation, verifies 0 blocking issues in AUDIT.md
+3. **Test Agent**: Runs full suite + benchmarks, verifies coverage ≥85%, verifies all passing
+
+**Success criteria**: All 3 agents report "PASS" with 0 blocking issues
+
+### Workflow Example: Implementing a New Feature
+
+**Step 1: Developer Agent (you) implements Task 5.4.1**
+```bash
+# You write code for new filter UI component
+# You update CONTEXT.md with technical changes
+# You write to Agent Communication section:
+```
+```markdown
+### Developer Agent [2025-11-19T14:30:00Z]
+**Status**: Task 5.4.1 complete - Filter UI component
+**Progress**: 100%
+**Findings**: None
+**Blockers**: None
+**Requests**: Auditor review, Test run full suite
+```
+
+**Step 2: You commit**
+```bash
+git add .
+git commit -m "feat(timeline): Task 5.4.1 - Filter UI component"
+```
+
+**Step 3: pre-commit hook spawns 3 agents in parallel**
+```bash
+# Terminal output:
+🔀 Running parallel agent checks...
+  ✓ Developer Agent: Syntax valid, CONTEXT.md updated
+  ✓ Auditor Agent: No HIPAA violations, no breaking changes
+  ✓ Test Agent: Modified tests passing
+✅ All agents approve - commit proceeding
+```
+
+**Step 4: post-commit hook spawns Auditor + Test agents (background)**
+```bash
+# Background processes:
+Auditor Agent → Reading Task 5.4.1 changes...
+Test Agent → Running full test suite...
+
+# 2 minutes later:
+Auditor Agent → Updated AUDIT.md with compliance review
+Test Agent → Updated TESTING.md with test results
+```
+
+**Step 5: You read agent findings**
+```bash
+# Check AUDIT.md:
+## Auditor Findings
+- ⚠️  Warning: New endpoint missing RBAC check
+- ✅ No PHI exposure detected
+- ✅ API schema matches PRD
+
+# Check TESTING.md:
+## Test Agent Findings
+- ✅ All tests passing (143/143)
+- ✅ Coverage: 86% (above threshold)
+- 💡 Recommendation: Add edge case test for empty filter
+```
+
+**Step 6: You respond to findings**
+```bash
+# You fix the RBAC issue found by Auditor
+# You add the edge case test recommended by Test Agent
+# You commit again (cycle repeats)
+```
+
+### Autonomous Mode with Multi-Agent Workflow
+
+**When all agents agree** → Continue autonomously
+**When any agent blocks** → Pause for user review
+**When agents disagree** → Escalate to user via CONTEXT.md
+
+**Autonomous continuation criteria**:
+- ✅ All agents approve in pre-commit
+- ✅ No blocking issues in AUDIT.md
+- ✅ All tests passing in TESTING.md
+- ✅ No "Requests" pending in Agent Communication
+
+**Autonomous pause criteria**:
+- ❌ Auditor finds blocking HIPAA/GDPR violation
+- ❌ Test coverage drops below 80%
+- ❌ PRD drift detected with breaking changes
+- ❌ Any agent reports a blocker
+
+**Agent priority order** (conflict resolution):
+1. **Auditor** (compliance is non-negotiable)
+2. **Test** (quality gates must pass)
+3. **Developer** (implementation decisions)
+
+### Reading Agent Findings
+
+**As Developer Agent, you MUST**:
+1. **After every commit**: Read AUDIT.md and TESTING.md for agent findings
+2. **Before next commit**: Address all blocking issues
+3. **Update Agent Communication**: Acknowledge findings and describe fixes
+
+**Example**:
+```markdown
+### Developer Agent [2025-11-19T15:00:00Z]
+**Status**: Addressing Auditor findings from Task 5.4.1
+**Progress**: 50%
+**Findings**: Fixed RBAC issue, added edge case test
+**Blockers**: None
+**Requests**: Auditor re-review, Test re-run
+```
+
+### Benefits of Multi-Agent Workflow
+
+1. **Parallel efficiency**: All agents work simultaneously (faster feedback)
+2. **Continuous validation**: Compliance and testing happen automatically
+3. **Early detection**: Issues caught in pre-commit, not pre-push
+4. **Shared memory**: CONTEXT.md, AUDIT.md, TESTING.md preserve knowledge across sessions
+5. **Specialization**: Each agent focuses on its expertise (better quality)
+6. **Autonomous safety**: Multiple agents validate before continuing
+
+### Configuration
+
+**Agent manifest**: `.claude/agents.yaml`
+**Git hooks**: `.git-hooks/pre-commit-parallel.sh`, `.git-hooks/post-commit-parallel.sh`, `.git-hooks/pre-push-parallel.sh`
+**Shared docs**: CONTEXT.md, AUDIT.md, TESTING.md
+
+**See**: `.claude/agents.yaml` for full configuration details
 
 ---
 
@@ -275,7 +640,7 @@ Token usage: 160000/200000; 40000 remaining
 
 ## 🛠️ Custom Healthcare NLP Skills
 
-**8 specialized skills** are available to assist with healthcare-specific development. They **activate automatically** based on context—you don't need to invoke them explicitly.
+**11 specialized skills** are available to assist with healthcare-specific development. They **activate automatically** based on context—you don't need to invoke them explicitly.
 
 ### Available Skills
 
@@ -304,6 +669,16 @@ Token usage: 160000/200000; 40000 remaining
 - **Why useful**: Required for EHR integration (Sprint 3+)
 
 #### 🟢 Priority 3 (Quality Assurance)
+
+**`prd-compliance-checker`** - PRD validation
+- **Activates when**: Modifying API endpoints, changing schemas, implementing Sprint PRDs
+- **What it does**: Validates API implementation against PRD specifications, detects breaking changes (field names, types, structure)
+- **Why useful**: Prevents API contract drift, catches PRD discrepancies early (during development, not after)
+
+**`prd-test-generator`** - Test generation & coverage tracking ✨ NEW
+- **Activates when**: Starting new features (TDD), PRD updates, low test coverage, sprint completion
+- **What it does**: Reads PRD specs, generates comprehensive tests (pytest/vitest), executes tests, creates TEST_REPORT.md with coverage tracking
+- **Why useful**: Ensures all PRD requirements are tested, enforces TDD, tracks coverage trends, complements auditor (compliance vs testability)
 
 **`spec-kit-enforcer`** - Workflow enforcement
 - **Activates when**: Starting new features, before writing code
@@ -342,7 +717,9 @@ Planning Phase:
 Implementation Phase:
 ✓ infrastructure-expert - Guides Docker, PostgreSQL, auth, audit logging
 ✓ medcat-meta-annotations - Ensures proper NLP filtering (95% precision)
+✓ prd-test-generator - Generates tests from PRD requirements (TDD approach)
 ✓ healthcare-compliance-checker - Validates PHI handling, audit logging
+✓ prd-compliance-checker - Validates API schema matches PRD (no drift)
 
 Integration Phase:
 ✓ vue3-component-reuse - Finds existing UI patterns
@@ -353,6 +730,7 @@ Result: Complete, compliant, production-ready implementation
 
 **Complete Workflow Coverage**:
 - **Spec → Plan → Tasks → Code** (full Spec-Kit lifecycle)
+- **Test Generation** (TDD from PRD requirements)
 - **Safety & Compliance** (HIPAA, GDPR, patient safety)
 - **NLP Accuracy** (meta-annotation filtering)
 - **Infrastructure** (Docker, auth, audit, backups)
@@ -386,6 +764,471 @@ Result: Complete, compliant, production-ready implementation
    - ✅ Document data flows
 
 **If any answer is "yes" but you're unsure about compliance, STOP and ask the user for guidance.**
+
+---
+
+## 🛡️ Code Quality & Validation (MANDATORY)
+
+**⚠️ CRITICAL**: This project has **5 layers of validation** to ensure code integrity and PRD compliance. You MUST use them proactively.
+
+### The 5-Layer Validation Framework
+
+```
+Layer 1: Pre-Commit Hook (Automatic)     → Every commit
+Layer 2: Validation Script (Manual)      → Before phase completion
+Layer 3: Validation Agent (AI-powered)   → Complex features
+Layer 4: PRD Compliance Check (Manual)   → API changes
+Layer 5: CI/CD Pipeline (Automatic)      → Every push
+```
+
+**Documentation**: See `.claude/SAFEGUARDS.md`, `.claude/VALIDATION_CHECKLIST.md`, and `.claude/skills/prd-compliance-checker/SKILL.md`
+
+---
+
+### When to Use Each Layer
+
+#### Layer 1: Pre-Commit Hook (Automatic - No Action Needed)
+
+**Runs automatically** on every `git commit`. You don't invoke this - it just works.
+
+**What it does**:
+- ✅ Enforces CONTEXT.md updates
+- ✅ Validates Python syntax
+- ✅ **Runs tests on modified test files**
+- ✅ Blocks commits with failing tests
+
+**If it fails**:
+```bash
+# Fix the issues shown
+# Then re-commit
+git add .
+git commit -m "fix: address validation issues"
+```
+
+---
+
+#### Layer 2: Validation Script (Manual - Use Before Major Milestones)
+
+**⚠️ MANDATORY: Run before completing any phase or major feature**
+
+**When to run**:
+- ✅ Before committing a completed phase
+- ✅ After implementing 3+ related tasks
+- ✅ Before creating a pull request
+- ✅ When you've written >500 lines of code
+
+**How to run**:
+```bash
+# Full validation (recommended)
+./scripts/validate-code.sh --full
+
+# Quick check (syntax only)
+./scripts/validate-code.sh --quick
+
+# Auto-fix formatting issues
+./scripts/validate-code.sh --fix
+```
+
+**What it checks**:
+1. Python syntax (all files)
+2. Import validation
+3. Type checking (mypy)
+4. Code formatting (black)
+5. **Full test suite** with coverage
+6. TypeScript types
+7. ESLint
+8. Security (secrets, SQL injection)
+
+**Example workflow**:
+```python
+# You just completed Phase 2 tasks
+
+# 1. Run full validation
+./scripts/validate-code.sh --full
+
+# 2. Fix any issues found
+# ... make fixes ...
+
+# 3. Re-run to verify
+./scripts/validate-code.sh --full
+
+# 4. Commit when passing
+git add .
+git commit -m "feat: Phase 2 complete"
+```
+
+---
+
+#### Layer 3: Validation Agent (AI-Powered - Use for Complex Features)
+
+**⚠️ MANDATORY: Spawn validation agent for:**
+- ✅ Complex features (>500 lines or >3 files)
+- ✅ **BEFORE committing PHI-related code** (use `healthcare-compliance-checker`)
+- ✅ Before phase completion (in addition to script)
+- ✅ After major refactoring
+- ✅ When implementing security-critical features
+
+**How to invoke**:
+Use the `Task` tool with `subagent_type="general-purpose"`:
+
+```typescript
+Task({
+  subagent_type: "general-purpose",
+  description: "Validate code quality",
+  model: "sonnet", // Use sonnet for thorough validation
+  prompt: `You are a code quality validation agent. Your task is to thoroughly validate the code.
+
+**Context**: I just implemented [describe feature]
+
+**Files to check**: [list files]
+
+**Validation tasks:**
+1. **Python Backend**:
+   - Check syntax and imports
+   - Verify type annotations
+   - Look for security issues (SQL injection, XSS)
+   - Check for hardcoded secrets
+
+2. **HIPAA Compliance** (if PHI-related):
+   - No PHI in application logs
+   - Audit logging for all PHI access
+   - Encryption in transit/at rest
+   - RBAC enforcement
+
+3. **Testing**:
+   - Check if tests exist for new code
+   - Verify test fixtures work
+   - Check for missing edge cases
+
+4. **Code Quality**:
+   - Look for code smells
+   - Check for unused imports
+   - Verify error handling
+
+**Report format:**
+
+## Validation Results
+
+### Critical Issues (blocking):
+[List issues that prevent code from running]
+
+### Warnings (non-blocking):
+[List issues that should be fixed]
+
+### Summary:
+- Total files checked: X
+- Critical issues: X
+- Warnings: X
+- Status: PASS/FAIL
+
+**For EACH issue, provide:**
+- File path and line number
+- Issue type
+- Exact error message
+- Suggested fix
+
+Start your validation now.`
+})
+```
+
+**Special: Healthcare Compliance Checker**
+
+For **ANY code touching patient data**, also invoke the `healthcare-compliance-checker` skill:
+
+```typescript
+Skill({
+  skill: "healthcare-compliance-checker"
+})
+```
+
+This skill automatically activates for PHI-related code, but invoke it explicitly before committing:
+- API endpoints handling patient data
+- Database schema changes
+- Authentication/authorization changes
+- Logging additions
+- Any code accessing PHI
+
+---
+
+#### Layer 4: PRD Compliance Check (BLOCKING for AI Agents)
+
+**⚠️ MANDATORY & BLOCKING: Required when modifying API endpoints or schemas**
+
+**When it triggers** (automatic blocking):
+- 🚫 **BLOCKS commits** with API endpoint changes
+- 🚫 **BLOCKS commits** with schema changes (request/response)
+- 🚫 **BLOCKS pushes** with API service layer changes
+
+**AI Agent Workflow** (when hook triggers):
+```bash
+# 1. Hook detects API changes and BLOCKS the commit/push
+# 2. Hook displays validation instructions
+# 3. Run validation agent prompt generator:
+./scripts/validate-code.sh --prd-check
+
+# 4. Copy the generated Task(...) prompt
+# 5. Paste into current AI session to spawn validation agent
+# 6. Wait for validation results
+# 7. If breaking changes found → Fix them
+# 8. Re-run validation to confirm fixes
+# 9. Answer 'y' when hook asks: "Has PRD validation PASSED?"
+# 10. Commit/push proceeds
+```
+
+**What it checks**:
+1. **Endpoint Compliance**: Path, method, parameters match PRD exactly
+2. **Request Schema**: Field names, types, nesting match PRD
+3. **Response Schema**: Field names (camelCase!), structure match PRD
+4. **Error Responses**: HTTP codes, error schema match PRD
+5. **Authentication**: Auth requirements match PRD
+6. **Performance**: Response time targets noted
+
+**Why critical**:
+- Prevents API contract drift
+- Avoids breaking frontend integration
+- Catches mismatches early (during development, not after)
+- Reduces back-and-forth with frontend team
+
+**Example workflow**:
+```python
+# You just implemented POST /api/v1/patients/search
+
+# 1. Run quick checklist
+# Read: .specify/sprints/sprint-1-prd.md
+# Compare field names: concept vs query? ✅ concept matches!
+# Compare pagination: nested { pagination: {...} } vs flat? ✅ nested matches!
+
+# 2. OR spawn validation agent for deep check
+./scripts/validate-code.sh --prd-check
+# Agent compares ALL fields character-by-character
+# Reports: 0 breaking changes found ✅
+
+# 3. Commit with confidence
+git add .
+git commit -m "feat(patient-search): implement search endpoint (PRD-compliant)"
+```
+
+**Git Hooks (BLOCKING)**:
+- **Pre-commit hook**: BLOCKS commits with API endpoint or schema changes
+- **Pre-push hook**: BLOCKS pushes with API service layer changes
+- Both hooks require answering 'y' to "Has PRD validation PASSED with 0 breaking changes?"
+- **Cannot bypass** without `--no-verify` (strongly discouraged in AI agent workflow)
+
+**Skill Activation**:
+The `prd-compliance-checker` skill automatically activates when you modify:
+- `backend/app/api/v*/endpoints/*.py` (API endpoints)
+- `backend/app/schemas/*.py` (Request/response schemas)
+- `backend/app/services/*_service.py` (Service layer for API features)
+
+The skill provides quick checklist and guidance. Hooks enforce mandatory validation.
+
+**Documentation**: See `.claude/skills/prd-compliance-checker/SKILL.md` for comprehensive guide
+
+---
+
+#### Layer 5: CI/CD Pipeline (Automatic - No Action Needed)
+
+**Runs automatically** when you push to GitHub. You don't invoke this.
+
+**What it does**:
+- ✅ Full test suite with coverage
+- ✅ Security scanning (Trivy, TruffleHog)
+- ✅ Type checking, linting, build verification
+
+**View results**: GitHub → Actions tab
+
+---
+
+### Validation Workflow (Step-by-Step)
+
+**For EVERY task/feature you implement:**
+
+```bash
+# 1. Implement the feature
+# ... write code ...
+
+# 2. BEFORE committing complex features (>500 lines):
+#    Spawn validation agent (see prompt above)
+
+# 3. BEFORE committing PHI-related code:
+#    Invoke healthcare-compliance-checker skill
+
+# 4. Fix any critical issues found by agent
+
+# 5. Run validation script before major commits
+./scripts/validate-code.sh --full
+
+# 6. Fix any issues found
+
+# 7. Commit (pre-commit hook runs automatically)
+git add .
+git commit -m "feat: your feature"
+# → Hook validates syntax, tests, CONTEXT.md
+
+# 8. If hook fails, fix issues and re-commit
+
+# 9. Push to GitHub (CI/CD runs automatically)
+git push
+```
+
+**For phase completion:**
+
+```bash
+# 1. Complete all tasks in the phase
+
+# 2. Run full validation script
+./scripts/validate-code.sh --full
+
+# 3. Spawn validation agent for comprehensive review
+# (Use Task tool with prompt above)
+
+# 4. Fix ALL critical issues and warnings
+
+# 5. Re-validate
+./scripts/validate-code.sh --full
+
+# 6. Commit phase completion
+git add .
+git commit -m "feat: Phase X complete"
+
+# 7. Update CONTEXT.md with phase completion notes
+
+# 8. Push to GitHub
+git push
+```
+
+---
+
+### Quick Reference: When to Validate
+
+| Scenario | Layer 1 | Layer 2 | Layer 3 | Layer 4 | Layer 5 |
+|----------|---------|---------|---------|---------|---------|
+| Small bug fix (<50 lines) | ✅ Auto | ❌ Skip | ❌ Skip | ❌ Skip | ✅ Auto |
+| Medium feature (50-500 lines) | ✅ Auto | ✅ Run | ❌ Optional | ❌ Skip | ✅ Auto |
+| Complex feature (>500 lines) | ✅ Auto | ✅ Run | **✅ MUST** | ❌ Skip | ✅ Auto |
+| **New API endpoint** | ✅ Auto | ✅ Run | **✅ MUST** | **✅ MUST** | ✅ Auto |
+| **Schema changes (API)** | ✅ Auto | ✅ Run | **✅ MUST** | **✅ MUST** | ✅ Auto |
+| PHI-related code | ✅ Auto | ✅ Run | **✅ MUST** | ❌ Skip | ✅ Auto |
+| Phase completion | ✅ Auto | **✅ MUST** | **✅ MUST** | ✅ Run | ✅ Auto |
+| Major refactoring | ✅ Auto | ✅ Run | **✅ MUST** | ❌ Skip | ✅ Auto |
+
+**Legend**:
+- ✅ Auto = Runs automatically
+- ✅ Run = You must run manually
+- ✅ MUST = Required, don't skip
+- ❌ Skip = Not needed
+- ❌ Optional = Use if unsure
+
+**Note**: Layer 4 (PRD Compliance) is MANDATORY for all API-related changes to prevent contract drift.
+
+---
+
+### Example: Implementing a Complex Feature
+
+```python
+# Scenario: Implementing Task 2.5 (User Search API)
+
+# Step 1: Implement the feature
+# ... write backend/app/api/v1/endpoints/users.py search endpoint ...
+# ... write tests in backend/tests/integration/test_user_search.py ...
+
+# Step 2: BEFORE committing, spawn validation agent
+# Use Task tool:
+Task({
+  subagent_type: "general-purpose",
+  description: "Validate user search API",
+  prompt: "Validate backend/app/api/v1/endpoints/users.py and tests/integration/test_user_search.py for syntax, security, test coverage..."
+})
+
+# Step 3: Agent reports back
+# - ✅ Syntax valid
+# - ✅ Imports resolve
+# - ⚠️  Missing test for empty search query
+# - ⚠️  No SQL injection check (using ORM, safe)
+
+# Step 4: Fix critical issues
+# ... add test for empty search query ...
+
+# Step 5: Run validation script
+./scripts/validate-code.sh --full
+# → All checks pass
+
+# Step 6: Commit
+git add .
+git commit -m "feat(user-mgmt): add user search API"
+# → Pre-commit hook runs
+# → Tests pass
+# → Commit succeeds
+
+# Step 7: Push
+git push
+# → CI/CD pipeline runs
+# → All checks pass
+```
+
+---
+
+### What If Validation Fails?
+
+**Pre-commit hook fails:**
+```bash
+# Read the error message carefully
+# Fix the issue (syntax error, failing test, missing CONTEXT.md update)
+# Re-commit
+git add .
+git commit -m "fix: address validation issue"
+```
+
+**Validation script fails:**
+```bash
+# Run with full output
+./scripts/validate-code.sh --full 2>&1 | less
+
+# Fix issues one by one:
+# 1. Syntax errors first
+# 2. Failing tests second
+# 3. Warnings last
+
+# Re-run to verify
+./scripts/validate-code.sh --full
+```
+
+**Validation agent finds issues:**
+```bash
+# Agent reports critical issues
+
+# Fix each issue:
+# 1. Read file path and line number
+# 2. Apply suggested fix
+# 3. Verify fix works
+
+# Re-spawn agent to verify
+# (Use same Task prompt)
+```
+
+---
+
+### Bypassing Validation (EMERGENCY ONLY)
+
+**Never bypass on main/develop branches!**
+
+Only bypass pre-commit hook if:
+- ✅ Committing work-in-progress on feature branch
+- ✅ Documentation-only changes
+- ✅ Emergency hotfix (fix tests immediately after)
+
+```bash
+# Bypass pre-commit hook (not recommended)
+git commit --no-verify -m "wip: work in progress"
+
+# Then fix tests/issues in next commit
+```
+
+**Never bypass**:
+- ❌ To skip failing tests
+- ❌ To avoid fixing syntax errors
+- ❌ To skip CONTEXT.md updates
+- ❌ On main or develop branches
 
 ---
 
@@ -425,7 +1268,7 @@ cat CONTEXT.md
 **Time investment**: 15-20 minutes
 **Return**: Complete context, no repeated questions, consistent decisions
 
-**Update requirement**: You MUST update CONTEXT.md before committing code (git hook enforces this)
+**Update requirement**: You MUST update BOTH CONTEXT.md AND AUDIT.md before committing code (git hook enforces dual-file requirement)
 
 ---
 
@@ -999,6 +1842,12 @@ CONTEXT.md Updates:
 - [If applicable] Moved feature to "Implemented"
 - [If applicable] Noted technical debt: [description]
 
+AUDIT.md Updates:
+- Ran auditor subagent (quick/full/comprehensive audit)
+- Updated compliance scores for affected features
+- [If applicable] Documented drift items detected
+- [If applicable] Updated compliance trends
+
 [Optional for agent-generated code]
 AI Context:
 - Specification: .specify/specifications/{name}.md
@@ -1006,7 +1855,7 @@ AI Context:
 - Session: {date/time}
 ```
 
-**⚠️ IMPORTANT**: The "CONTEXT.md Updates" section is MANDATORY for code commits. Git hook will verify CONTEXT.md is modified.
+**⚠️ IMPORTANT**: BOTH "CONTEXT.md Updates" and "AUDIT.md Updates" sections are MANDATORY for code commits. Git hook enforces dual-file requirement.
 
 ### Type Values
 
@@ -1123,18 +1972,24 @@ fix stuff
 - [ ] No debug code (console.log, breakpoints)
 - [ ] .gitignore updated for new files
 
-#### 🔴 CONTEXT.md Update (MANDATORY)
-- [ ] **CONTEXT.md updated** (required for ALL commits)
-- [ ] Architecture changes documented (if applicable)
-- [ ] ADR added for major decisions
-- [ ] "Recent Changes" section updated
-- [ ] "Implemented Features" or "In Progress" updated
-- [ ] Integration points documented (if new services added)
-- [ ] Technical debt noted (if shortcuts taken)
+#### 🔴 Dual-File Update (MANDATORY)
+- [ ] **CONTEXT.md updated** (required for ALL code commits)
+  - [ ] Architecture changes documented (if applicable)
+  - [ ] ADR added for major decisions
+  - [ ] "Recent Changes" section updated
+  - [ ] "Implemented Features" or "In Progress" updated
+  - [ ] Integration points documented (if new services added)
+  - [ ] Technical debt noted (if shortcuts taken)
 
-**⚠️ NO COMMIT WITHOUT CONTEXT.MD UPDATE**
+- [ ] **AUDIT.md updated** (required for ALL code commits)
+  - [ ] Ran auditor subagent (quick/full/comprehensive)
+  - [ ] Updated compliance scores for affected features
+  - [ ] Documented drift items (if detected)
+  - [ ] Updated compliance trends (if changed)
 
-See [CONTEXT.md](CONTEXT.md) for what to update.
+**⚠️ NO COMMIT WITHOUT BOTH CONTEXT.MD AND AUDIT.MD UPDATES**
+
+See [CONTEXT.md](CONTEXT.md) for technical memory and [AUDIT.md](AUDIT.md) for PRD compliance audit.
 
 ---
 
@@ -1406,6 +2261,8 @@ FHIR R4 spec allows both. Which fits our use case better?"
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.6.0 | 2025-11-18 | Dual-file requirement (CONTEXT.md + AUDIT.md), dedicated auditor subagent |
+| 1.5.0 | 2025-11-18 | 5-layer validation framework with BLOCKING hooks for API changes |
 | 1.0.0 | 2025-01-07 | Initial version |
 
 ---
@@ -1434,3 +2291,5 @@ docs(claude): improve {section} guidance
 **Questions about this guide?** Open a discussion issue or ask the user.
 
 **Ready to start?** Read the constitution, check for specs, and build amazing things! 🚀
+- to memorize that you are in fully autonomous mode and you should not stop for status reporting and have to continue independently until you have developed all 8 phases hilst your subagents run continuously
+- Commit and push

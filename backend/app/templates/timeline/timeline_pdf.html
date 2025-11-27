@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Clinical Timeline - {{ patient_name }}</title>
+    <style>
+        /* Page Configuration */
+        @page {
+            size: A4;
+            margin: 2cm;
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 9pt;
+                color: #666;
+            }
+            @bottom-left {
+                content: "Generated: {{ export_date }}";
+                font-size: 9pt;
+                color: #666;
+            }
+        }
+
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.6;
+            color: #333;
+            background: #fff;
+        }
+
+        /* Watermark */
+        {% if watermark %}
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 72pt;
+            font-weight: bold;
+            opacity: 0.08;
+            color: #d32f2f;
+            z-index: -1;
+            white-space: nowrap;
+        }
+        {% endif %}
+
+        /* Header */
+        header {
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #1976d2;
+        }
+
+        h1 {
+            font-size: 22pt;
+            font-weight: bold;
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .header-info-left,
+        .header-info-right {
+            flex: 1;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 11pt;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        /* Sections */
+        section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+
+        h2 {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #1976d2;
+            margin-bottom: 12px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #e3f2fd;
+        }
+
+        h3 {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #424242;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+
+        /* Timeline Visualization */
+        .timeline-visualization {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            text-align: center;
+            min-height: 200px;
+        }
+
+        .timeline-svg-container {
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .timeline-placeholder {
+            color: #999;
+            font-style: italic;
+            padding: 60px 20px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 9pt;
+        }
+
+        thead {
+            background: #1976d2;
+            color: white;
+        }
+
+        th {
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 10pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        tbody tr:hover {
+            background: #e3f2fd;
+        }
+
+        /* Concept Type Badges */
+        .concept-type {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 8pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .concept-type-condition {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .concept-type-medication {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .concept-type-procedure {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
+
+        .concept-type-symptom {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .concept-type-lab_result {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        /* Documents List */
+        .documents-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .documents-list li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f9f9f9;
+            border-left: 4px solid #1976d2;
+            border-radius: 2px;
+        }
+
+        .document-date {
+            font-weight: bold;
+            color: #1976d2;
+            margin-right: 10px;
+        }
+
+        .document-title {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .document-type {
+            color: #666;
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Summary Box */
+        .summary-box {
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .summary-box h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+
+        .summary-stat {
+            display: inline-block;
+            margin-right: 20px;
+            font-size: 11pt;
+        }
+
+        .summary-stat-value {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #1976d2;
+        }
+
+        .summary-stat-label {
+            color: #666;
+            font-size: 9pt;
+            text-transform: uppercase;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 2px solid #e0e0e0;
+            font-size: 8pt;
+            color: #666;
+            text-align: center;
+        }
+
+        /* Print Optimization */
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+
+        /* De-identification Notice */
+        .de-identified-notice {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <!-- Watermark -->
+    {% if watermark %}
+    <div class="watermark">Clinical Summary - Confidential</div>
+    {% endif %}
+
+    <!-- Header -->
+    <header>
+        <h1>Patient Clinical Timeline</h1>
+        <div class="header-info">
+            <div class="header-info-left">
+                <div>
+                    <span class="info-label">Patient:</span>
+                    <div class="info-value">{{ patient_name }}</div>
+                </div>
+                {% if not de_identified %}
+                <div>
+                    <span class="info-label">Patient ID:</span>
+                    <div class="info-value">{{ patient_id }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="header-info-right" style="text-align: right;">
+                <div>
+                    <span class="info-label">Generated:</span>
+                    <div class="info-value">{{ export_date }}</div>
+                </div>
+                <div>
+                    <span class="info-label">Document Type:</span>
+                    <div class="info-value">Clinical Timeline Export</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- De-identification Notice -->
+    {% if de_identified %}
+    <div class="de-identified-notice">
+        ⚠️ This timeline has been de-identified. Patient identifiable information has been removed.
+    </div>
+    {% endif %}
+
+    <!-- Summary Statistics -->
+    <div class="summary-box">
+        <h3>Timeline Summary</h3>
+        <div class="summary-stat">
+            <div class="summary-stat-value">{{ concepts|length }}</div>
+            <div class="summary-stat-label">Concepts</div>
+        </div>
+        <div class="summary-stat">
+            <div class="summary-stat-value">{{ documents|length }}</div>
+            <div class="summary-stat-label">Documents</div>
+        </div>
+        <div class="summary-stat">
+            <div class="summary-stat-value">{{ concepts|sum(attribute='mention_count') }}</div>
+            <div class="summary-stat-label">Total Mentions</div>
+        </div>
+    </div>
+
+    <!-- Timeline Visualization -->
+    <section class="timeline-visualization-section">
+        <h2>Timeline Visualization</h2>
+        <div class="timeline-visualization">
+            {% if timeline_svg %}
+            <div class="timeline-svg-container">
+                {{ timeline_svg|safe }}
+            </div>
+            {% else %}
+            <div class="timeline-placeholder">
+                Timeline visualization will be available in a future version.
+                <br>
+                Please refer to the Key Clinical Concepts and Source Documents sections below.
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Key Clinical Concepts -->
+    <section class="key-concepts-section">
+        <h2>Key Clinical Concepts</h2>
+        {% if concepts %}
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40%;">Concept</th>
+                    <th style="width: 20%;">Type</th>
+                    <th style="width: 20%;">First Mentioned</th>
+                    <th style="width: 20%; text-align: right;">Mentions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for concept in concepts %}
+                <tr>
+                    <td><strong>{{ concept.concept_name }}</strong></td>
+                    <td>
+                        <span class="concept-type concept-type-{{ concept.concept_type }}">
+                            {{ concept.concept_type }}
+                        </span>
+                    </td>
+                    <td>{{ concept.first_mention_date }}</td>
+                    <td style="text-align: right; font-weight: bold;">{{ concept.mention_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            No clinical concepts found in this timeline.
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Source Documents -->
+    <section class="documents-section">
+        <h2>Source Documents</h2>
+        {% if documents %}
+        <ul class="documents-list">
+            {% for doc in documents %}
+            <li>
+                <span class="document-date">{{ doc.date }}</span>
+                <span class="document-title">{{ doc.title }}</span>
+                <br>
+                <span class="document-type">{{ doc.document_type }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty-state">
+            No source documents found in this timeline.
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>
+            <strong>Clinical Timeline Export</strong> | Generated by CogStack NLP Platform
+            <br>
+            This document contains clinical information and should be handled according to your organization's confidentiality policies.
+            <br>
+            {% if watermark %}
+            <strong>CONFIDENTIAL - For Clinical Use Only</strong>
+            {% endif %}
+        </p>
+    </footer>
+</body>
+</html>

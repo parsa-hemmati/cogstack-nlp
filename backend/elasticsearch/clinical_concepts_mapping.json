@@ -1,0 +1,57 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "refresh_interval": "5s"
+  },
+  "mappings": {
+    "properties": {
+      "patient_id": {
+        "type": "keyword"
+      },
+      "document_id": {
+        "type": "keyword"
+      },
+      "concept_cui": {
+        "type": "keyword"
+      },
+      "concept_name": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      },
+      "concept_type": {
+        "type": "keyword"
+      },
+      "date": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "meta_annotations": {
+        "properties": {
+          "Negation": {
+            "type": "keyword"
+          },
+          "Temporality": {
+            "type": "keyword"
+          },
+          "Experiencer": {
+            "type": "keyword"
+          },
+          "Certainty": {
+            "type": "keyword"
+          }
+        }
+      },
+      "confidence": {
+        "type": "float"
+      },
+      "sentence": {
+        "type": "text"
+      }
+    }
+  }
+}
