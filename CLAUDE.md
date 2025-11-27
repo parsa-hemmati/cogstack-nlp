@@ -2292,3 +2292,4 @@ docs(claude): improve {section} guidance
 
 **Ready to start?** Read the constitution, check for specs, and build amazing things! 🚀
 - to memorize that you are in fully autonomous mode and you should not stop for status reporting and have to continue independently until you have developed all 8 phases hilst your subagents run continuously
+- Commit and push

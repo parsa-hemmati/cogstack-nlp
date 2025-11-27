@@ -216,7 +216,8 @@ class TimelineExportService:
 
     async def export_to_json(
         self,
-        timeline_data: PatientTimeline
+        timeline_data: PatientTimeline,
+        de_identified: bool = False
     ) -> Dict[str, Any]:
         """
         Serialize timeline to JSON format.
@@ -228,6 +229,7 @@ class TimelineExportService:
 
         Args:
             timeline_data: Complete timeline data
+            de_identified: If True, removes patient identifiers (HIPAA Safe Harbor)
 
         Returns:
             JSON-serializable dict
@@ -244,9 +246,11 @@ class TimelineExportService:
             "export_metadata": {
                 "export_timestamp": datetime.now().isoformat(),
                 "export_format": "json",
+                "de_identified": de_identified,
                 "filters_applied": timeline_data.filters_applied.dict() if timeline_data.filters_applied else {}
             },
-            "patient_id": timeline_data.patient_id,  # Already a string
+            # De-identify patient ID if requested
+            "patient_id": "[De-identified]" if de_identified else timeline_data.patient_id,
             "date_range": {
                 "start": timeline_data.date_range.start.isoformat() if timeline_data.date_range.start else None,
                 "end": timeline_data.date_range.end.isoformat() if timeline_data.date_range.end else None

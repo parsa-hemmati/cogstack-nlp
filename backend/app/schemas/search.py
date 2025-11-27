@@ -535,3 +535,96 @@ class SearchExportRequest(BaseModel):
                 "format": "csv"
             }
         }
+
+
+# ============================================================================
+# Search Suggestions Schemas (PRD Sprint 3 - Autocomplete)
+# ============================================================================
+
+
+class SearchSuggestion(BaseModel):
+    """Single search suggestion for autocomplete."""
+
+    text: str = Field(..., description="Suggested search term")
+    score: float = Field(..., ge=0, le=1, description="Relevance score (0-1)")
+    source: str = Field(
+        ...,
+        description="Source of suggestion: 'history', 'popular', 'concept', 'document'"
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Additional metadata (e.g., CUI for concepts)"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "text": "diabetes mellitus",
+                "score": 0.95,
+                "source": "popular",
+                "metadata": {"count": 42}
+            }
+        }
+
+
+class SearchSuggestionsResponse(BaseModel):
+    """Response schema for search suggestions (autocomplete)."""
+
+    query: str = Field(..., description="Original query prefix")
+    suggestions: List[SearchSuggestion] = Field(
+        default_factory=list,
+        description="List of suggestions"
+    )
+    total: int = Field(..., ge=0, description="Total suggestions available")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "query": "diab",
+                "suggestions": [
+                    {
+                        "text": "diabetes mellitus",
+                        "score": 0.95,
+                        "source": "popular",
+                        "metadata": {"count": 42}
+                    },
+                    {
+                        "text": "diabetic neuropathy",
+                        "score": 0.85,
+                        "source": "concept",
+                        "metadata": {"cui": "C0011882"}
+                    }
+                ],
+                "total": 2
+            }
+        }
+
+
+class QueryValidationResult(BaseModel):
+    """Result of query syntax validation."""
+
+    valid: bool = Field(..., description="Whether the query syntax is valid")
+    query: str = Field(..., description="Original query")
+    parsed_query: Optional[str] = Field(
+        None,
+        description="Normalized/parsed query (if valid)"
+    )
+    errors: List[str] = Field(
+        default_factory=list,
+        description="List of validation errors (if invalid)"
+    )
+    suggestions: List[str] = Field(
+        default_factory=list,
+        description="Suggestions to fix query (if invalid)"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "valid": False,
+                "query": "diabetes AND OR hypertension",
+                "parsed_query": None,
+                "errors": ["Consecutive operators 'AND OR' not allowed"],
+                "suggestions": ["Try: 'diabetes AND hypertension'", "Try: 'diabetes OR hypertension'"]
+            }
+        }

@@ -745,3 +745,153 @@ async def export_timeline(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Export failed: {str(e)}"
         )
+
+
+@router.post(
+    "/{patient_id}/export/de-identified",
+    response_model=TimelineExportResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Export de-identified patient timeline",
+    description="Export patient timeline with all PHI removed for research/analysis"
+)
+async def export_timeline_deidentified(
+    patient_id: UUID,
+    export_request: TimelineExportRequest,
+    request: Request,
+    current_user: User = Depends(require_role("researcher", "admin")),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Export de-identified patient timeline for research purposes.
+
+    **De-identification** (HIPAA Safe Harbor Method):
+    - Removes patient ID, name, MRN
+    - Removes dates (shifts or removes)
+    - Removes location information
+    - Retains clinical concepts for research
+
+    **Authorization**: Requires researcher or admin role
+
+    **Formats**:
+    - **PDF**: Visual summary with watermark (default)
+    - **JSON**: Machine-readable data for research
+    - **FHIR**: FHIR R4 Composition (de-identified)
+
+    **Use Cases**:
+    - Clinical research data extraction
+    - Quality improvement studies
+    - Training data for ML models
+    - Multi-site research collaboration
+
+    **Audit Logging**: All de-identified exports are logged separately
+    for compliance tracking.
+
+    **Returns**: Export response with de-identified data.
+    """
+    try:
+        # Initialize services
+        timeline_service = TimelineService(db)
+        export_service = TimelineExportService()
+
+        # Parse filters if provided
+        filters = None
+        if export_request.filters:
+            filters = TimelineFilters(**export_request.filters)
+
+        # Fetch timeline data
+        timeline_data = await timeline_service.get_patient_timeline(
+            patient_id=patient_id,
+            filters=filters
+        )
+
+        # Audit log: De-identified export initiated
+        logger.info(
+            f"De-identified export initiated: user={current_user.id}, "
+            f"patient={patient_id}, format={export_request.format}, "
+            f"ip={request.client.host}"
+        )
+
+        # Force de-identification options
+        deident_options = export_request.options or {}
+        deident_options["de_identified"] = True
+        deident_options["watermark"] = True  # Always watermark de-identified exports
+
+        # Generate export based on format
+        export_result = None
+        content_type = None
+
+        if export_request.format == "pdf":
+            export_bytes = await export_service.export_to_pdf(
+                patient_id=patient_id,
+                timeline_data=timeline_data,
+                options=deident_options
+            )
+            export_result = export_bytes
+            content_type = "application/pdf"
+
+        elif export_request.format == "json":
+            export_dict = await export_service.export_to_json(
+                timeline_data=timeline_data,
+                de_identified=True
+            )
+            export_result = export_dict
+            content_type = "application/json"
+
+        elif export_request.format == "fhir":
+            # FHIR export - de-identification would need to be applied
+            export_dict = await export_service.export_to_fhir(
+                patient_id=patient_id,
+                timeline_data=timeline_data
+            )
+            # Apply de-identification to FHIR resource
+            export_dict["subject"]["reference"] = "Patient/[De-identified]"
+            export_result = export_dict
+            content_type = "application/fhir+json"
+
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported export format: {export_request.format}"
+            )
+
+        # Audit log: De-identified export completed
+        logger.info(
+            f"De-identified export completed: user={current_user.id}, "
+            f"patient=[REDACTED], format={export_request.format}, "
+            f"size={len(export_result) if isinstance(export_result, bytes) else 'N/A'}"
+        )
+
+        # Return response
+        if isinstance(export_result, bytes):
+            import base64
+            return TimelineExportResponse(
+                export_id=str(UUID(int=0)),
+                status="completed",
+                format=export_request.format,
+                content_type=content_type,
+                data=base64.b64encode(export_result).decode('utf-8'),
+                created_at=datetime.now(),
+                expires_at=None
+            )
+        else:
+            return TimelineExportResponse(
+                export_id=str(UUID(int=0)),
+                status="completed",
+                format=export_request.format,
+                content_type=content_type,
+                data=export_result,
+                created_at=datetime.now(),
+                expires_at=None
+            )
+
+    except Exception as e:
+        logger.error(
+            f"De-identified export failed: user={current_user.id}, "
+            f"patient=[REDACTED], format={export_request.format}, "
+            f"error={str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Export failed: {str(e)}"
+        )

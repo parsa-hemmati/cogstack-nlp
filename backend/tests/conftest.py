@@ -812,3 +812,366 @@ async def db_session(db: AsyncSession) -> AsyncGenerator[AsyncSession, None]:
     This fixture ensures both names work interchangeably.
     """
     yield db
+
+
+# =============================================================================
+# ADMIN USER FIXTURES
+# =============================================================================
+
+@pytest.fixture(scope="function")
+async def test_user_admin(db: AsyncSession) -> User:
+    """
+    Create test admin user.
+
+    Returns:
+        User with admin role for full access tests
+    """
+    user = User(
+        id=uuid4(),
+        username="test_admin",
+        email="admin@test.com",
+        role="admin",
+        is_active=True,
+        can_break_glass=True,
+    )
+    user.set_password("admin_password_123")
+
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    return user
+
+
+@pytest.fixture(scope="function")
+async def auth_headers_admin(test_user_admin: User) -> Dict[str, str]:
+    """
+    Generate JWT token for admin user.
+
+    Returns:
+        Authorization headers dict with Bearer token
+    """
+    token_data = auth_service.create_access_token(
+        user_id=str(test_user_admin.id),
+        role=test_user_admin.role
+    )
+
+    return {
+        "Authorization": f"Bearer {token_data['access_token']}"
+    }
+
+
+# =============================================================================
+# MOCK EXTERNAL SERVICES
+# =============================================================================
+
+@pytest.fixture(scope="function")
+def mock_redis_client():
+    """
+    Mock Redis client for testing caching functionality.
+
+    Returns:
+        AsyncMock with common Redis methods
+    """
+    from unittest.mock import AsyncMock, MagicMock
+
+    redis = AsyncMock()
+
+    # Mock common Redis methods
+    redis.get = AsyncMock(return_value=None)
+    redis.set = AsyncMock(return_value=True)
+    redis.setex = AsyncMock(return_value=True)
+    redis.delete = AsyncMock(return_value=1)
+    redis.exists = AsyncMock(return_value=0)
+    redis.expire = AsyncMock(return_value=True)
+    redis.ttl = AsyncMock(return_value=-1)
+    redis.incr = AsyncMock(return_value=1)
+    redis.decr = AsyncMock(return_value=0)
+    redis.keys = AsyncMock(return_value=[])
+    redis.scan = AsyncMock(return_value=(0, []))
+    redis.pipeline = MagicMock(return_value=AsyncMock())
+    redis.hget = AsyncMock(return_value=None)
+    redis.hset = AsyncMock(return_value=1)
+    redis.hgetall = AsyncMock(return_value={})
+
+    # Mock xadd/xread for Redis Streams (event bus)
+    redis.xadd = AsyncMock(return_value="1234567890-0")
+    redis.xread = AsyncMock(return_value=[])
+
+    return redis
+
+
+@pytest.fixture(scope="function")
+def mock_elasticsearch_client():
+    """
+    Mock Elasticsearch client for testing search functionality.
+
+    Returns:
+        AsyncMock with common Elasticsearch methods
+    """
+    from unittest.mock import AsyncMock, MagicMock
+
+    es = AsyncMock()
+
+    # Default empty search response
+    empty_response = {
+        "took": 5,
+        "timed_out": False,
+        "hits": {
+            "total": {"value": 0, "relation": "eq"},
+            "max_score": None,
+            "hits": []
+        },
+        "aggregations": {}
+    }
+
+    # Mock common Elasticsearch methods
+    es.search = AsyncMock(return_value=empty_response)
+    es.index = AsyncMock(return_value={"_id": str(uuid4()), "result": "created"})
+    es.get = AsyncMock(return_value={"_id": str(uuid4()), "_source": {}})
+    es.delete = AsyncMock(return_value={"result": "deleted"})
+    es.update = AsyncMock(return_value={"result": "updated"})
+    es.bulk = AsyncMock(return_value={"errors": False, "items": []})
+    es.count = AsyncMock(return_value={"count": 0})
+    es.exists = AsyncMock(return_value=False)
+
+    # Mock indices operations
+    es.indices = MagicMock()
+    es.indices.exists = AsyncMock(return_value=True)
+    es.indices.create = AsyncMock(return_value={"acknowledged": True})
+    es.indices.delete = AsyncMock(return_value={"acknowledged": True})
+    es.indices.refresh = AsyncMock(return_value={"_shards": {"successful": 1}})
+    es.indices.get_mapping = AsyncMock(return_value={})
+
+    return es
+
+
+@pytest.fixture(scope="function")
+def mock_medcat_client():
+    """
+    Mock MedCAT client for testing NLP functionality.
+
+    Returns:
+        MagicMock with common MedCAT methods
+    """
+    from unittest.mock import MagicMock
+
+    medcat = MagicMock()
+
+    # Mock entity extraction
+    medcat.get_entities = MagicMock(return_value={
+        "entities": {
+            "0": {
+                "cui": "C0011849",
+                "pretty_name": "Diabetes mellitus",
+                "type_ids": ["T047"],
+                "types": ["Disease or Syndrome"],
+                "start": 10,
+                "end": 18,
+                "meta_anns": {
+                    "Negation": {"value": "Affirmed", "confidence": 0.95},
+                    "Temporality": {"value": "Current", "confidence": 0.90},
+                    "Experiencer": {"value": "Patient", "confidence": 0.98}
+                },
+                "acc": 0.95
+            }
+        }
+    })
+
+    # Mock concept lookup
+    medcat.get_cui2name = MagicMock(return_value={
+        "C0011849": "Diabetes mellitus",
+        "C0020538": "Hypertension",
+        "C0004238": "Atrial fibrillation"
+    })
+
+    return medcat
+
+
+# =============================================================================
+# TEST DATA FIXTURES
+# =============================================================================
+
+@pytest.fixture(scope="function")
+async def test_patient(db: AsyncSession) -> Patient:
+    """
+    Create a single test patient.
+
+    Returns:
+        Patient model instance
+    """
+    patient = Patient(
+        id=uuid4(),
+        nhs_number="9876543210",
+        full_name="Test Patient",
+        date_of_birth=date(1985, 6, 15),
+        first_seen_at=datetime.utcnow(),
+        last_seen_at=datetime.utcnow(),
+        document_count=0,
+    )
+    db.add(patient)
+    await db.commit()
+    await db.refresh(patient)
+    return patient
+
+
+@pytest.fixture(scope="function")
+async def test_document(
+    db: AsyncSession,
+    test_patient: Patient,
+    test_user_clinician: User
+) -> Document:
+    """
+    Create a single test document associated with a patient.
+
+    Returns:
+        Document model instance
+    """
+    doc = Document(
+        id=uuid4(),
+        patient_id=test_patient.id,
+        filename="test_note.rtf",
+        content_type="application/rtf",
+        content_hash="testhash" + "a" * 56,
+        encrypted_content=b"encrypted test content",
+        file_size=256,
+        uploaded_by=test_user_clinician.id,
+        processing_status=ProcessingStatus.COMPLETED,
+        document_date=datetime.utcnow(),
+        author="Dr. Test"
+    )
+    db.add(doc)
+    await db.commit()
+    await db.refresh(doc)
+    return doc
+
+
+@pytest.fixture(scope="function")
+async def test_entity(
+    db: AsyncSession,
+    test_document: Document,
+    test_patient: Patient
+) -> ExtractedEntity:
+    """
+    Create a single test extracted entity.
+
+    Returns:
+        ExtractedEntity model instance
+    """
+    entity = ExtractedEntity(
+        id=uuid4(),
+        document_id=test_document.id,
+        patient_id=test_patient.id,
+        entity_type=EntityType.CLINICAL,
+        cui="C0011849",
+        pretty_name="Diabetes mellitus",
+        start_char=10,
+        end_char=28,
+        accuracy=0.95,
+        meta_anns={
+            "Negation": "Affirmed",
+            "Temporality": "Current",
+            "Experiencer": "Patient",
+            "Certainty": "Definite",
+        },
+    )
+    db.add(entity)
+    await db.commit()
+    await db.refresh(entity)
+    return entity
+
+
+# =============================================================================
+# SEARCH DATA FIXTURES
+# =============================================================================
+
+@pytest.fixture(scope="function")
+def sample_search_response() -> dict:
+    """
+    Sample Elasticsearch search response for testing.
+
+    Returns:
+        Dict matching Elasticsearch response structure
+    """
+    return {
+        "took": 125,
+        "timed_out": False,
+        "hits": {
+            "total": {"value": 2, "relation": "eq"},
+            "max_score": 9.5,
+            "hits": [
+                {
+                    "_id": str(uuid4()),
+                    "_score": 9.5,
+                    "_source": {
+                        "document_id": str(uuid4()),
+                        "title": "Clinical Note 001",
+                        "content": "Patient has diabetes mellitus",
+                        "document_type": "rtf",
+                        "author": "Dr. Smith",
+                        "date": "2025-11-18T12:00:00Z",
+                        "department": "Cardiology"
+                    },
+                    "highlight": {
+                        "content": ["Patient has <em>diabetes</em> mellitus"]
+                    }
+                },
+                {
+                    "_id": str(uuid4()),
+                    "_score": 7.2,
+                    "_source": {
+                        "document_id": str(uuid4()),
+                        "title": "Clinical Note 002",
+                        "content": "Follow-up for diabetes treatment",
+                        "document_type": "rtf",
+                        "author": "Dr. Jones",
+                        "date": "2025-11-19T10:00:00Z",
+                        "department": "Endocrinology"
+                    },
+                    "highlight": {
+                        "content": ["Follow-up for <em>diabetes</em> treatment"]
+                    }
+                }
+            ]
+        },
+        "aggregations": {
+            "by_department": {
+                "buckets": [
+                    {"key": "Cardiology", "doc_count": 1},
+                    {"key": "Endocrinology", "doc_count": 1}
+                ]
+            },
+            "by_author": {
+                "buckets": [
+                    {"key": "Dr. Smith", "doc_count": 1},
+                    {"key": "Dr. Jones", "doc_count": 1}
+                ]
+            }
+        }
+    }
+
+
+# =============================================================================
+# UTILITY FIXTURES
+# =============================================================================
+
+@pytest.fixture(scope="function")
+def clean_test_env(monkeypatch):
+    """
+    Set up clean test environment variables.
+
+    Ensures consistent environment across all tests.
+    """
+    monkeypatch.setenv("TESTING", "true")
+    monkeypatch.setenv("LOG_LEVEL", "WARNING")
+    monkeypatch.setenv("DISABLE_AUDIT_LOG", "true")
+    yield
+    # Environment cleanup is automatic with monkeypatch
+
+
+@pytest.fixture(scope="session")
+def anyio_backend():
+    """
+    Specify the async backend for pytest-asyncio.
+    """
+    return "asyncio"
