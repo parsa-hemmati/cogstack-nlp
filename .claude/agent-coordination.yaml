@@ -53,9 +53,17 @@ agent_types:
   orchestrator:
     description: "Meta-agent that coordinates all other agents"
     tools: [Read, Grep, Glob, Task]
-    can_spawn: [developer, tester, auditor, debugger, documentation]
+    can_spawn: [developer, tester, auditor, debugger, documentation, browser-test-runner]
     blocking: false
     parallel_spawn: true  # Can spawn multiple agents at once
+
+  browser-test-runner:
+    description: "E2E browser testing with Docker orchestration and AI exploration"
+    tools: [Read, Write, Bash, Grep, Glob]
+    can_spawn: [debugger]
+    blocking: true  # Blocks push if E2E tests fail
+    max_retries: 1
+    timeout_minutes: 20  # Docker startup + tests
 
 # Pre-commit hook configuration
 pre_commit:

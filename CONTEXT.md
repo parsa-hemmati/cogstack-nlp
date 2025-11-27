@@ -2,7 +2,7 @@
 
 **Status**: Living Document - Updated with EVERY commit
 **Last Updated**: 2025-11-27
-**Version**: 1.2.3
+**Version**: 1.4.0
 
 > ⚠️ **CRITICAL**: This document MUST be updated before any code commit. No PR can be merged without context updates.
 
@@ -339,6 +339,57 @@ This project uses **CCPM (Claude Code Project Manager)** to orchestrate **8 spec
 ---
 
 ### Recent Changes
+
+#### [2025-11-27] - Browser Test Runner Agent Implementation
+
+**Branch**: `main`
+**Session Focus**: Add new browser-test-runner subagent with Docker orchestration, Playwright, and browser-use AI testing
+
+**Files Created**:
+- `scripts/docker-test-runner.sh` - Docker orchestration script (start/stop/health checks)
+- `.claude/agents/browser-test-runner.md` - Agent definition with 9-step workflow
+- `.claude/skills/browser-testing/SKILL.md` - Skill with Docker, Playwright, browser-use patterns
+- `backend/tests/e2e_browser/conftest.py` - Pytest fixtures for AI tests
+- `backend/tests/e2e_browser/test_ai_exploration.py` - 4 AI exploratory test scenarios
+- `.env.test` - Isolated test environment configuration
+
+**Files Modified**:
+- `backend/requirements.txt` - Added browser-use>=0.1.40, langchain-anthropic>=0.3.0, playwright>=1.49.0
+- `.claude/agents.yaml` - Registered browser-test-runner agent
+- `.claude/agent-coordination.yaml` - Added browser-test-runner to coordination rules
+
+**New Agent Capabilities**:
+1. **Docker Orchestration**: Auto start/stop all 7 services (postgres, redis, elasticsearch, medcat-service, backend, indexer, frontend)
+2. **Playwright E2E Tests**: Execute full regression test suite (~25 tests)
+3. **browser-use AI Tests**: 4 exploratory scenarios:
+   - Timeline exploration (zoom, pan, concept markers)
+   - Search flow (input, filters, results)
+   - Export workflow (CSV, JSON, PDF, FHIR)
+   - Accessibility audit (keyboard nav, ARIA, contrast)
+4. **Result Reporting**: Updates TESTING.md with comprehensive results
+
+**How to Use**:
+```bash
+# Full test cycle (start Docker -> run tests -> stop Docker)
+./scripts/docker-test-runner.sh run
+
+# Or spawn the agent
+Task({
+  subagent_type: "browser-test-runner",
+  description: "Run full E2E browser tests",
+  prompt: "Execute full E2E test suite with Docker orchestration"
+})
+```
+
+**Dependencies**:
+- browser-use>=0.1.40 (AI browser automation)
+- langchain-anthropic>=0.3.0 (Claude integration)
+- playwright>=1.49.0 (browser automation)
+- ANTHROPIC_API_KEY required for AI tests
+
+**Estimated Execution Time**: 10-15 minutes
+
+---
 
 #### [2025-11-27] - PR #23 Merged: Full Platform Implementation (Sprints 1-9.5)
 

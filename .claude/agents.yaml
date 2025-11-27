@@ -149,6 +149,61 @@ agents:
       failures_location: "TESTING.md → ## ❌ Failed Tests"
       response_time: "2 to 5 minutes (depends on test suite size)"
 
+  # ===========================================
+  # BROWSER TEST RUNNER AGENT - E2E Testing
+  # ===========================================
+  browser-test-runner:
+    name: "Browser Test Runner Agent"
+    description: "E2E browser testing agent with Docker orchestration. Manages Docker lifecycle, runs Playwright scripted tests, executes browser-use AI exploration, and reports results."
+    role: "e2e-tester"
+
+    # Tools this agent can use
+    tools:
+      - Read
+      - Write                         # Update TESTING.md
+      - Bash                          # Docker commands, run tests
+      - Grep
+      - Glob
+
+    # Skills this agent should use
+    skills:
+      - browser-testing               # Docker orchestration, Playwright, browser-use patterns
+
+    # What documents this agent writes to
+    writes_to:
+      - TESTING.md                    # E2E test results, AI findings
+      - "Agent Communication"         # Section in CONTEXT.md
+
+    # What documents this agent reads from
+    reads_from:
+      - CONTEXT.md                    # Recent changes to test
+      - "frontend/tests/e2e/**/*.ts"  # Playwright test files
+      - "backend/tests/e2e_browser/**/*.py"  # browser-use test files
+      - "docker-compose.yml"          # Service configuration
+
+    # Triggers
+    triggers:
+      - "pre-push"                    # Full E2E validation before push
+      - "manual"                      # User invocation
+
+    # Communication protocol
+    communication:
+      status_updates: "CONTEXT.md → ## Agent Communication → ### Browser Test Runner Agent"
+      results_location: "TESTING.md → ## Browser Test Runner Results"
+      response_time: "10 to 15 minutes (includes Docker startup)"
+
+    # Workflow steps
+    workflow:
+      - "1. Read TESTING.md baseline"
+      - "2. Start Docker services (docker-compose up -d)"
+      - "3. Wait for all health checks (~3 min)"
+      - "4. Run Playwright E2E tests"
+      - "5. Run browser-use AI exploratory tests"
+      - "6. Aggregate results"
+      - "7. Update TESTING.md"
+      - "8. Stop Docker services"
+      - "9. Report summary"
+
 # ===========================================
 # WORKFLOW COORDINATION
 # ===========================================
