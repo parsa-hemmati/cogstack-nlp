@@ -234,12 +234,25 @@ class Dataset(models.Model):
 class DatasetForm(ModelForm):
     def clean(self):
         original_file = self.cleaned_data['original_file']
-        if '.csv' in original_file.name:
+        file_name = original_file.name.lower()
+
+        if file_name.endswith('.csv'):
             df = pd.read_csv(original_file.file, on_bad_lines='error')
-        elif '.xlsx' in original_file.name:
+        elif file_name.endswith('.xlsx'):
             df = pd.read_excel(original_file.file)
+        elif file_name.endswith('.rtf'):
+            # RTF files are handled differently - single document per file
+            # Validation passes; actual parsing done in data_utils
+            return
+        elif file_name.endswith('.zip'):
+            # ZIP files containing multiple RTF files
+            # Validation passes; actual parsing done in data_utils
+            return
         else:
-            raise forms.ValidationError({'original_file': 'Must be either .csv or .xlsx'})
+            raise forms.ValidationError({
+                'original_file': 'Must be .csv, .xlsx, .rtf, or .zip (containing RTF files)'
+            })
+
         if 'name' not in df.columns or 'text' not in df.columns:
             raise forms.ValidationError({'original_file': 'Must contain at least a "name" and "text" column'})
 
@@ -250,6 +263,34 @@ class Document(models.Model):
     last_modified = models.DateTimeField(auto_now=True)
     text = models.TextField(default="", blank=True)
     dataset = models.ForeignKey('Dataset', on_delete=models.CASCADE)
+
+    # Regex-extracted clinical fields
+    nhs_number = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        help_text='NHS Number (10 digits) - extracted via regex'
+    )
+    consultant = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text='Consultant/Doctor name - extracted via regex'
+    )
+    specialty = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Medical specialty/department - extracted via regex'
+    )
+
+    # Source file type
+    source_file_type = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        help_text='Original file type (csv, xlsx, rtf)'
+    )
 
     class Meta:
         ordering = ['id']
@@ -479,6 +520,12 @@ class ProjectAnnotateEntities(Project, ProjectAnnotateEntitiesFields):
 
 
 class ProjectGroup(ProjectFields, ProjectAnnotateEntitiesFields):
+    OVERLAP_MODES = [
+        ('none', 'No Overlap - Each annotator gets unique documents'),
+        ('full', 'Full Overlap - All annotators annotate all documents'),
+        ('partial', 'Partial Overlap - Specified percentage overlap for validation'),
+    ]
+
     administrators = models.ManyToManyField(settings.AUTH_USER_MODEL,
                                             help_text="The set of users that will have visibility of all "
                                                       "projects in this project group", related_name='administrators')
@@ -497,6 +544,24 @@ class ProjectGroup(ProjectFields, ProjectAnnotateEntitiesFields):
                                                                ' annotator. If unchecked it will not create associated'
                                                                ' ProjectAnnotateEntities instead, leaving the admin to '
                                                                ' manually configure groups of projects.')
+
+    # Document overlap configuration for inter-annotator agreement
+    overlap_mode = models.CharField(
+        max_length=10,
+        choices=OVERLAP_MODES,
+        default='full',
+        help_text='How documents are distributed among annotators for validation overlap'
+    )
+    overlap_percentage = models.PositiveSmallIntegerField(
+        default=20,
+        help_text='Percentage of documents that will be annotated by multiple annotators (for partial overlap mode). '
+                  'Range: 0-100. A value of 20 means 20% of documents will be annotated by at least 2 annotators.'
+    )
+    min_annotators_per_doc = models.PositiveSmallIntegerField(
+        default=2,
+        help_text='Minimum number of annotators that should annotate overlap documents (for validation). '
+                  'Only applies to partial overlap mode.'
+    )
 
     def __str__(self):
         return self.name

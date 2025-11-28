@@ -2,9 +2,11 @@ import json
 import logging
 import os
 import re
+import zipfile
+import tempfile
 from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 from django.contrib.auth.models import User
@@ -14,6 +16,7 @@ from django.db.models import Q
 from core.settings import MEDIA_ROOT
 from .models import *
 from .utils import env_str_to_bool
+from .regex_extractors import extract_all_fields
 
 _MAX_DATASET_SIZE_DEFAULT = 10000
 _dt_fmt = '%Y-%m-%d %H:%M:%S.%f'
@@ -21,43 +24,221 @@ _dt_fmt = '%Y-%m-%d %H:%M:%S.%f'
 logger = logging.getLogger(__name__)
 
 
+def rtf_to_text(rtf_content: str) -> str:
+    """
+    Convert RTF content to plain text.
+
+    Uses a simple regex-based approach that handles common RTF formatting.
+    For more complex RTF files, consider installing striprtf package.
+
+    Args:
+        rtf_content: RTF file content as string
+
+    Returns:
+        Plain text extracted from RTF
+    """
+    try:
+        # Try using striprtf if available (more robust)
+        from striprtf.striprtf import rtf_to_text as striprtf_convert
+        return striprtf_convert(rtf_content)
+    except ImportError:
+        # Fallback to simple regex-based conversion
+        pass
+
+    text = rtf_content
+
+    # Remove RTF header
+    text = re.sub(r'^\{\\rtf1.*?\\viewkind\d*', '', text, flags=re.DOTALL)
+
+    # Handle common RTF control words
+    replacements = [
+        (r'\\par\s*', '\n'),           # Paragraph breaks
+        (r'\\line\s*', '\n'),          # Line breaks
+        (r'\\tab\s*', '\t'),           # Tabs
+        (r'\\pard\s*', ''),            # Paragraph reset
+        (r'\\plain\s*', ''),           # Plain text reset
+        (r'\\b0?\s*', ''),             # Bold
+        (r'\\i0?\s*', ''),             # Italic
+        (r'\\ul0?\s*', ''),            # Underline
+        (r'\\fs\d+\s*', ''),           # Font size
+        (r'\\f\d+\s*', ''),            # Font
+        (r'\\cf\d+\s*', ''),           # Color
+        (r'\\highlight\d+\s*', ''),    # Highlight
+        (r'\\lang\d+\s*', ''),         # Language
+        (r'\\ltrch\s*', ''),           # Left-to-right
+        (r'\\rtlch\s*', ''),           # Right-to-left
+        (r'\\qj\s*', ''),              # Justify
+        (r'\\ql\s*', ''),              # Left align
+        (r'\\qr\s*', ''),              # Right align
+        (r'\\qc\s*', ''),              # Center align
+        (r'\\fi-?\d+\s*', ''),         # First line indent
+        (r'\\li\d+\s*', ''),           # Left indent
+        (r'\\ri\d+\s*', ''),           # Right indent
+        (r'\\sl-?\d+\s*', ''),         # Line spacing
+        (r'\\sa\d+\s*', ''),           # Space after
+        (r'\\sb\d+\s*', ''),           # Space before
+        (r"\\\'([0-9a-fA-F]{2})", lambda m: chr(int(m.group(1), 16))),  # Hex characters
+        (r'\\u(\d+)\??', lambda m: chr(int(m.group(1)))),  # Unicode characters
+        (r'\\\*\\[a-z]+\s*', ''),      # Ignorable destinations
+        (r'\\[a-z]+\d*\s*', ''),       # Other control words
+        (r'\{[^{}]*\}', ''),           # Nested groups (simplified)
+        (r'[\{\}]', ''),               # Remaining braces
+    ]
+
+    for pattern, replacement in replacements:
+        if callable(replacement):
+            text = re.sub(pattern, replacement, text)
+        else:
+            text = re.sub(pattern, replacement, text)
+
+    # Clean up
+    text = re.sub(r'\n{3,}', '\n\n', text)  # Reduce multiple newlines
+    text = text.strip()
+
+    return text
+
+
+def parse_rtf_file(file_path: str) -> Tuple[str, str]:
+    """
+    Parse a single RTF file and extract text.
+
+    Args:
+        file_path: Path to RTF file
+
+    Returns:
+        Tuple of (document_name, text_content)
+    """
+    doc_name = os.path.splitext(os.path.basename(file_path))[0]
+
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+        rtf_content = f.read()
+
+    text = rtf_to_text(rtf_content)
+    return doc_name, text
+
+
+def parse_rtf_zip(zip_path: str) -> List[Tuple[str, str]]:
+    """
+    Parse a ZIP file containing RTF files.
+
+    Args:
+        zip_path: Path to ZIP file
+
+    Returns:
+        List of (document_name, text_content) tuples
+    """
+    documents = []
+
+    with zipfile.ZipFile(zip_path, 'r') as zf:
+        for file_info in zf.infolist():
+            if file_info.filename.lower().endswith('.rtf') and not file_info.is_dir():
+                doc_name = os.path.splitext(os.path.basename(file_info.filename))[0]
+
+                with zf.open(file_info) as f:
+                    rtf_content = f.read().decode('utf-8', errors='ignore')
+                    text = rtf_to_text(rtf_content)
+                    documents.append((doc_name, text))
+
+    return documents
+
+
 class InvalidParameterError(Exception):
     """Exception raised when invalid parameters are provided"""
     pass
 
 
-def dataset_from_file(dataset: Dataset):
-    if '.csv' in dataset.original_file.path:
-        df = pd.read_csv(dataset.original_file.path, on_bad_lines='error')
-    elif '.xlsx' in dataset.original_file.path:
-        df = pd.read_excel(dataset.original_file.path)
-    else:
-        raise Exception("Please make sure the file is either a .csv or .xlsx format")
+def dataset_from_file(dataset: Dataset, extract_regex_fields: bool = True):
+    """
+    Create Document objects from a dataset file.
 
-    df.columns = [c.lower() for c in df.columns]
+    Supports CSV, XLSX, RTF, and ZIP (containing RTF files).
+
+    Args:
+        dataset: Dataset model instance with original_file attached
+        extract_regex_fields: If True, extract NHS number, consultant, specialty via regex
+    """
+    file_path = dataset.original_file.path
+    file_name = file_path.lower()
     max_dataset_size = int(os.environ.get('MAX_DATASET_SIZE', _MAX_DATASET_SIZE_DEFAULT))
+
+    # Determine file type and parse accordingly
+    if file_name.endswith('.csv'):
+        df = pd.read_csv(file_path, on_bad_lines='error')
+        df.columns = [c.lower() for c in df.columns]
+        source_type = 'csv'
+        _validate_dataframe(df, max_dataset_size)
+        documents_data = [(row['name'], row['text']) for _, row in df.iterrows()]
+
+    elif file_name.endswith('.xlsx'):
+        df = pd.read_excel(file_path)
+        df.columns = [c.lower() for c in df.columns]
+        source_type = 'xlsx'
+        _validate_dataframe(df, max_dataset_size)
+        documents_data = [(row['name'], row['text']) for _, row in df.iterrows()]
+
+    elif file_name.endswith('.rtf'):
+        source_type = 'rtf'
+        doc_name, text = parse_rtf_file(file_path)
+        documents_data = [(doc_name, text)]
+
+    elif file_name.endswith('.zip'):
+        source_type = 'zip'
+        documents_data = parse_rtf_zip(file_path)
+        if len(documents_data) > max_dataset_size:
+            raise Exception(f'ZIP contains {len(documents_data)} RTF files. Max dataset size is {max_dataset_size}.')
+        if len(documents_data) == 0:
+            raise Exception('ZIP file contains no RTF files.')
+
+    else:
+        raise Exception("Please make sure the file is .csv, .xlsx, .rtf, or .zip (containing RTF files)")
+
+    # Validate unique names
+    if env_str_to_bool('UNIQUE_DOC_NAMES_IN_DATASETS', True):
+        names = [d[0] for d in documents_data]
+        if len(set(names)) != len(names):
+            raise Exception('Document names must be unique')
+
+    # Create Document objects
+    with transaction.atomic():
+        for doc_name, text in documents_data:
+            text = sanitise_input(str(text))
+
+            document = Document()
+            document.name = str(doc_name)
+            document.text = text
+            document.dataset = dataset
+            document.source_file_type = source_type
+
+            # Extract regex fields if enabled
+            if extract_regex_fields and text:
+                extracted = extract_all_fields(text)
+                document.nhs_number = extracted.get('nhs_number')
+                document.consultant = extracted.get('consultant')
+                document.specialty = extracted.get('specialty')
+
+            document.save()
+
+    logger.info(f'Created {len(documents_data)} documents from {source_type} file for dataset {dataset.name}')
+
+
+def _validate_dataframe(df: pd.DataFrame, max_dataset_size: int):
+    """Validate a dataframe for document creation."""
+    if 'text' not in df.columns or 'name' not in df.columns:
+        raise Exception(
+            "Please make sure the uploaded file has two columns: 'name', 'text'. "
+            "The 'name' column are document IDs, and the 'text' column is the text you're "
+            "collecting annotations for"
+        )
+
+    if df.shape[0] > max_dataset_size:
+        raise Exception(
+            f'Attempting to upload a dataset with {df.shape[0]} rows. '
+            f'The Max dataset size is set to {max_dataset_size}, please reduce the number of rows '
+            f'or contact the MedCATTrainer administrator to increase the env var value: MAX_DATASET_SIZE'
+        )
 
     if df['name'].nunique() != df.shape[0] and env_str_to_bool('UNIQUE_DOC_NAMES_IN_DATASETS', True):
         raise Exception('name column entries must be unique')
-
-    if df.shape[0] > int(max_dataset_size):
-        raise Exception(f'Attempting to upload a dataset with {df.shape[0]} rows. The Max dataset size is set to'
-                        f' {max_dataset_size}, please reduce the number of rows or contact the MedCATTrainer'
-                        f' administrator to increase the env var value:MAX_DATASET_SIZE')
-
-    if 'text' not in df.columns or 'name' not in df.columns:
-        raise Exception("Please make sure the uploaded file has a column with two columns:'name', 'text'. "
-                        "The 'name' column are document IDs, and the 'text' column is the text you're "
-                        "collecting annotations for")
-
-    with transaction.atomic():
-        for i, row in enumerate(df.iterrows()):
-            row = row[1]
-            document = Document()
-            document.name = row['name']
-            document.text = sanitise_input(row['text'])
-            document.dataset = dataset
-            document.save()
 
 
 def sanitise_input(text: str):

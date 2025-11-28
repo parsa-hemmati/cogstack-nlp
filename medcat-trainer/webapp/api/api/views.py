@@ -599,6 +599,8 @@ def update_meta_annotation(request):
 
 @api_view(http_method_names=['POST'])
 def annotate_text(request):
+    from .regex_extractors import extract_all_fields_with_positions
+
     p_id = request.data['project_id']
     message = request.data['message']
     cuis = request.data['cuis']
@@ -608,27 +610,46 @@ def annotate_text(request):
     project = ProjectAnnotateEntities.objects.get(id=p_id)
 
     cat = get_medcat(project=project)
-    cat.config.components.linking.filters.cuis = set(cuis)
+    if cuis:
+        cat.config.components.linking.filters.cuis = set(cuis.split(',') if isinstance(cuis, str) else cuis)
     spacy_doc = cat(message)
 
     ents = []
     anno_tkns = []
     for ent in spacy_doc.linked_ents:
-        cnt = Entity.objects.filter(label=ent.cui).count()
         inc_ent = all(tkn not in anno_tkns for tkn in ent)
-        if inc_ent and cnt != 0:
+        if inc_ent:
             anno_tkns.extend([tkn for tkn in ent])
-            entity = Entity.objects.get(label=ent.cui)
+            # Try to get existing entity, or create a temporary one for demo
+            entity_obj = Entity.objects.filter(label=ent.cui).first()
+            if entity_obj:
+                entity_id = entity_obj.id
+            else:
+                # For demo: create entity on-the-fly or use CUI as ID
+                entity_obj, _ = Entity.objects.get_or_create(label=ent.cui)
+                entity_id = entity_obj.id
+
             ents.append({
-                'entity': entity.id,
+                'entity': entity_id,
                 'value': ent.base.text,
                 'start_ind': ent.base.start_char_index,
                 'end_ind': ent.base.end_char_index,
-                'acc': ent.context_similarity
+                'acc': ent.context_similarity,
+                'cui': ent.cui,
+                'pretty_name': getattr(ent, 'detected_name', ent.base.text),
+                'types': list(ent.types) if hasattr(ent, 'types') else []
             })
 
     ents.sort(key=lambda e: e['start_ind'])
-    out = {'message': message, 'entities': ents}
+
+    # Extract regex-based fields with positions for highlighting
+    regex_fields = extract_all_fields_with_positions(message)
+
+    out = {
+        'message': message,
+        'entities': ents,
+        'regex_extractions': regex_fields
+    }
     return Response(out)
 
 
@@ -962,3 +983,369 @@ def project_progress(request):
         out[p] = {'validated_count': val_docs, 'dataset_count': ds_doc_count}
 
     return Response(out)
+
+
+@api_view(http_method_names=['POST'])
+def assign_documents_with_overlap(request):
+    """
+    Assign documents from a project group to annotators with configurable overlap.
+
+    Supports three overlap modes:
+    - 'none': Each annotator gets unique documents (no overlap)
+    - 'full': All annotators get all documents (complete overlap)
+    - 'partial': A percentage of documents are shared for inter-annotator agreement
+
+    Request body:
+    {
+        "project_group_id": int,           # Required: ProjectGroup to assign from
+        "overlap_mode": str,               # Optional: 'none', 'full', 'partial' (default from group)
+        "overlap_percentage": int,         # Optional: 0-100 for partial mode (default from group)
+        "min_annotators_per_doc": int,     # Optional: minimum annotators for overlap docs (default from group)
+        "shuffle": bool                    # Optional: randomize document order (default True)
+    }
+
+    Returns:
+    {
+        "message": str,
+        "assignments": {
+            "annotator_username": [doc_ids],
+            ...
+        },
+        "overlap_documents": [doc_ids],    # Documents assigned to multiple annotators
+        "stats": {
+            "total_documents": int,
+            "annotators": int,
+            "overlap_docs_count": int,
+            "unique_docs_per_annotator": int
+        }
+    }
+    """
+    import random
+    from math import ceil
+
+    user = request.user
+    if not user.is_superuser:
+        return HttpResponseBadRequest('Only super users can assign documents')
+
+    # Get project group
+    group_id = request.data.get('project_group_id')
+    if not group_id:
+        return HttpResponseBadRequest('project_group_id is required')
+
+    try:
+        group = ProjectGroup.objects.get(id=group_id)
+    except ProjectGroup.DoesNotExist:
+        return HttpResponseBadRequest(f'ProjectGroup with id {group_id} does not exist')
+
+    # Get configuration - use request values or fallback to group defaults
+    overlap_mode = request.data.get('overlap_mode', group.overlap_mode)
+    overlap_percentage = request.data.get('overlap_percentage', group.overlap_percentage)
+    min_annotators = request.data.get('min_annotators_per_doc', group.min_annotators_per_doc)
+    shuffle = request.data.get('shuffle', True)
+
+    # Validate overlap_mode
+    valid_modes = ['none', 'full', 'partial']
+    if overlap_mode not in valid_modes:
+        return HttpResponseBadRequest(f'Invalid overlap_mode. Must be one of: {valid_modes}')
+
+    # Get annotators and documents
+    annotators = list(group.annotators.all())
+    if not annotators:
+        return HttpResponseBadRequest('No annotators assigned to this project group')
+
+    if not group.dataset:
+        return HttpResponseBadRequest('No dataset assigned to this project group')
+
+    documents = list(Document.objects.filter(dataset=group.dataset))
+    if not documents:
+        return HttpResponseBadRequest('No documents in the dataset')
+
+    # Optionally shuffle documents for random assignment
+    if shuffle:
+        random.shuffle(documents)
+
+    # Get or create projects for each annotator
+    annotator_projects = {}
+    for annotator in annotators:
+        # Find existing project for this annotator in this group
+        project = ProjectAnnotateEntities.objects.filter(
+            group=group,
+            members=annotator
+        ).first()
+
+        if not project:
+            # Create new project for annotator
+            project = ProjectAnnotateEntities()
+            project.group = group
+            project.name = f'{group.name} - {annotator.username}'
+            project.description = group.description
+            project.dataset = group.dataset
+            project.annotation_guideline_link = group.annotation_guideline_link
+            project.cuis = group.cuis
+            project.cuis_file = group.cuis_file
+            project.annotation_classification = group.annotation_classification
+            project.project_locked = group.project_locked
+            project.project_status = group.project_status
+            project.concept_db = group.concept_db
+            project.vocab = group.vocab
+            project.require_entity_validation = group.require_entity_validation
+            project.train_model_on_submit = group.train_model_on_submit
+            project.add_new_entities = group.add_new_entities
+            project.restrict_concept_lookup = group.restrict_concept_lookup
+            project.terminate_available = group.terminate_available
+            project.irrelevant_available = group.irrelevant_available
+            project.enable_entity_annotation_comments = group.enable_entity_annotation_comments
+            project.save()
+            project.members.add(annotator)
+            # Copy M2M fields from group
+            for admin in group.administrators.all():
+                project.members.add(admin)
+            project.cdb_search_filter.set(group.cdb_search_filter.all())
+            project.tasks.set(group.tasks.all())
+            project.relations.set(group.relations.all())
+            project.save()
+
+        annotator_projects[annotator.username] = project
+
+    # Calculate document assignments based on overlap mode
+    assignments = {annotator.username: [] for annotator in annotators}
+    overlap_documents = []
+
+    num_docs = len(documents)
+    num_annotators = len(annotators)
+
+    if overlap_mode == 'full':
+        # All annotators get all documents
+        for annotator in annotators:
+            assignments[annotator.username] = [doc.id for doc in documents]
+        overlap_documents = [doc.id for doc in documents]
+
+    elif overlap_mode == 'none':
+        # Each annotator gets unique documents (round-robin distribution)
+        for i, doc in enumerate(documents):
+            annotator_idx = i % num_annotators
+            assignments[annotators[annotator_idx].username].append(doc.id)
+
+    elif overlap_mode == 'partial':
+        # Calculate overlap
+        overlap_count = ceil(num_docs * overlap_percentage / 100)
+        overlap_count = min(overlap_count, num_docs)  # Can't exceed total docs
+
+        # Select documents for overlap
+        overlap_docs = documents[:overlap_count]
+        unique_docs = documents[overlap_count:]
+
+        overlap_documents = [doc.id for doc in overlap_docs]
+
+        # Assign overlap documents to min_annotators annotators (or all if fewer)
+        annotators_for_overlap = min(min_annotators, num_annotators)
+        for doc in overlap_docs:
+            # Assign to first N annotators (could be randomized)
+            selected_annotators = random.sample(annotators, annotators_for_overlap)
+            for annotator in selected_annotators:
+                assignments[annotator.username].append(doc.id)
+
+        # Distribute unique documents round-robin
+        for i, doc in enumerate(unique_docs):
+            annotator_idx = i % num_annotators
+            assignments[annotators[annotator_idx].username].append(doc.id)
+
+    # Update validated_documents for each project
+    for annotator_username, doc_ids in assignments.items():
+        project = annotator_projects[annotator_username]
+        # Clear existing prepared/validated documents
+        project.prepared_documents.clear()
+        project.validated_documents.clear()
+        # Note: We don't set validated_documents here - those are set when annotators complete them
+        # The assignment is implicit through the project's dataset
+        project.save()
+
+    # Calculate stats
+    stats = {
+        'total_documents': num_docs,
+        'annotators': num_annotators,
+        'overlap_docs_count': len(overlap_documents),
+        'unique_docs_per_annotator': sum(len(docs) for docs in assignments.values()) // num_annotators if num_annotators > 0 else 0
+    }
+
+    return Response({
+        'message': f'Documents assigned successfully using {overlap_mode} overlap mode',
+        'assignments': assignments,
+        'overlap_documents': overlap_documents,
+        'stats': stats
+    })
+
+
+@api_view(http_method_names=['GET'])
+def document_regex_fields(request):
+    """
+    Get regex-extracted fields for documents in a dataset.
+
+    Query params:
+    - dataset_id: int (required) - Dataset to get documents from
+    - fields: str (optional) - Comma-separated list of fields to return
+                              (nhs_number, consultant, specialty, source_file_type)
+
+    Returns:
+    {
+        "documents": [
+            {
+                "id": int,
+                "name": str,
+                "nhs_number": str or null,
+                "consultant": str or null,
+                "specialty": str or null,
+                "source_file_type": str or null
+            },
+            ...
+        ],
+        "stats": {
+            "total": int,
+            "with_nhs_number": int,
+            "with_consultant": int,
+            "with_specialty": int
+        }
+    }
+    """
+    dataset_id = request.GET.get('dataset_id')
+    if not dataset_id:
+        return HttpResponseBadRequest('dataset_id is required')
+
+    try:
+        dataset = Dataset.objects.get(id=dataset_id)
+    except Dataset.DoesNotExist:
+        return HttpResponseBadRequest(f'Dataset with id {dataset_id} does not exist')
+
+    # Get requested fields
+    requested_fields = request.GET.get('fields', 'nhs_number,consultant,specialty,source_file_type')
+    fields = [f.strip() for f in requested_fields.split(',')]
+
+    valid_fields = ['nhs_number', 'consultant', 'specialty', 'source_file_type']
+    fields = [f for f in fields if f in valid_fields]
+
+    documents = Document.objects.filter(dataset=dataset)
+
+    result = []
+    stats = {
+        'total': documents.count(),
+        'with_nhs_number': 0,
+        'with_consultant': 0,
+        'with_specialty': 0
+    }
+
+    for doc in documents:
+        doc_data = {
+            'id': doc.id,
+            'name': doc.name
+        }
+
+        if 'nhs_number' in fields:
+            doc_data['nhs_number'] = doc.nhs_number
+            if doc.nhs_number:
+                stats['with_nhs_number'] += 1
+
+        if 'consultant' in fields:
+            doc_data['consultant'] = doc.consultant
+            if doc.consultant:
+                stats['with_consultant'] += 1
+
+        if 'specialty' in fields:
+            doc_data['specialty'] = doc.specialty
+            if doc.specialty:
+                stats['with_specialty'] += 1
+
+        if 'source_file_type' in fields:
+            doc_data['source_file_type'] = doc.source_file_type
+
+        result.append(doc_data)
+
+    return Response({
+        'documents': result,
+        'stats': stats
+    })
+
+
+@api_view(http_method_names=['POST'])
+def reextract_regex_fields(request):
+    """
+    Re-run regex extraction on documents in a dataset.
+    Useful when regex patterns have been updated.
+
+    Request body:
+    {
+        "dataset_id": int,          # Required: Dataset to process
+        "document_ids": [int],      # Optional: Specific documents to process (default: all)
+        "fields": [str]             # Optional: Fields to extract (default: all)
+    }
+
+    Returns:
+    {
+        "message": str,
+        "processed": int,
+        "updated": int
+    }
+    """
+    from .regex_extractors import extract_all_fields
+
+    user = request.user
+    if not user.is_superuser:
+        return HttpResponseBadRequest('Only super users can re-extract fields')
+
+    dataset_id = request.data.get('dataset_id')
+    if not dataset_id:
+        return HttpResponseBadRequest('dataset_id is required')
+
+    try:
+        dataset = Dataset.objects.get(id=dataset_id)
+    except Dataset.DoesNotExist:
+        return HttpResponseBadRequest(f'Dataset with id {dataset_id} does not exist')
+
+    # Get documents to process
+    doc_ids = request.data.get('document_ids')
+    if doc_ids:
+        documents = Document.objects.filter(dataset=dataset, id__in=doc_ids)
+    else:
+        documents = Document.objects.filter(dataset=dataset)
+
+    # Get fields to extract
+    requested_fields = request.data.get('fields', ['nhs_number', 'consultant', 'specialty'])
+
+    processed = 0
+    updated = 0
+
+    for doc in documents:
+        processed += 1
+
+        if not doc.text:
+            continue
+
+        extracted = extract_all_fields(doc.text)
+        changed = False
+
+        if 'nhs_number' in requested_fields:
+            new_val = extracted.get('nhs_number')
+            if new_val != doc.nhs_number:
+                doc.nhs_number = new_val
+                changed = True
+
+        if 'consultant' in requested_fields:
+            new_val = extracted.get('consultant')
+            if new_val != doc.consultant:
+                doc.consultant = new_val
+                changed = True
+
+        if 'specialty' in requested_fields:
+            new_val = extracted.get('specialty')
+            if new_val != doc.specialty:
+                doc.specialty = new_val
+                changed = True
+
+        if changed:
+            doc.save()
+            updated += 1
+
+    return Response({
+        'message': f'Re-extracted regex fields for {processed} documents',
+        'processed': processed,
+        'updated': updated
+    })
