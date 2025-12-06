@@ -38,6 +38,7 @@ mypy==1.13.0
 
 # Monitoring
 prometheus-client==0.21.0
+prometheus-fastapi-instrumentator==7.0.0
 
 # Date/Time
 python-dateutil==2.9.0.post0

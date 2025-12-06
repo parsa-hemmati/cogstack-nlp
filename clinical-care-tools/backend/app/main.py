@@ -13,7 +13,9 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.database import init_db, close_db
+from app.core.database import init_db, close_db
 from app.core.redis_client import redis_client
+from prometheus_fastapi_instrumentator import Instrumentator
 
 
 @asynccontextmanager
@@ -86,6 +88,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Instrument Prometheus metrics
+Instrumentator().instrument(app).expose(app)
 
 
 # Health check endpoint

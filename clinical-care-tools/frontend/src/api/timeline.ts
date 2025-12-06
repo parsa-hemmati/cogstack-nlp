@@ -53,6 +53,14 @@ export const timelineApi = {
   },
 
   /**
+   * Get document details
+   */
+  async getDocument(documentId: string): Promise<any> {
+    const response = await apiClient.get(`/v1/timeline/documents/${documentId}`)
+    return response.data
+  },
+
+  /**
    * Export timeline to specified format
    */
   async exportTimeline(

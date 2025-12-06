@@ -62,3 +62,24 @@ export interface TimelineResponse {
   }
   metadata: TimelineMetadata
 }
+
+export interface Annotation {
+  id: string
+  cui: string
+  preferredName: string
+  conceptType: string
+  startChar: number
+  endChar: number
+  text: string
+  metaAnnotations: MetaAnnotations
+}
+
+export interface DocumentDetail {
+  id: string
+  title: string
+  documentType: string
+  date: string
+  author?: string
+  content: string
+  annotations: Annotation[]
+}

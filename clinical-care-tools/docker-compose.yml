@@ -41,6 +41,40 @@ services:
     networks:
       - clinical-care-network
 
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: clinical-care-prometheus
+    volumes:
+      - ../docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - clinical-care-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.3.3
+    container_name: clinical-care-grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - clinical-care-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
   # CogStack-ModelServe (NLP Service)
   cogstack-modelserve:
     image: cogstacksystems/cogstack-modelserve:latest
@@ -144,6 +178,10 @@ volumes:
   redis_data:
     driver: local
   backend_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local
 
 networks:
