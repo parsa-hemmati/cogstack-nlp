@@ -16,7 +16,7 @@ class CDSRuleCondition(BaseModel):
 class CDSRuleAction(BaseModel):
     """Schema for a single rule action (part of THEN clause)."""
     type: str = Field(..., description="Action type (alert, recommend_guideline, order_lab, etc.)")
-    **kwargs: Dict[str, Any] = Field(default_factory=dict, description="Action-specific parameters")
+    parameters: Dict[str, Any] = Field(default_factory=dict, description="Action-specific parameters")
 
 
 class CDSRuleBase(BaseModel):

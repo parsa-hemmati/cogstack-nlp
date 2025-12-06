@@ -212,3 +212,14 @@ export async function updateFilterPreset(
 export async function deleteFilterPreset(id: string): Promise<void> {
   await api.delete(`/api/v1/timeline/filters/${id}`)
 }
+
+/**
+ * Default export for unified API access
+ */
+export const timelineApi = {
+  getPatientTimeline,
+  listFilterPresets,
+  createFilterPreset,
+  updateFilterPreset,
+  deleteFilterPreset
+}

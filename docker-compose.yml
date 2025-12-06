@@ -271,7 +271,7 @@ services:
     networks:
       - clinical_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -361,6 +361,7 @@ services:
         NODE_VERSION: ${NODE_VERSION:-18}
     container_name: clinical_care_frontend
     restart: unless-stopped
+    user: root  # Run as root to avoid permission issues with nginx
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
       - VITE_APP_NAME=Clinical Care Tools
@@ -368,11 +369,6 @@ services:
       - VITE_ENVIRONMENT=${ENVIRONMENT:-development}
     ports:
       - "${FRONTEND_PORT:-8080}:8080"
-    volumes:
-      # Development: Mount source for hot reload (read-only)
-      - ./frontend:/app:ro
-      # Prevent overwriting node_modules (anonymous volume)
-      - /app/node_modules
     depends_on:
       backend:
         condition: service_healthy
@@ -389,8 +385,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    # Security: Run as non-root user
-    user: "${UID:-1000}:${GID:-1000}"
 
 # =============================================================================
 # Docker Networks

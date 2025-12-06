@@ -27,6 +27,18 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# Create nginx cache directories with proper permissions at build time
+RUN mkdir -p /var/cache/nginx/client_temp \
+    /var/cache/nginx/proxy_temp \
+    /var/cache/nginx/fastcgi_temp \
+    /var/cache/nginx/uwsgi_temp \
+    /var/cache/nginx/scgi_temp \
+    && chown -R nginx:nginx /var/cache/nginx \
+    && chmod -R 755 /var/cache/nginx \
+    && mkdir -p /run \
+    && chown -R nginx:nginx /run \
+    && chmod -R 755 /run
+
 # Expose port 8080
 EXPOSE 8080
 
@@ -34,5 +46,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --quiet --tries=1 --spider http://localhost:8080 || exit 1
 
-# Start nginx
+# Start nginx as root (required for permissions)
 CMD ["nginx", "-g", "daemon off;"]

@@ -39,14 +39,14 @@ from app.services.analytics_service import AnalyticsService
 from app.services.audit_service import AuditService
 from app.services.export_service import ExportService
 from app.services.search_service import SearchService
-from app.middleware.rate_limit import rate_limit_search
+from app.middleware.rate_limit import rate_limit_search_dependency
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/search", tags=["search"])
 
 
-@router.post("", response_model=SearchResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(rate_limit_search)])
+@router.post("", response_model=SearchResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(rate_limit_search_dependency)])
 async def search_documents(
     search_request: SearchRequest,
     request: Request,
@@ -641,7 +641,7 @@ async def delete_saved_search(
 # ============================================================================
 
 
-@router.post("/export", dependencies=[Depends(rate_limit_search)])
+@router.post("/export", dependencies=[Depends(rate_limit_search_dependency)])
 async def export_search_results(
     export_request: SearchExportRequest,
     request: Request,

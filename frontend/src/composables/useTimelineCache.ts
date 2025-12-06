@@ -5,7 +5,6 @@
  *
  * Task #005: Timeline Composables & State Management
  */
-import { createHash } from 'crypto'
 import type { TimelineEvent, TimelineFilters } from '@/types/timeline'
 
 const CACHE_PREFIX = 'timeline'
@@ -17,13 +16,24 @@ interface CachedTimeline {
   timestamp: number
 }
 
+// Simple browser-safe hash function
+function simpleHash(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0')
+}
+
 export function useTimelineCache() {
   /**
    * Generate cache key from patient ID and filters
    */
   const generateCacheKey = (patientId: string, filters: TimelineFilters): string => {
     const filtersStr = JSON.stringify(filters, Object.keys(filters).sort())
-    const hash = createHash('md5').update(filtersStr).digest('hex').substring(0, 16)
+    const hash = simpleHash(filtersStr)
     return `${CACHE_PREFIX}:${patientId}:${hash}`
   }
 

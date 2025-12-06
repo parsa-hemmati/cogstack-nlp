@@ -72,7 +72,7 @@ jinja2==3.1.4  # Template rendering for PDF export
 # Performance Testing
 locust==2.20.0  # Load testing framework
 
-# Browser-based E2E Testing with AI
-browser-use>=0.1.40  # AI-driven browser automation
-langchain-anthropic>=0.3.0  # Anthropic LLM integration for browser-use
-playwright>=1.49.0  # Browser automation
+# Browser-based E2E Testing with AI (DISABLED due to dependency conflicts)
+# browser-use>=0.1.40  # AI-driven browser automation
+# langchain-anthropic>=0.3.0  # Anthropic LLM integration for browser-use
+# playwright>=1.49.0  # Browser automation
