@@ -1,0 +1,17 @@
+services:
+  anoncat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ./scripts/run.sh
+    env_file:
+      - ./app/.env
+    volumes:
+      - ../medcat-models:/home/models
+      - app-db:/home/app/db
+    restart: unless-stopped
+    ports:
+      - "8002:8000"
+
+volumes:
+  app-db:

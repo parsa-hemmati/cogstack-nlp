@@ -1,0 +1,86 @@
+name: medcat-v2-tutorials - Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    paths:
+      - 'medcat-v2/**'
+      - 'medcat-v2-tutorials/**'
+      - '.github/workflows/medcat-v2**'
+      - '.github/workflows/medcat-v2-tutorials**'
+defaults:
+  run:
+    working-directory: ./medcat-v2-tutorials
+
+jobs:
+  basic-and-meta:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+
+      - name: Update install targets in notebooks
+        run: |
+          python .ci/patch_notebook_installs.py .
+
+      - name: Install dependencies
+        run: |
+          pip install -U pip
+          pip install -r requirements.txt
+          pip install "../medcat-v2[spacy,deid,rel-cat,meta-cat]"
+
+      - name: Install IPython kernel
+        run: |
+          python -m ipykernel install --name smoketests --user
+      - name: Smoke test tutorial
+        # NOTE: these need to be run separately so that order is guaranteed
+        run: |
+          pytest --collect-only --nbmake ./notebooks/introductory/basic/1*.ipynb
+          pytest --collect-only --nbmake ./notebooks/introductory/basic/2*.ipynb
+          pytest --collect-only --nbmake ./notebooks/introductory/basic/3*.ipynb
+          pytest --collect-only --nbmake ./notebooks/introductory/meta/*.ipynb
+          pytest --nbmake -n=auto --nbmake-kernel=smoketests --nbmake-timeout=1800 ./notebooks/introductory/basic/1*.ipynb
+          pytest --nbmake -n=auto --nbmake-kernel=smoketests --nbmake-timeout=1800 ./notebooks/introductory/basic/2*.ipynb
+          pytest --nbmake -n=auto --nbmake-kernel=smoketests --nbmake-timeout=1800 ./notebooks/introductory/basic/3*.ipynb
+          pytest --nbmake -n=auto --nbmake-kernel=smoketests --nbmake-timeout=1800 ./notebooks/introductory/meta/*.ipynb
+          pytest --nbmake -n=auto --nbmake-kernel=smoketests --nbmake-timeout=1800 ./notebooks/introductory/custom/*.ipynb
+
+  migrate-and-advanved:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        part: [
+          ./notebooks/introductory/migration/*.ipynb,
+          ./notebooks/introductory/relcat/*.ipynb,
+          ./notebooks/advanced/*.ipynb,
+        ]
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Update install targets in notebooks
+        run: |
+          python .ci/patch_notebook_installs.py .
+
+      - name: Install dependencies
+        run: |
+          pip install -U pip
+          pip install -r requirements.txt
+          pip install "../medcat-v2[spacy,deid,rel-cat,meta-cat]"
+
+      - name: Install IPython kernel
+        run: |
+          python -m ipykernel install --name smoketests --user
+      - name: Smoke test tutorial
+        run: |
+          pytest --capture=no --collect-only --nbmake ${{ matrix.part }}
+          pytest --capture=no --nbmake -n=auto --nbmake-kernel=smoketests --nbmake-timeout=1800 ${{ matrix.part }}

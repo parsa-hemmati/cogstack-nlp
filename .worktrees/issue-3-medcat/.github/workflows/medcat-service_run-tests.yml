@@ -1,0 +1,54 @@
+name: medcat-service - Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    paths:
+      - 'medcat-v2/**'
+      - 'medcat-service/**'
+      - '.github/workflows/medcat-service**'
+
+defaults:
+  run:
+    working-directory: ./medcat-service
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v5
+
+      - name: Cache MedMen Model
+        id: cache-medmen
+        uses: actions/cache@v4
+        with:
+          path: models/medmen
+          key: medmen-${{ hashFiles('medcat-service/scripts/download_medmen.sh') }}
+
+      - name: Install Python 3
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.11
+          cache: 'pip' # caching pip dependencies
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y isort flake8
+          python -m pip install --upgrade pip
+          python -m pip install virtualenv setuptools
+          python -m pip install isort flake8 mypy stubs types-Flask types-simplejson types-setuptools types-requests
+          python -m pip install -r ./requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu/;
+          python -m pip install "../medcat-v2[meta-cat,spacy,deid]"
+
+      - name: Check linting and types
+        run: |
+          isort .
+          flake8 .
+          mypy . --ignore-missing-imports
+
+      - name: Run tests
+        run: bash run_tests.sh
+      
+     

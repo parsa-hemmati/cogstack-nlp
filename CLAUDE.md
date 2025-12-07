@@ -1,6 +1,6 @@
 # AI Assistant Guide for CogStack NLP
 
-**Version**: 1.7.0
+**Version**: 1.7.0 (Assistant Guide) | App Version: 1.0.0 (Frontend) / 0.1.0 (Backend)
 **Last Updated**: 2025-11-19
 **Purpose**: Guide AI assistants (Claude Code, GitHub Copilot, etc.) on project conventions and best practices
 

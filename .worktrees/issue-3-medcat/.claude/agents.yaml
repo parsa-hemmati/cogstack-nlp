@@ -1,0 +1,321 @@
+# Multi-Agent Workflow Configuration
+# Version: 1.0.0
+# Purpose: Define parallel agents for continuous development, testing, and auditing
+
+agents:
+  # ===========================================
+  # DEVELOPER AGENT - Primary Builder
+  # ===========================================
+  developer:
+    name: "Developer Agent"
+    description: "Primary development agent responsible for implementing features, writing code, and coordinating with other agents"
+    role: "builder"
+
+    # Tools this agent can use
+    tools:
+      - Read
+      - Write
+      - Edit
+      - Bash
+      - Grep
+      - Glob
+      - Task  # Can spawn subagents
+
+    # Skills this agent should use
+    skills:
+      - spec-kit-enforcer        # Ensure spec → plan → tasks → code workflow
+      - infrastructure-expert    # Docker, PostgreSQL, auth patterns
+      - vue3-component-reuse     # Reuse existing Vue components
+      - modular-app-architect    # Modular architecture patterns
+      - spec-to-tech-plan        # Convert specs to plans
+      - tech-plan-to-tasks       # Convert plans to tasks
+
+    # What documents this agent writes to
+    writes_to:
+      - CONTEXT.md               # Technical changes, ADRs, implementation notes
+      - "Agent Communication"    # Section in CONTEXT.md
+
+    # What documents this agent reads from
+    reads_from:
+      - AUDIT.md                 # Compliance feedback from Auditor Agent
+      - TESTING.md               # Test results from Test Agent
+      - ".specify/**/*.md"       # Specifications, plans, tasks
+
+    # Triggers
+    triggers:
+      - "pre-commit"             # Validate code quality
+      - "post-commit"            # Update documentation
+      - "manual"                 # User invocation
+
+    # Communication protocol
+    communication:
+      status_updates: "CONTEXT.md → ## Agent Communication → ### Developer Agent"
+      request_format: "**Requests**: [Agent Name] review of [specific item]"
+      response_time: "30 seconds to 2 minutes"
+
+  # ===========================================
+  # AUDITOR AGENT - Compliance & PRD Checker
+  # ===========================================
+  auditor:
+    name: "Auditor Agent"
+    description: "Compliance auditor responsible for HIPAA/GDPR validation, PRD alignment checking, and drift detection"
+    role: "auditor"
+
+    # Tools this agent can use (READ-ONLY)
+    tools:
+      - Read
+      - Grep
+      - Glob
+      # NO Write, Edit, Bash (read-only for safety)
+
+    # Skills this agent should use
+    skills:
+      - healthcare-compliance-checker  # HIPAA/GDPR validation
+      - prd-compliance-checker         # API alignment with PRD
+      - medcat-meta-annotations        # NLP accuracy validation
+      - fhir-r4-mapper                 # FHIR standards compliance
+
+    # What documents this agent writes to
+    writes_to:
+      - AUDIT.md                       # Compliance findings, drift detection
+      - "Agent Communication"          # Section in CONTEXT.md
+
+    # What documents this agent reads from
+    reads_from:
+      - CONTEXT.md                     # What was built (technical changes)
+      - "backend/**/*.py"              # Backend code for compliance check
+      - "frontend/**/*.{vue,ts}"       # Frontend code for PHI exposure
+      - ".specify/sprints/*.md"        # PRD specifications
+
+    # Triggers
+    triggers:
+      - "pre-commit"                   # Quick compliance check
+      - "post-commit"                  # Full audit
+      - "pre-push"                     # Final validation
+      - "manual"                       # User invocation
+
+    # Communication protocol
+    communication:
+      status_updates: "CONTEXT.md → ## Agent Communication → ### Auditor Agent"
+      findings_location: "AUDIT.md → ## 🎯 Current Compliance Status"
+      blocking_issues: "Documented in AUDIT.md with ❌ BLOCKING prefix"
+      response_time: "1 to 3 minutes"
+
+  # ===========================================
+  # TEST AGENT - Quality Assurance
+  # ===========================================
+  test:
+    name: "Test Agent"
+    description: "Quality assurance agent responsible for test generation, execution, coverage tracking, and performance benchmarking"
+    role: "tester"
+
+    # Tools this agent can use
+    tools:
+      - Read
+      - Bash                          # Run tests
+      - Grep
+      - Glob
+      - Write                         # Update TESTING.md
+
+    # Skills this agent should use
+    skills:
+      - prd-test-generator            # Generate tests from PRD
+      - autonomous-developer          # TDD loops (optional)
+
+    # What documents this agent writes to
+    writes_to:
+      - TESTING.md                    # Test results, coverage, benchmarks
+      - "Agent Communication"         # Section in CONTEXT.md
+
+    # What documents this agent reads from
+    reads_from:
+      - CONTEXT.md                    # What to test (new features)
+      - AUDIT.md                      # Compliance requirements → tests
+      - ".specify/sprints/*.md"       # PRD requirements → test scenarios
+      - "backend/tests/**/*.py"       # Existing backend tests
+      - "frontend/tests/**/*.{ts,spec.ts}"  # Existing frontend tests
+
+    # Triggers
+    triggers:
+      - "pre-commit"                  # Smoke tests
+      - "post-commit"                 # Full test suite
+      - "pre-push"                    # Full validation + benchmarks
+      - "manual"                      # User invocation
+
+    # Communication protocol
+    communication:
+      status_updates: "CONTEXT.md → ## Agent Communication → ### Test Agent"
+      results_location: "TESTING.md → ## 🧪 Test Breakdown"
+      failures_location: "TESTING.md → ## ❌ Failed Tests"
+      response_time: "2 to 5 minutes (depends on test suite size)"
+
+# ===========================================
+# WORKFLOW COORDINATION
+# ===========================================
+workflow:
+  # Parallel execution on triggers
+  parallel_triggers:
+    pre-commit:
+      agents: ["developer", "auditor", "test"]
+      mode: "parallel"
+      blocking: true
+      timeout: "5 minutes"
+      success_criteria: "All agents approve"
+
+    post-commit:
+      agents: ["auditor", "test"]
+      mode: "parallel"
+      blocking: false
+      timeout: "10 minutes"
+      success_criteria: "Both agents complete (warnings allowed)"
+
+    pre-push:
+      agents: ["developer", "auditor", "test"]
+      mode: "parallel"
+      blocking: true
+      timeout: "15 minutes"
+      success_criteria: "All agents approve with 0 blocking issues"
+
+  # Communication protocol
+  communication:
+    shared_documents:
+      - CONTEXT.md    # Technical memory
+      - AUDIT.md      # Compliance memory
+      - TESTING.md    # Quality memory
+
+    update_frequency:
+      developer: "Per commit"
+      auditor: "Per commit + on-demand"
+      test: "Per commit + on-demand"
+
+    coordination_section: "CONTEXT.md → ## Agent Communication"
+
+    message_format: |
+      ### [Agent Name] [ISO 8601 Timestamp]
+      **Status**: [Working/Blocked/Complete]
+      **Progress**: [Percentage or description]
+      **Findings**: [Summary or link to detailed findings]
+      **Blockers**: [List or "None"]
+      **Requests**: [Requests to other agents or "None"]
+
+  # Conflict resolution
+  conflict_resolution:
+    priority_order:
+      1: "auditor"     # Compliance is non-negotiable
+      2: "test"        # Quality gates must pass
+      3: "developer"   # Implementation decisions
+
+    escalation:
+      - "If auditor blocks → Developer must fix"
+      - "If test fails → Developer must fix or skip with justification"
+      - "If agents disagree → Escalate to user via CONTEXT.md"
+
+  # Success criteria for autonomous mode
+  autonomous_mode:
+    continue_if:
+      - "All agents approve in pre-commit"
+      - "No blocking issues in AUDIT.md"
+      - "All tests passing in TESTING.md"
+
+    pause_if:
+      - "Auditor finds blocking HIPAA/GDPR violation"
+      - "Test coverage drops below 80%"
+      - "PRD drift detected with breaking changes"
+      - "Any agent reports a blocker"
+
+    stop_if:
+      - "All tasks complete + all agents approve"
+      - "Max retries exceeded (3 attempts)"
+      - "External dependency missing"
+      - "User intervention required"
+
+# ===========================================
+# SKILL USAGE GUIDELINES
+# ===========================================
+skill_usage:
+  when_to_use:
+    description: "Skills activate dynamically when relevant to agent's current task"
+
+  how_agents_share_skills:
+    - "Developer Agent uses spec-kit-enforcer before writing code"
+    - "Auditor Agent uses healthcare-compliance-checker after Developer commits"
+    - "Test Agent uses prd-test-generator to create tests from PRD"
+    - "All agents can access the same skills if relevant to their role"
+
+  skill_precedence:
+    - "Agent-specific instructions override general skill guidance"
+    - "Compliance skills (auditor) are non-negotiable"
+    - "Quality skills (test) enforce minimum thresholds"
+
+# ===========================================
+# GIT HOOK INTEGRATION
+# ===========================================
+git_hooks:
+  pre-commit:
+    script: ".git-hooks/pre-commit-parallel.sh"
+    agents: ["developer", "auditor", "test"]
+    checks:
+      developer:
+        - "Validate code syntax"
+        - "Check for hardcoded secrets"
+        - "Verify CONTEXT.md updated"
+      auditor:
+        - "Quick HIPAA check (no PHI in logs)"
+        - "Quick PRD alignment (breaking changes?)"
+      test:
+        - "Run modified test files"
+        - "Smoke test critical paths"
+
+  post-commit:
+    script: ".git-hooks/post-commit-parallel.sh"
+    agents: ["auditor", "test"]
+    checks:
+      auditor:
+        - "Full HIPAA/GDPR audit"
+        - "Full PRD compliance check"
+        - "Update AUDIT.md"
+      test:
+        - "Run full test suite"
+        - "Update coverage metrics"
+        - "Update TESTING.md"
+
+  pre-push:
+    script: ".git-hooks/pre-push-parallel.sh"
+    agents: ["developer", "auditor", "test"]
+    checks:
+      developer:
+        - "Verify all commits have CONTEXT.md updates"
+        - "Check for TODO/FIXME comments"
+      auditor:
+        - "Final compliance validation"
+        - "Verify 0 blocking issues"
+      test:
+        - "Run full test suite + benchmarks"
+        - "Verify coverage ≥85%"
+        - "Verify all tests passing"
+
+# ===========================================
+# MONITORING & OBSERVABILITY
+# ===========================================
+monitoring:
+  agent_health:
+    metrics:
+      - "Response time per agent"
+      - "Success rate per agent"
+      - "Blocker rate per agent"
+
+    alerts:
+      - "Agent timeout (>5 min for pre-commit)"
+      - "Agent failure (exit code ≠ 0)"
+      - "Agent deadlock (waiting on each other)"
+
+  workflow_health:
+    metrics:
+      - "Time to merge (commit → push)"
+      - "Blocker resolution time"
+      - "Agent agreement rate"
+
+    kpis:
+      - "Autonomous completion rate: >90%"
+      - "Compliance pass rate: 100%"
+      - "Test pass rate: >95%"

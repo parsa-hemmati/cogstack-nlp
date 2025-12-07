@@ -1,0 +1,130 @@
+name: medcat-v1 - build
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"  # every Sunday at midnight UTC (avoid clash with v2 stability)
+  pull_request:
+    paths:
+      - 'v1/medcat/**'
+      - '.github/workflows/medcat-v1**'
+defaults:
+  run:
+    working-directory: ./v1/medcat
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.10', '3.11', '3.12' ]
+      max-parallel: 4
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MEDCAT="1.16.0dev0"
+          python -m pip install "setuptools-scm>=8.0,<9.0"
+          pip install -r requirements-dev.txt
+      - name: Check types
+        run: |
+          python -m mypy --follow-imports=normal medcat
+      - name: Lint
+        run: |
+          flake8 medcat
+      - name: Pydantic 1 check
+        # NOTE: the following will look for use of pydantic1-specific .dict() method and .__fields__ attribute
+        #       if there are some (that are not annotated for pydantic1 backwards compatibility) a non-zero exit
+        #       code is returned, which will hald the workflow and print out the offending parts
+        run: |
+          grep "\.__fields__" medcat -rI | grep -v "# 4pydantic1 - backwards compatibility" | tee /dev/stderr | test $(wc -l) -eq 0
+          grep "\.dict(" medcat -rI | grep -v "# 4pydantic1 - backwards compatibility" | tee /dev/stderr | test $(wc -l) -eq 0
+      - name: Test
+        run: |
+          all_files=$(git ls-files | grep '^tests/.*\.py$' | grep -v '/__init__\.py$' | sed 's/\.py$//' | sed 's/\//./g')
+          num_files=$(echo "$all_files" | wc -l)
+          midpoint=$((num_files / 2))
+          first_half_nl=$(echo "$all_files" | head -n $midpoint)
+          second_half_nl=$(echo "$all_files" | tail -n +$(($midpoint + 1)))
+          python -m unittest ${first_half_nl[@]}
+          python -m unittest ${second_half_nl[@]}
+        timeout-minutes: 45
+      - name: Regression
+        run: source tests/resources/regression/run_regression.sh
+      - name: Model backwards compatibility
+        run: source tests/resources/model_compatibility/check_backwards_compatibility.sh
+      - name: Get the latest release version
+        id: get_latest_release
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const latestRelease = await github.rest.repos.getLatestRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            core.setOutput('latest_version', latestRelease.data.tag_name);
+      - name: Make sure there's no deprecated methods that should be removed.
+        # only run this for main -> production PR. I.e just before doing a release.
+        if: github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'production'
+        env:
+          VERSION: ${{ steps.get_latest_release.outputs.latest_version }}
+        run: |
+          python tests/check_deprecations.py "$VERSION" --next-version --remove-prefix
+
+  publish-to-test-pypi:
+    if: |
+      github.repository == 'CogStack/cogstack-nlp' &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags') != true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    concurrency: publish-to-test-pypi
+    needs: [build]
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: 'main'
+          fetch-depth: 0
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+
+      - name: Install pypa/build
+        run: >-
+          python -m
+          pip install
+          build
+          --user
+
+      - name: Configure the version
+        run: >-
+          sed --in-place
+          "s/node-and-date/no-local-version/g"
+          setup.py
+
+      - name: Build a binary wheel and a source tarball
+        run: >-
+          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MEDCAT="1.16.0dev0"
+          python -m
+          build
+          --sdist
+          --wheel
+          --outdir dist/
+          .
+
+      - name: Publish dev distribution to Test PyPI
+        uses: pypa/gh-action-pypi-publish@v1.13.0
+        with:
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+        continue-on-error: true

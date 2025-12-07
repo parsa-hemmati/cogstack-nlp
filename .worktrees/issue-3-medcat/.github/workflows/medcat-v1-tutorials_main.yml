@@ -1,0 +1,49 @@
+name: medcat-v1-tutorials - Test
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"  # every Sunday at midnight UTC (avoid clash with v2 stability)
+  pull_request:
+    paths:
+      - 'v1/medcat/**'
+      - 'v1/medcat-tutorials/**'
+      - '.github/workflows/medcat-v1**'
+      - '.github/workflows/medcat-v1-tutorials**'
+defaults:
+  run:
+    working-directory: ./v1/medcat-tutorials
+
+jobs:
+  main:
+
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        part: [
+          introductory/Part_2_*.ipynb,
+          introductory/Part_3_*.ipynb,
+          introductory/Part_4_*.ipynb,
+          introductory/Part_5_*.ipynb,
+          introductory/Part_1_*.ipynb,
+          introductory/Part_6_*.ipynb,
+          specialised/Comparing_Models_with_RegressionSuite.ipynb  # this should work still
+          # specialised/*.ipynb         # To make it run, the SnomedCT file needs to be mocked
+        ]
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install -U pip
+          pip install -r requirements-dev.txt
+      - name: Install IPython kernel
+        run: |
+          python -m ipykernel install --name smoketests --user
+      - name: Smoke test tutorial
+        run: |
+          pytest --collect-only --nbmake ./notebooks/${{ matrix.part }}
+          pytest --nbmake -n=auto --nbmake-kernel=smoketests --nbmake-timeout=1800 ./notebooks/${{ matrix.part }}

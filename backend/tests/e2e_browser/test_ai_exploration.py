@@ -1,12 +1,12 @@
 """
 AI-driven exploratory E2E tests using browser-use library.
 
-These tests use Claude to autonomously explore the application UI,
+These tests use Claude to autonomously explore the MedCAT Trainer application UI,
 discovering edge cases and issues that scripted tests might miss.
 
 Requirements:
 - ANTHROPIC_API_KEY environment variable must be set
-- Docker services must be running (frontend at localhost:8080)
+- Docker services must be running (medcat-trainer at localhost:8001)
 - Run with: pytest tests/e2e_browser/ -v
 """
 import pytest
@@ -14,44 +14,44 @@ from browser_use import Agent
 
 
 @pytest.mark.asyncio
-async def test_timeline_exploration(llm, base_url, test_patient_id):
+async def test_login_page_exploration(llm, base_url):
     """
-    AI explores the patient timeline view, testing:
-    - Zoom controls (in, out, reset)
-    - Pan/drag functionality
-    - Concept marker interactions
-    - Keyboard navigation
+    AI explores the MedCAT Trainer login page, testing:
+    - Login form presence and behavior
+    - Input field validation
+    - Error message display
     """
     task = f"""
-    Navigate to {base_url}/timeline/{test_patient_id}
+    Navigate to {base_url}
 
-    Explore the patient timeline interface:
+    Explore the MedCAT Trainer login/home page:
 
-    1. ZOOM CONTROLS:
-       - Find and click the zoom in button multiple times
-       - Find and click the zoom out button multiple times
-       - Find and click the reset/fit button
-       - Verify the timeline scale changes appropriately
+    1. PAGE LOAD:
+       - Verify the page loads successfully
+       - Look for the MedCATTrainer title or branding
+       - Note the overall layout and structure
 
-    2. PAN/NAVIGATION:
-       - Try dragging the timeline left and right
-       - Use arrow keys if available
-       - Verify the visible date range updates
+    2. LOGIN FORM (if present):
+       - Find username/email input field
+       - Find password input field
+       - Find login/submit button
+       - Try entering test credentials (test/test)
+       - Observe the response or error messages
 
-    3. CONCEPT MARKERS:
-       - Click on different colored markers on the timeline
-       - Verify a popover or detail panel appears
-       - Check that concept information is displayed
+    3. NAVIGATION:
+       - Look for any navigation elements (menu, links)
+       - Check for signup/register option if available
+       - Look for help or documentation links
 
-    4. KEYBOARD ACCESSIBILITY:
-       - Press Tab to navigate through controls
-       - Press Enter to activate focused elements
-       - Press Escape to close any open dialogs
+    4. RESPONSIVE ELEMENTS:
+       - Note any interactive elements on the page
+       - Check for loading indicators
+       - Observe any animations or transitions
 
     Report your findings including:
-    - What worked correctly
-    - Any UI issues or bugs discovered
-    - Accessibility problems
+    - What UI elements are present
+    - Any usability issues discovered
+    - Accessibility observations
     - Suggestions for improvement
     """
 
@@ -65,56 +65,55 @@ async def test_timeline_exploration(llm, base_url, test_patient_id):
 
     # Log AI findings for review
     print(f"\n{'='*60}")
-    print("AI TIMELINE EXPLORATION FINDINGS:")
+    print("AI LOGIN PAGE EXPLORATION FINDINGS:")
     print(f"{'='*60}")
     print(result)
     print(f"{'='*60}\n")
 
 
 @pytest.mark.asyncio
-async def test_search_flow_exploration(llm, base_url):
+async def test_navigation_exploration(llm, base_url):
     """
-    AI explores the patient search functionality, testing:
-    - Search input behavior
-    - Filter interactions
-    - Result display
-    - Navigation to patient details
+    AI explores the MedCAT Trainer navigation structure, testing:
+    - Menu items and navigation paths
+    - Page transitions
+    - Breadcrumb functionality
     """
     task = f"""
-    Navigate to {base_url}/search
+    Navigate to {base_url}
 
-    Explore the patient search functionality:
+    Explore the navigation structure of MedCAT Trainer:
 
-    1. SEARCH INPUT:
-       - Find the search input field
-       - Type a medical term like "diabetes" or "hypertension"
-       - Observe autocomplete suggestions if any
+    1. MAIN NAVIGATION:
+       - Identify the main navigation menu
+       - List all visible menu items
+       - Note which items are clickable
 
-    2. FILTERS:
-       - Look for filter options (meta-annotations, date range, etc.)
-       - Toggle available filters
-       - Verify filters affect search results
+    2. EXPLORE PAGES:
+       - Click on different navigation items
+       - Observe page transitions
+       - Note any loading states
 
-    3. EXECUTE SEARCH:
-       - Submit the search
-       - Wait for results to load
-       - Verify patient cards/rows appear
+    3. SUB-NAVIGATION:
+       - Look for any sub-menus or dropdowns
+       - Explore nested navigation options
+       - Check for breadcrumb navigation
 
-    4. RESULT INTERACTION:
-       - Click on a patient result
-       - Verify navigation to patient detail or timeline
-       - Check that patient information is displayed
+    4. URL PATTERNS:
+       - Note the URL structure as you navigate
+       - Check for clean, readable URLs
+       - Verify back/forward browser buttons work
 
-    5. EMPTY/ERROR STATES:
-       - Search for something unlikely to have results
-       - Verify appropriate empty state message
-       - Test invalid input handling
+    5. RESPONSIVENESS:
+       - Check how navigation behaves
+       - Look for mobile menu indicators
+       - Test keyboard navigation (Tab key)
 
     Report your findings including:
-    - Search workflow completeness
-    - UI responsiveness
-    - Error handling quality
-    - Accessibility of search features
+    - Complete navigation map
+    - Any broken or non-functional links
+    - Navigation usability issues
+    - Suggestions for improvement
     """
 
     agent = Agent(task=task, llm=llm)
@@ -124,60 +123,60 @@ async def test_search_flow_exploration(llm, base_url):
     assert "crash" not in result_lower, f"Browser crashed: {result}"
 
     print(f"\n{'='*60}")
-    print("AI SEARCH FLOW EXPLORATION FINDINGS:")
+    print("AI NAVIGATION EXPLORATION FINDINGS:")
     print(f"{'='*60}")
     print(result)
     print(f"{'='*60}\n")
 
 
 @pytest.mark.asyncio
-async def test_export_workflow_exploration(llm, base_url, test_patient_id):
+async def test_ui_components_exploration(llm, base_url):
     """
-    AI explores the export functionality, testing:
-    - Export button locations
-    - Format selection
-    - Download behavior
-    - Export content verification
+    AI explores UI components looking for:
+    - Form elements and validation
+    - Buttons and interactive elements
+    - Modal dialogs and popups
+    - Data display components
     """
     task = f"""
-    Navigate to {base_url}/timeline/{test_patient_id}
+    Navigate to {base_url}
 
-    Explore the export functionality:
+    Perform a comprehensive UI component audit:
 
-    1. FIND EXPORT OPTIONS:
-       - Look for an export button, toolbar, or menu
-       - Identify available export formats (CSV, JSON, PDF, FHIR)
+    1. FORM ELEMENTS:
+       - Find all input fields (text, password, etc.)
+       - Look for dropdown/select elements
+       - Find checkboxes and radio buttons
+       - Check for form validation messages
 
-    2. TEST CSV EXPORT:
-       - Click on CSV export option
-       - Verify a download starts or dialog appears
-       - Note the filename format
+    2. BUTTONS AND ACTIONS:
+       - Identify all buttons on the page
+       - Note button states (enabled, disabled, loading)
+       - Check hover effects and click feedback
+       - Look for icon buttons
 
-    3. TEST JSON EXPORT:
-       - Click on JSON export option
-       - Verify download behavior
-       - Note any differences from CSV
+    3. MODALS AND DIALOGS:
+       - Try to trigger any modal dialogs
+       - Check dialog close mechanisms (X button, Escape key)
+       - Verify modal backdrop behavior
 
-    4. TEST PDF EXPORT (if available):
-       - Click on PDF export
-       - This may take longer - wait for generation
-       - Verify PDF downloads
+    4. DATA DISPLAYS:
+       - Look for tables or data grids
+       - Find any charts or visualizations
+       - Check loading states for data
+       - Look for empty states
 
-    5. TEST FHIR EXPORT (if available):
-       - Look for FHIR R4 export option
-       - Test the export
-       - Note the format
-
-    6. EXPORT SETTINGS:
-       - Look for any export configuration options
-       - Test de-identification toggle if present
-       - Test date range selection if present
+    5. FEEDBACK ELEMENTS:
+       - Find any notification/toast messages
+       - Look for progress indicators
+       - Check for error message displays
+       - Find success confirmations
 
     Report your findings including:
-    - Available export formats
-    - Export workflow usability
-    - Any failures or timeouts
-    - Missing features or suggestions
+    - Inventory of UI components found
+    - Component interaction issues
+    - Missing or incomplete functionality
+    - UI/UX improvement suggestions
     """
 
     agent = Agent(task=task, llm=llm)
@@ -187,7 +186,7 @@ async def test_export_workflow_exploration(llm, base_url, test_patient_id):
     assert "crash" not in result_lower, f"Browser crashed: {result}"
 
     print(f"\n{'='*60}")
-    print("AI EXPORT WORKFLOW EXPLORATION FINDINGS:")
+    print("AI UI COMPONENTS EXPLORATION FINDINGS:")
     print(f"{'='*60}")
     print(result)
     print(f"{'='*60}\n")
@@ -210,29 +209,25 @@ async def test_accessibility_exploration(llm, base_url):
        - Check that focus indicators are visible
 
     2. FOCUS MANAGEMENT:
-       - Open any dialogs/modals using keyboard
-       - Verify focus is trapped inside the modal
-       - Press Escape to close - verify focus returns appropriately
+       - Verify focus order is logical
+       - Check focus is visible on all interactive elements
+       - Look for any focus traps
 
     3. SCREEN READER HINTS:
        - Look for aria-label attributes on buttons/icons
        - Check for aria-live regions for dynamic content
        - Verify form inputs have associated labels
+       - Check for alt text on images
 
     4. COLOR & CONTRAST:
        - Look for any text that might be hard to read
        - Check button states (disabled, hover, active)
        - Note any information conveyed only by color
 
-    5. RESPONSIVE BEHAVIOR:
-       - If possible, check mobile viewport behavior
-       - Verify touch targets are large enough
-       - Check text scaling
-
-    Navigate to at least these pages:
-    - Home page
-    - Search page
-    - Timeline page (if accessible)
+    5. SEMANTIC STRUCTURE:
+       - Check for proper heading hierarchy (h1, h2, etc.)
+       - Look for landmark regions (header, main, footer)
+       - Verify lists are properly marked up
 
     Report your accessibility findings including:
     - WCAG violations discovered

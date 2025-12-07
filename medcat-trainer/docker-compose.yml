@@ -13,6 +13,9 @@ services:
       - api-db-backup:/home/api/db-backup
       - ./configs:/home/configs
       - ./supervisord.conf:/etc/supervisord.conf
+      # Mount local source code for custom modifications
+      - ./webapp/api/api:/home/api/api
+      - ./webapp/api/core:/home/api/core
     env_file:
       - ./envs/env
     environment:

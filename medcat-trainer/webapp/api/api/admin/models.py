@@ -66,12 +66,22 @@ class ProjectAnnotateEntitiesAdmin(admin.ModelAdmin):
         return super(ProjectAnnotateEntitiesAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
 
 
+_PROJECT_GROUP_OVERLAP_FIELDS = (
+    'overlap_mode', 'overlap_percentage', 'min_annotators_per_doc'
+)
+
+
 class ProjectGroupAdmin(admin.ModelAdmin):
     model = ProjectGroup
-    list_display = ('name', 'description')
+    list_display = ('name', 'description', 'overlap_mode', 'overlap_percentage', 'annotator_count')
     fields = (('name', 'description', 'create_associated_projects', 'annotation_guideline_link', 'administrators',
                'annotators', 'dataset') +
+              _PROJECT_GROUP_OVERLAP_FIELDS +
               _PROJECT_FIELDS_ORDER + _PROJECT_ANNO_ENTS_SETTINGS_FIELD_ORDER)
+
+    def annotator_count(self, obj):
+        return obj.annotators.count()
+    annotator_count.short_description = 'Annotators'
 
     class Meta:
         model = ProjectGroup
@@ -198,8 +208,23 @@ class MetaAnnotationAdmin(admin.ModelAdmin):
 class DocumentAdmin(admin.ModelAdmin):
     model = Document
     actions = [remove_all_documents]
-    list_filter = ('dataset',)
-    list_display = ['name', 'create_time', 'dataset', 'last_modified']
+    list_filter = ('dataset', 'specialty', 'source_file_type')
+    list_display = ['name', 'create_time', 'dataset', 'nhs_number', 'consultant', 'specialty', 'source_file_type']
+    search_fields = ['name', 'nhs_number', 'consultant', 'specialty', 'text']
+    readonly_fields = ['nhs_number', 'consultant', 'specialty', 'source_file_type']
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'dataset', 'text')
+        }),
+        ('Extracted Clinical Fields (Auto-populated via Regex)', {
+            'fields': ('nhs_number', 'consultant', 'specialty', 'source_file_type'),
+            'classes': ('collapse',),
+        }),
+        ('Timestamps', {
+            'fields': ('create_time', 'last_modified'),
+            'classes': ('collapse',),
+        }),
+    )
 
 
 class ExportedProjectAdmin(admin.ModelAdmin):

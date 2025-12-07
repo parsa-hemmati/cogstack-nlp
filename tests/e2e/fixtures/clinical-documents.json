@@ -1,0 +1,43 @@
+{
+  "documents": [
+    {
+      "name": "discharge_summary_001",
+      "text": "DISCHARGE SUMMARY\n\nPatient: John Smith\nMRN: 123456\nDate of Admission: 2024-01-15\nDate of Discharge: 2024-01-20\n\nCHIEF COMPLAINT: Chest pain and shortness of breath\n\nHISTORY OF PRESENT ILLNESS:\nThe patient is a 65-year-old male with a history of hypertension, type 2 diabetes mellitus, and hyperlipidemia who presented to the emergency department with substernal chest pain radiating to the left arm. The pain started approximately 3 hours prior to arrival and was associated with diaphoresis and nausea.\n\nPAST MEDICAL HISTORY:\n1. Hypertension - diagnosed 10 years ago\n2. Type 2 Diabetes Mellitus - on metformin 1000mg BID\n3. Hyperlipidemia - on atorvastatin 40mg daily\n4. Obesity - BMI 32\n5. Former smoker - quit 5 years ago\n\nMEDICATIONS ON ADMISSION:\n- Metformin 1000mg twice daily\n- Atorvastatin 40mg daily\n- Lisinopril 20mg daily\n- Aspirin 81mg daily\n\nPHYSICAL EXAMINATION:\nVitals: BP 158/92, HR 88, RR 18, Temp 98.6F, SpO2 96% on room air\nGeneral: Alert, oriented, in mild distress\nCardiac: Regular rate and rhythm, no murmurs\nLungs: Clear to auscultation bilaterally\n\nLABORATORY RESULTS:\n- Troponin I: 2.4 ng/mL (elevated)\n- BNP: 450 pg/mL (elevated)\n- HbA1c: 7.8%\n- Creatinine: 1.2 mg/dL\n- LDL: 142 mg/dL\n\nDIAGNOSIS:\n1. Non-ST elevation myocardial infarction (NSTEMI)\n2. Uncontrolled type 2 diabetes mellitus\n3. Hypertensive urgency\n\nHOSPITAL COURSE:\nPatient underwent cardiac catheterization which revealed 85% stenosis of the LAD. Successful PCI with drug-eluting stent placement was performed. Post-procedure course was uncomplicated.\n\nDISCHARGE MEDICATIONS:\n- Aspirin 81mg daily\n- Clopidogrel 75mg daily\n- Metoprolol succinate 50mg daily\n- Atorvastatin 80mg daily\n- Lisinopril 40mg daily\n- Metformin 1000mg twice daily\n\nFOLLOW-UP:\n- Cardiology in 2 weeks\n- Primary care in 1 week\n- Cardiac rehabilitation referral"
+    },
+    {
+      "name": "clinical_note_002",
+      "text": "CLINIC NOTE\n\nDate: 2024-02-10\nProvider: Dr. Sarah Johnson\n\nSUBJECTIVE:\nPatient is a 45-year-old female presenting for follow-up of rheumatoid arthritis. She reports increased joint pain and stiffness in bilateral hands and wrists over the past 2 weeks. Morning stiffness lasting approximately 2 hours. She denies fever, rash, or eye symptoms. Current medications include methotrexate 15mg weekly and folic acid 1mg daily.\n\nOBJECTIVE:\nVitals: BP 122/78, HR 72, Temp 98.2F\nMSK: Bilateral MCP and PIP joint swelling noted. Warmth present over wrists bilaterally. Grip strength reduced.\nLabs (from last week): ESR 42, CRP 2.8, RF positive, Anti-CCP positive\n\nASSESSMENT:\n1. Rheumatoid arthritis - disease flare\n2. Possible methotrexate inadequate response\n\nPLAN:\n1. Increase methotrexate to 20mg weekly\n2. Add prednisone 10mg daily taper over 2 weeks\n3. Consider adding adalimumab if no improvement\n4. Repeat labs in 6 weeks\n5. Return in 8 weeks for reassessment"
+    },
+    {
+      "name": "radiology_report_003",
+      "text": "RADIOLOGY REPORT\n\nExam: CT Chest with Contrast\nDate: 2024-03-05\nIndication: Persistent cough, weight loss, smoking history\n\nFINDINGS:\nLungs: A 2.3 cm spiculated nodule is identified in the right upper lobe concerning for primary lung malignancy. Additional 4mm nodule in the left lower lobe, likely benite. No pleural effusion.\n\nMediastinum: Enlarged right hilar lymph node measuring 1.8 cm. No mediastinal lymphadenopathy.\n\nHeart: Normal cardiac silhouette. No pericardial effusion.\n\nUpper Abdomen: Liver, spleen, and adrenal glands appear normal. No focal lesions identified.\n\nBones: No aggressive osseous lesions.\n\nIMPRESSION:\n1. Right upper lobe spiculated nodule highly suspicious for primary bronchogenic carcinoma. Recommend PET-CT for staging and tissue sampling.\n2. Right hilar lymphadenopathy - concern for nodal metastasis.\n3. Small left lower lobe nodule - recommend follow-up imaging in 3 months.\n\nRecommendation: Urgent pulmonology and oncology consultation."
+    },
+    {
+      "name": "emergency_note_004",
+      "text": "EMERGENCY DEPARTMENT NOTE\n\nChief Complaint: Severe headache and confusion\n\nHistory of Present Illness:\n72-year-old male brought in by EMS with sudden onset severe headache described as \"the worst headache of my life\". Wife reports patient became confused and had difficulty speaking approximately 1 hour ago. Patient has history of atrial fibrillation on warfarin.\n\nPast Medical History:\n- Atrial fibrillation\n- Hypertension\n- Previous TIA 2 years ago\n\nVital Signs:\nBP: 185/110, HR: 88 irregular, RR: 20, SpO2: 97%\n\nNeurological Exam:\n- GCS: 13 (E3V4M6)\n- Pupils: Equal and reactive\n- Right-sided facial droop noted\n- Right arm weakness 3/5\n- Aphasia - expressive type\n\nLabs:\n- INR: 3.8 (supratherapeutic)\n- PT: 42 seconds\n- Platelet: 165,000\n\nImaging:\nCT Head without contrast: Large left basal ganglia hemorrhage with surrounding edema. Midline shift of 8mm. Intraventricular extension present.\n\nDIAGNOSIS:\n1. Intracerebral hemorrhage - warfarin-associated\n2. Malignant hypertension\n\nTREATMENT:\n1. Vitamin K 10mg IV\n2. 4-factor PCC administered\n3. Nicardipine drip for BP control\n4. Neurosurgery consultation\n5. ICU admission"
+    },
+    {
+      "name": "pathology_report_005",
+      "text": "PATHOLOGY REPORT\n\nSpecimen: Breast, right, lumpectomy\nClinical History: 58-year-old female with mammographically detected right breast mass\n\nGROSS DESCRIPTION:\nReceived fresh labeled \"right breast lumpectomy\" is an irregularly shaped fibrofatty tissue specimen measuring 5.2 x 4.1 x 3.0 cm. Serial sectioning reveals a firm, gray-white, stellate mass measuring 1.8 x 1.5 x 1.4 cm.\n\nMICROSCOPIC DESCRIPTION:\nSections show invasive ductal carcinoma, moderately differentiated. The tumor cells form glands and nests with moderate nuclear pleomorphism. Mitotic figures are present (8 per 10 HPF).\n\nTUMOR CHARACTERISTICS:\n- Histologic Type: Invasive ductal carcinoma, NOS\n- Histologic Grade: 2 (Nottingham score 6/9)\n- Tumor Size: 1.8 cm\n- Margins: Negative, closest margin 3mm (superior)\n- Lymphovascular Invasion: Present\n- DCIS Component: Present, cribriform type, intermediate grade\n\nIMMUNOHISTOCHEMISTRY:\n- ER: Positive (95% cells, strong intensity)\n- PR: Positive (80% cells, moderate intensity)\n- HER2: Negative (1+)\n- Ki-67: 25%\n\nSTAGING:\npT1c pNx (sentinel lymph node pending)\n\nDIAGNOSIS:\nRight breast lumpectomy:\n- Invasive ductal carcinoma, Grade 2, ER/PR positive, HER2 negative\n- Margins negative"
+    }
+  ],
+  "entities": [
+    {"cui": "C0020538", "name": "Hypertension", "type": "Disease"},
+    {"cui": "C0011849", "name": "Diabetes Mellitus Type 2", "type": "Disease"},
+    {"cui": "C0027051", "name": "Myocardial Infarction", "type": "Disease"},
+    {"cui": "C0003864", "name": "Rheumatoid Arthritis", "type": "Disease"},
+    {"cui": "C0024115", "name": "Lung Neoplasm", "type": "Disease"},
+    {"cui": "C0149871", "name": "Intracerebral Hemorrhage", "type": "Disease"},
+    {"cui": "C0006142", "name": "Breast Carcinoma", "type": "Disease"},
+    {"cui": "C0025598", "name": "Metformin", "type": "Drug"},
+    {"cui": "C0004057", "name": "Aspirin", "type": "Drug"},
+    {"cui": "C0678138", "name": "Atorvastatin", "type": "Drug"},
+    {"cui": "C0525055", "name": "Methotrexate", "type": "Drug"},
+    {"cui": "C0043031", "name": "Warfarin", "type": "Drug"}
+  ],
+  "meta_annotations": {
+    "Negation": ["Affirmed", "Negated"],
+    "Temporality": ["Past", "Present", "Future"],
+    "Experiencer": ["Patient", "Family", "Other"]
+  }
+}

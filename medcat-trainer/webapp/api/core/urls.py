@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth import views as pw_views
 from django.urls import path, include, re_path
+from django.views.generic import RedirectView
 from rest_framework.authtoken import views as auth_views
 from rest_framework import routers
 import api.views
@@ -34,6 +35,7 @@ urlpatterns = [
     path('api/prep-docs-bg-tasks/<int:proj_id>/', api.views.prepare_docs_bg_task),
     path('api/api-token-auth/', auth_views.obtain_auth_token),
     path('admin/', admin.site.urls),
+    path('admin', RedirectView.as_view(url='/admin/', permanent=True)),  # Redirect /admin to /admin/
     path('api/api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api/add-annotation/', api.views.add_annotation),
     path('api/add-concept/', api.views.add_concept),
@@ -64,5 +66,9 @@ urlpatterns = [
     path('reset_password_sent/', pw_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>', pw_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset_password_complete/', pw_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    # Clinical letter processing endpoints
+    path('api/assign-documents-with-overlap/', api.views.assign_documents_with_overlap),
+    path('api/document-regex-fields/', api.views.document_regex_fields),
+    path('api/reextract-regex-fields/', api.views.reextract_regex_fields),
     re_path('^.*$', api.views.index, name='index'),  # Match everything else to home
 ]

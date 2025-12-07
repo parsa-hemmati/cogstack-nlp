@@ -1,0 +1,34 @@
+# IDE envs and system folders
+.DS_Store
+**/.DS_Store
+.idea
+.vscode
+.venv
+.ruff_cache
+**__pycache__
+venv
+venv-test
+.mypy_cache
+*.pyc
+.pyc
+.gradio
+
+# skip the models directory
+models/*
+!models/*.sh
+!models/examples
+models/examples/example-medcat-v[12]-model-pack
+models/examples/example-deid-model-pack
+
+# tmp folder
+tmp/*
+
+# env folder
+.env
+*.env
+**/.env
+**/*.env
+
+# log files
+tmp_cat.log
+medcat.log

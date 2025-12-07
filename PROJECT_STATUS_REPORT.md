@@ -186,7 +186,7 @@ Current frontend coverage is minimal:
 1. **PHI Detection**: Replace regex with real NER model (Sprint 4)
 2. **ICD-10 Model**: Integrate real medcat_icd10 model (Sprint 5)
 3. **Document Processing**: Implement auto-indexing on upload
-4. **Test Coverage**: Increase from ~5% to 80%+ target
+4. **Test Coverage**: Increase Frontend from ~10% to 80%+ target (Backend is ~85%)
 
 ### Medium Priority Debt
 1. **Batch Processing**: Implement Celery for background tasks
@@ -236,8 +236,8 @@ Current frontend coverage is minimal:
 - ✅ **Compliance**: HIPAA audit logging active
 
 ### Targets to Meet
-- ⚠️ **Overall Test Coverage**: Currently ~5%, target 80%+
-- ⚠️ **Frontend Coverage**: Currently ~10%, target 100%
+- ⚠️ **Overall Test Coverage**: Currently ~85% (Backend), target 90%+
+- ⚠️ **Frontend Coverage**: Currently ~10%, target 85%+
 - ⚠️ **API Response Time**: p95 <500ms for all endpoints
 - ⚠️ **Concurrent Users**: Support 100+ simultaneous users
 - ⚠️ **Uptime**: 99.9% availability SLA

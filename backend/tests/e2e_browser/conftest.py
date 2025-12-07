@@ -14,14 +14,14 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(scope="session")
 def base_url() -> str:
-    """Base URL for the frontend application."""
-    return os.getenv("FRONTEND_URL", "http://localhost:8080")
+    """Base URL for the frontend application (medcat-trainer via nginx)."""
+    return os.getenv("FRONTEND_URL", "http://localhost:8001")
 
 
 @pytest.fixture(scope="session")
 def api_base_url() -> str:
-    """Base URL for the backend API."""
-    return os.getenv("API_BASE_URL", "http://localhost:8000")
+    """Base URL for the backend API (medcat-trainer)."""
+    return os.getenv("API_BASE_URL", "http://localhost:8001")
 
 
 @pytest.fixture(scope="session")

@@ -1,0 +1,149 @@
+# Autonomous Agent Loop Configuration
+# Version: 1.0.0
+# Last Updated: 2025-11-21
+
+version: 1.0.0
+
+# Maximum concurrent agents (total across all types)
+max_total_agents: 6
+
+# Per-agent instance limits
+agent_limits:
+  developer: 3            # Max 3 developers working in parallel
+  auditor: 1              # Only 1 auditor at a time (sequential compliance)
+  tester: 1               # Only 1 tester at a time (resource-intensive)
+  debugger: 2             # Max 2 debuggers (can work on different issues)
+  documentation: 1        # Only 1 documentation agent
+  task-definer: 1         # Only 1 task-definer at a time
+  architecture-designer: 1  # Only 1 architecture-designer at a time
+  test-generator: 1       # Only 1 test-generator at a time
+
+# Task priorities (higher number = more urgent)
+# Used for sorting task queue
+priorities:
+  P0: 1000   # Critical (HIPAA violations, security issues, blockers)
+  P1: 100    # Important (features, bugs, improvements)
+  P2: 10     # Nice to have (docs, refactoring, optimization)
+
+# Agent timeouts (seconds)
+# After this duration, agent is killed and task marked as failed
+timeouts:
+  developer: 3600             # 60 minutes
+  auditor: 900                # 15 minutes
+  tester: 1800                # 30 minutes
+  debugger: 2700              # 45 minutes
+  documentation: 600          # 10 minutes
+  task-definer: 1800          # 30 minutes
+  architecture-designer: 2400 # 40 minutes
+  test-generator: 1200        # 20 minutes
+
+# Retry limits (max attempts before user escalation)
+retry_limits:
+  debugger: 3       # Max 3 debug attempts
+  developer: 2      # Max 2 implementation attempts
+  tester: 2         # Max 2 test run attempts
+  default: 1        # No retry for other agents
+
+# Heartbeat interval (seconds)
+# How often agents update their status in AGENT_STATUS.md
+heartbeat_interval: 30
+
+# Polling interval for WAITING agents (seconds)
+# How often idle agents check for new tasks
+polling_interval: 30
+
+# Deadlock detection interval (seconds)
+# How often post-commit hook checks for deadlock conditions
+deadlock_check_interval: 60
+
+# Enable/disable features
+features:
+  deadlock_detection: true    # Auto-detect and recover from deadlocks
+  timeout_enforcement: true   # Kill agents that exceed timeout
+  retry_logic: true           # Auto-retry failed tasks (up to limit)
+  metrics_collection: true    # Collect task completion metrics
+  live_dashboard: false       # Enable live monitoring dashboard (resource-intensive)
+  agent_spawn_delay: 2        # Seconds between spawning agents (avoid thundering herd)
+
+# Logging configuration
+logging:
+  level: INFO               # DEBUG, INFO, WARN, ERROR
+  file: .claude/logs/agent-loop.log
+  max_size_mb: 100          # Rotate logs after this size
+  rotate_count: 5           # Keep this many rotated logs
+  include_timestamps: true
+  include_pid: true
+
+# Git hook behavior
+git_hooks:
+  post_commit:
+    enabled: true
+    max_spawn_per_commit: 6   # Max agents to spawn in one post-commit
+    spawn_delay_ms: 500       # Delay between spawning agents
+
+  pre_commit:
+    enabled: true
+    strict_mode: true         # Block commits with incomplete tasks
+    allow_user_override: true # Allow user to bypass with --no-verify
+
+# Task queue behavior
+task_queue:
+  auto_claim: true            # Auto-claim tasks on spawn
+  priority_sorting: true      # Sort by priority before claiming
+  dependency_check: true      # Check dependencies before claiming
+  max_retries: 3              # Max retries before escalation
+
+# Agent behavior
+agent:
+  auto_spawn: true            # Auto-spawn agents from post-commit hook
+  background_mode: true       # Run agents in background
+  capture_logs: true          # Capture agent stdout/stderr to logs
+  kill_on_timeout: true       # Kill agent process on timeout
+  cleanup_on_exit: true       # Clean up temp files on agent exit
+
+# Completion detection
+completion:
+  auto_detect: true           # Auto-detect loop completion
+  generate_report: true       # Generate completion report
+  notify_user: false          # Send notification on completion (requires notification config)
+
+# Escalation behavior
+escalation:
+  auto_escalate: true         # Auto-create user escalation tasks
+  escalation_priority: P0     # Priority for escalation tasks
+  include_logs: true          # Include agent logs in escalation
+  max_log_lines: 100          # Max log lines to include
+
+# Performance tuning
+performance:
+  use_file_locks: true        # Use flock for atomic operations
+  lock_timeout_ms: 5000       # Max time to wait for file lock
+  parallel_claims: false      # Allow parallel task claiming (risky)
+  batch_updates: false        # Batch status updates (reduces I/O)
+
+# Notification configuration (optional, not implemented yet)
+notifications:
+  enabled: false
+  channels:
+    slack:
+      enabled: false
+      webhook_url: ""
+    email:
+      enabled: false
+      smtp_server: ""
+      from_address: ""
+      to_addresses: []
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  metrics_file: .claude/metrics.csv
+  collect_interval: 60      # Collect metrics every 60 seconds
+  dashboard_refresh: 5      # Dashboard refresh interval (seconds)
+
+# Development/Debug settings
+debug:
+  dry_run: false            # Don't actually spawn agents (testing only)
+  verbose_logging: false    # Extra verbose logs
+  simulate_failures: false  # Randomly fail tasks (testing only)
+  skip_git_checks: false    # Skip git status checks (testing only)
