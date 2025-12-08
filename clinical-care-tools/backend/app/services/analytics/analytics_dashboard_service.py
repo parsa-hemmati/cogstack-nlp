@@ -5,9 +5,11 @@ from typing import List, Dict, Any, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func, case, desc, select
 
 from app.models.analytics.dashboard import AnalyticsDashboard
+from app.models.patient import Patient
+from app.models.document import Document, ProcessingStatus
 
 logger = logging.getLogger(__name__)
 
@@ -45,29 +47,7 @@ class AnalyticsDashboardService:
         tags: Optional[List[str]] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> AnalyticsDashboard:
-        """Create a new analytics dashboard.
-
-        Args:
-            name: Dashboard name
-            dashboard_type: Type of dashboard
-            created_by: User creating the dashboard
-            description: Dashboard description
-            layout: Grid layout configuration
-            widgets: Widget configurations
-            theme: Dashboard theme
-            default_filters: Default filter values
-            default_date_range: Default date range
-            default_cohort_id: Default cohort filter
-            auto_refresh: Enable auto refresh
-            refresh_interval_seconds: Refresh interval
-            is_public: Public visibility
-            allowed_roles: Roles with access
-            tags: Organization tags
-            metadata: Additional metadata
-
-        Returns:
-            Created AnalyticsDashboard
-        """
+        """Create a new analytics dashboard."""
         # Use default layouts/widgets based on type if not provided
         if layout is None:
             layout = AnalyticsDashboard.create_default_quality_layout()
@@ -107,14 +87,7 @@ class AnalyticsDashboardService:
         return dashboard
 
     def get_dashboard(self, dashboard_id: UUID) -> Optional[AnalyticsDashboard]:
-        """Get a dashboard by ID.
-
-        Args:
-            dashboard_id: Dashboard ID
-
-        Returns:
-            AnalyticsDashboard or None
-        """
+        """Get a dashboard by ID."""
         return self.db.query(AnalyticsDashboard).filter(
             AnalyticsDashboard.id == dashboard_id
         ).first()
@@ -128,19 +101,7 @@ class AnalyticsDashboardService:
         limit: int = 50,
         offset: int = 0
     ) -> List[AnalyticsDashboard]:
-        """List dashboards with optional filtering.
-
-        Args:
-            user_id: Filter to user's dashboards
-            dashboard_type: Filter by type
-            include_public: Include public dashboards
-            tags: Filter by tags
-            limit: Maximum results
-            offset: Pagination offset
-
-        Returns:
-            List of AnalyticsDashboard objects
-        """
+        """List dashboards with optional filtering."""
         query = self.db.query(AnalyticsDashboard)
 
         if user_id:
@@ -168,16 +129,7 @@ class AnalyticsDashboardService:
         updated_by: UUID,
         **updates
     ) -> Optional[AnalyticsDashboard]:
-        """Update a dashboard.
-
-        Args:
-            dashboard_id: Dashboard to update
-            updated_by: User making the update
-            **updates: Fields to update
-
-        Returns:
-            Updated dashboard or None
-        """
+        """Update a dashboard."""
         dashboard = self.get_dashboard(dashboard_id)
         if not dashboard:
             return None
@@ -200,14 +152,7 @@ class AnalyticsDashboardService:
         return dashboard
 
     def delete_dashboard(self, dashboard_id: UUID) -> bool:
-        """Delete a dashboard.
-
-        Args:
-            dashboard_id: Dashboard to delete
-
-        Returns:
-            True if deleted
-        """
+        """Delete a dashboard."""
         dashboard = self.get_dashboard(dashboard_id)
         if not dashboard:
             return False
@@ -224,16 +169,7 @@ class AnalyticsDashboardService:
         new_name: str,
         created_by: UUID
     ) -> Optional[AnalyticsDashboard]:
-        """Duplicate an existing dashboard.
-
-        Args:
-            dashboard_id: Dashboard to duplicate
-            new_name: Name for the new dashboard
-            created_by: User creating the duplicate
-
-        Returns:
-            New AnalyticsDashboard or None
-        """
+        """Duplicate an existing dashboard."""
         source = self.get_dashboard(dashboard_id)
         if not source:
             return None
@@ -258,15 +194,7 @@ class AnalyticsDashboardService:
         dashboard_id: UUID,
         user_id: UUID
     ) -> bool:
-        """Set a dashboard as the default for a user.
-
-        Args:
-            dashboard_id: Dashboard to set as default
-            user_id: User to set default for
-
-        Returns:
-            True if successful
-        """
+        """Set a dashboard as the default for a user."""
         # Clear existing default
         self.db.query(AnalyticsDashboard).filter(
             AnalyticsDashboard.created_by == user_id,
@@ -286,14 +214,7 @@ class AnalyticsDashboardService:
         self,
         user_id: UUID
     ) -> Optional[AnalyticsDashboard]:
-        """Get the default dashboard for a user.
-
-        Args:
-            user_id: User ID
-
-        Returns:
-            Default AnalyticsDashboard or None
-        """
+        """Get the default dashboard for a user."""
         return self.db.query(AnalyticsDashboard).filter(
             AnalyticsDashboard.created_by == user_id,
             AnalyticsDashboard.is_default == True
@@ -305,16 +226,7 @@ class AnalyticsDashboardService:
         widget_config: Dict[str, Any],
         updated_by: UUID
     ) -> Optional[AnalyticsDashboard]:
-        """Add a widget to a dashboard.
-
-        Args:
-            dashboard_id: Dashboard to update
-            widget_config: Widget configuration
-            updated_by: User making the change
-
-        Returns:
-            Updated dashboard or None
-        """
+        """Add a widget to a dashboard."""
         dashboard = self.get_dashboard(dashboard_id)
         if not dashboard:
             return None
@@ -334,16 +246,7 @@ class AnalyticsDashboardService:
         widget_id: str,
         updated_by: UUID
     ) -> Optional[AnalyticsDashboard]:
-        """Remove a widget from a dashboard.
-
-        Args:
-            dashboard_id: Dashboard to update
-            widget_id: Widget to remove
-            updated_by: User making the change
-
-        Returns:
-            Updated dashboard or None
-        """
+        """Remove a widget from a dashboard."""
         dashboard = self.get_dashboard(dashboard_id)
         if not dashboard:
             return None
@@ -363,17 +266,7 @@ class AnalyticsDashboardService:
         widget_config: Dict[str, Any],
         updated_by: UUID
     ) -> Optional[AnalyticsDashboard]:
-        """Update a specific widget on a dashboard.
-
-        Args:
-            dashboard_id: Dashboard to update
-            widget_id: Widget to update
-            widget_config: New widget configuration
-            updated_by: User making the change
-
-        Returns:
-            Updated dashboard or None
-        """
+        """Update a specific widget on a dashboard."""
         dashboard = self.get_dashboard(dashboard_id)
         if not dashboard:
             return None
@@ -400,16 +293,7 @@ class AnalyticsDashboardService:
         layout: Dict[str, Any],
         updated_by: UUID
     ) -> Optional[AnalyticsDashboard]:
-        """Update dashboard layout.
-
-        Args:
-            dashboard_id: Dashboard to update
-            layout: New layout configuration
-            updated_by: User making the change
-
-        Returns:
-            Updated dashboard or None
-        """
+        """Update dashboard layout."""
         return self.update_dashboard(
             dashboard_id=dashboard_id,
             updated_by=updated_by,
@@ -422,16 +306,7 @@ class AnalyticsDashboardService:
         cohort_id: Optional[UUID] = None,
         date_range: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Get data for a specific widget.
-
-        Args:
-            widget_config: Widget configuration
-            cohort_id: Optional cohort filter
-            date_range: Date range filter
-
-        Returns:
-            Widget data
-        """
+        """Get data for a specific widget."""
         widget_type = widget_config.get("type")
         config = widget_config.get("config", {})
 
@@ -459,7 +334,30 @@ class AnalyticsDashboardService:
         cohort_id: Optional[UUID]
     ) -> Dict[str, Any]:
         """Get data for gauge widget."""
-        # Would integrate with QualityService
+        metric = config.get("metric")
+        
+        if metric == "processing_success_rate":
+            # Calculate success rate from Documents
+            total = self.db.query(Document).count()
+            if total == 0:
+                value = 100
+            else:
+                success = self.db.query(Document).filter(
+                    Document.processing_status == ProcessingStatus.COMPLETED
+                ).count()
+                value = (success / total) * 100
+                
+            return {
+                "value": round(value, 1),
+                "target": 98.0,
+                "min": 0,
+                "max": 100,
+                "status": "on_target" if value >= 98 else "warning" if value >= 90 else "critical",
+                "trend": "neutral",
+                "change": 0
+            }
+            
+        # Default/Mock fallback for other metrics (like 'nlp_f1_score' which needs quality tables)
         return {
             "value": 87.5,
             "target": 90.0,
@@ -476,6 +374,26 @@ class AnalyticsDashboardService:
         cohort_id: Optional[UUID]
     ) -> Dict[str, Any]:
         """Get data for single metric widget."""
+        metric = config.get("metric")
+        
+        if metric == "total_patients":
+            value = self.db.query(Patient).count()
+            return {
+                "value": value,
+                "formatted": f"{value}",
+                "trend": "neutral",
+                "change": 0
+            }
+            
+        if metric == "total_documents":
+            value = self.db.query(Document).count()
+            return {
+                "value": value,
+                "formatted": f"{value}",
+                "trend": "up",
+                "change": 0
+            }
+
         return {
             "value": 1.8,
             "formatted": "1.8s",
@@ -491,6 +409,7 @@ class AnalyticsDashboardService:
         date_range: Optional[str]
     ) -> Dict[str, Any]:
         """Get data for line chart widget."""
+        # TODO: Implement real time-series queries
         return {
             "labels": ["Week 1", "Week 2", "Week 3", "Week 4"],
             "datasets": [
@@ -515,6 +434,27 @@ class AnalyticsDashboardService:
         cohort_id: Optional[UUID]
     ) -> Dict[str, Any]:
         """Get data for bar chart widget."""
+        group_by = config.get("groupBy")
+        metric = config.get("metric")
+        
+        if group_by == "gender":
+            # Query patient gender distribution
+            results = self.db.query(
+                Patient.gender, 
+                func.count(Patient.id)
+            ).group_by(Patient.gender).all()
+            
+            labels = [r[0] or "Unknown" for r in results]
+            data = [r[1] for r in results]
+            
+            return {
+                "labels": labels,
+                "datasets": [{
+                    "label": "Patients by Gender",
+                    "data": data
+                }]
+            }
+            
         return {
             "labels": ["NLP Accuracy", "Data Quality", "Operational", "Clinical"],
             "datasets": [
@@ -531,6 +471,24 @@ class AnalyticsDashboardService:
         cohort_id: Optional[UUID]
     ) -> Dict[str, Any]:
         """Get data for pie chart widget."""
+        group_by = config.get("groupBy")
+        
+        if group_by == "processing_status":
+             results = self.db.query(
+                Document.processing_status, 
+                func.count(Document.id)
+            ).group_by(Document.processing_status).all()
+            
+             labels = [str(r[0]) for r in results]
+             data = [r[1] for r in results]
+             
+             return {
+                "labels": labels,
+                "datasets": [{
+                    "data": data
+                }]
+            }
+
         return {
             "labels": ["Low", "Medium", "High", "Critical"],
             "datasets": [
@@ -580,11 +538,7 @@ class AnalyticsDashboardService:
         }
 
     def get_dashboard_statistics(self) -> Dict[str, Any]:
-        """Get dashboard usage statistics.
-
-        Returns:
-            Statistics dictionary
-        """
+        """Get dashboard usage statistics."""
         total = self.db.query(AnalyticsDashboard).count()
 
         by_type = self.db.query(
@@ -596,11 +550,10 @@ class AnalyticsDashboardService:
             AnalyticsDashboard.is_public == True
         ).count()
 
-        from sqlalchemy import func
-
         return {
             "total_dashboards": total,
             "by_type": {dtype: count for dtype, count in by_type},
             "public_dashboards": public_count,
             "private_dashboards": total - public_count
         }
+

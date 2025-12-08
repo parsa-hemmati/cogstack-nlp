@@ -174,29 +174,29 @@ class PHIDetectionService:
         Raises:
             RuntimeError: If ModelServe is not available
         """
-        # TODO: Implement CogStack-ModelServe client
-        # Example implementation:
-        # async with httpx.AsyncClient() as client:
-        #     response = await client.post(
-        #         f"{self.modelserve_url}/api/process",
-        #         json={"text": text, "model": "medcat_ner_phi"}
-        #     )
-        #     response.raise_for_status()
-        #     data = response.json()
-        #
-        #     entities = []
-        #     for ent in data.get("entities", []):
-        #         entities.append(DetectedEntity(
-        #             text=ent["text"],
-        #             label=PHIEntityType(ent["label"]),
-        #             start=ent["start"],
-        #             end=ent["end"],
-        #             confidence=ent.get("confidence", 1.0)
-        #         ))
-        #
-        #     return entities
+        from app.clients.modelserve_client import CogStackModelServeClient, ModelServeError
 
-        raise RuntimeError(
-            "CogStack-ModelServe integration not implemented. "
-            "Use use_mock=True for development or implement ModelServe client."
-        )
+        try:
+            client = CogStackModelServeClient()
+            # Reuse the client's detect_phi helper
+            raw_entities = await client.detect_phi(text)
+            
+            entities = []
+            for ent in raw_entities:
+                entities.append(DetectedEntity(
+                    text=ent.get("pretty_name", ""), # ModelServe returns text as pretty_name sometimes, or we use 'pretty_name'
+                    label=ent.get("entity_type", "PHI"), # Mapped type
+                    start=ent.get("start", 0),
+                    end=ent.get("end", 0),
+                    confidence=ent.get("confidence", 1.0)
+                ))
+            
+            await client.close()
+            return entities
+
+        except ModelServeError as e:
+            logger.error(f"ModelServe PHI detection failed: {e}")
+            raise RuntimeError(f"PHI detection service unavailable: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error in PHI detection: {e}")
+            raise RuntimeError(f"PHI detection error: {e}")

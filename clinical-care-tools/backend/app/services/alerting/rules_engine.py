@@ -8,8 +8,8 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from uuid import UUID
 
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, select, func
 
 from app.models.alerting.alert_rule import AlertRule
 from app.models.alerting.triggered_alert import TriggeredAlert
@@ -106,24 +106,26 @@ class AlertRulesEngine:
     }
     """
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         """Initialize the rules engine.
 
         Args:
-            db: Database session
+            db: Async database session
         """
         self.db = db
         self.condition_evaluator = ConditionEvaluator()
 
-    def get_active_rules(self) -> List[AlertRule]:
+    async def get_active_rules(self) -> List[AlertRule]:
         """Get all active alert rules.
 
         Returns:
             List of enabled AlertRule objects
         """
-        return self.db.query(AlertRule).filter(AlertRule.enabled == True).all()
+        from sqlalchemy import select
+        result = await self.db.execute(select(AlertRule).filter(AlertRule.enabled == True))
+        return result.scalars().all()
 
-    def evaluate_rules(
+    async def evaluate_rules(
         self,
         data: Dict[str, Any],
         patient_id: Optional[UUID] = None,
@@ -139,21 +141,26 @@ class AlertRulesEngine:
         Returns:
             List of newly triggered alerts
         """
+        from sqlalchemy import select
+        
         triggered_alerts = []
 
         # Get rules to evaluate
         if rule_ids:
-            rules = self.db.query(AlertRule).filter(
-                and_(AlertRule.id.in_(rule_ids), AlertRule.enabled == True)
-            ).all()
+            result = await self.db.execute(
+                select(AlertRule).filter(
+                    and_(AlertRule.id.in_(rule_ids), AlertRule.enabled == True)
+                )
+            )
+            rules = result.scalars().all()
         else:
-            rules = self.get_active_rules()
+            rules = await self.get_active_rules()
 
         for rule in rules:
             if self._evaluate_rule(rule, data):
                 # Check if we should suppress duplicate alerts
-                if not self._should_suppress(rule.id, patient_id):
-                    alert = self._create_triggered_alert(rule, data, patient_id)
+                if not await self._should_suppress(rule.id, patient_id):
+                    alert = await self._create_triggered_alert(rule, data, patient_id)
                     triggered_alerts.append(alert)
                     logger.info(f"Alert triggered: rule={rule.name}, patient={patient_id}")
 
@@ -189,7 +196,7 @@ class AlertRulesEngine:
             logger.warning(f"Unknown match_type: {match_type}")
             return False
 
-    def _should_suppress(
+    async def _should_suppress(
         self,
         rule_id: UUID,
         patient_id: Optional[UUID],
@@ -209,10 +216,11 @@ class AlertRulesEngine:
             True if should suppress, False otherwise
         """
         from datetime import timedelta
+        from sqlalchemy import select, func
 
         cutoff = datetime.utcnow() - timedelta(minutes=suppression_minutes)
 
-        query = self.db.query(TriggeredAlert).filter(
+        query = select(func.count(TriggeredAlert.id)).filter(
             and_(
                 TriggeredAlert.rule_id == rule_id,
                 TriggeredAlert.triggered_at > cutoff,
@@ -223,9 +231,11 @@ class AlertRulesEngine:
         if patient_id:
             query = query.filter(TriggeredAlert.patient_id == patient_id)
 
-        return query.count() > 0
+        result = await self.db.execute(query)
+        count = result.scalar() or 0
+        return count > 0
 
-    def _create_triggered_alert(
+    async def _create_triggered_alert(
         self,
         rule: AlertRule,
         trigger_data: Dict[str, Any],
@@ -251,11 +261,11 @@ class AlertRulesEngine:
         )
 
         self.db.add(alert)
-        self.db.flush()  # Get the ID without committing
+        await self.db.flush()  # Get the ID without committing
 
         return alert
 
-    def evaluate_patient(self, patient_id: UUID) -> List[TriggeredAlert]:
+    async def evaluate_patient(self, patient_id: UUID) -> List[TriggeredAlert]:
         """Evaluate all active rules against a patient's current data.
 
         This method fetches the patient's data and evaluates it against
@@ -268,15 +278,15 @@ class AlertRulesEngine:
             List of triggered alerts
         """
         # Fetch patient data (would integrate with patient service)
-        patient_data = self._fetch_patient_data(patient_id)
+        patient_data = await self._fetch_patient_data(patient_id)
 
         if not patient_data:
             logger.warning(f"No data found for patient: {patient_id}")
             return []
 
-        return self.evaluate_rules(patient_data, patient_id)
+        return await self.evaluate_rules(patient_data, patient_id)
 
-    def _fetch_patient_data(self, patient_id: UUID) -> Optional[Dict[str, Any]]:
+    async def _fetch_patient_data(self, patient_id: UUID) -> Optional[Dict[str, Any]]:
         """Fetch patient data for evaluation.
 
         This would integrate with the patient service to fetch current
@@ -296,7 +306,7 @@ class AlertRulesEngine:
         logger.info(f"Fetching patient data for: {patient_id}")
         return None
 
-    def test_rule(self, rule_id: UUID, test_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def test_rule(self, rule_id: UUID, test_data: Dict[str, Any]) -> Dict[str, Any]:
         """Test a rule against sample data without triggering alerts.
 
         Useful for validating rule configurations before enabling.
@@ -308,7 +318,9 @@ class AlertRulesEngine:
         Returns:
             Test results with match status and condition details
         """
-        rule = self.db.query(AlertRule).filter(AlertRule.id == rule_id).first()
+        from sqlalchemy import select
+        result = await self.db.execute(select(AlertRule).filter(AlertRule.id == rule_id))
+        rule = result.scalar_one_or_none()
 
         if not rule:
             return {"error": "Rule not found", "matched": False}

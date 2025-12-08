@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 # revision identifiers, used by Alembic.
 revision: str = '58fbf7d3fdf2'
-down_revision: Union[str, None] = 'ae2a2e8df711'
+down_revision: Union[str, None] = '009_q1r2s3t4u5v6'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

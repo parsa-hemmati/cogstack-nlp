@@ -16,6 +16,7 @@ from typing import List, Optional
 import uuid
 
 from sqlalchemy import select, and_
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
@@ -193,7 +194,16 @@ async def create_project(
 
     db.add(owner_member)
     await db.commit()
-    await db.refresh(new_project)
+    await db.commit()
+    # await db.refresh(new_project) # refresh doesn't load lazy=selectin relationships
+    
+    # Reload project with members to satisfy Pydantic response model
+    result = await db.execute(
+        select(Project)
+        .options(selectinload(Project.members))
+        .where(Project.id == new_project.id)
+    )
+    new_project = result.scalar_one()
 
     return new_project
 

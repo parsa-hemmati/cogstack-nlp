@@ -205,8 +205,34 @@ class ICD10ExtractionService:
         Raises:
             RuntimeError: If ModelServe not available
         """
-        # TODO: Implement CogStack-ModelServe medcat_icd10 client
-        raise RuntimeError(
-            "CogStack-ModelServe ICD-10 extraction not implemented. "
-            "Use use_mock=True for development."
-        )
+        from app.clients.modelserve_client import CogStackModelServeClient, ModelServeError
+
+        try:
+            client = CogStackModelServeClient()
+            # Call process_text with medcat_icd10 model
+            raw_entities = await client.process_text(text, model_name="medcat_icd10")
+            
+            suggestions = []
+            for ent in raw_entities:
+                # Map MedCAT output to ICD10SuggestedCode
+                suggestions.append(ICD10SuggestedCode(
+                    code=ent.get("cui", "UNKNOWN"),
+                    description=ent.get("pretty_name", ""),
+                    category="ICD-10", # Generic category, could be refined
+                    confidence=ent.get("confidence", 0.0),
+                    evidence=ent.get("source_value", text[ent.get("start", 0):ent.get("end", 0)]), # Use source text as evidence
+                    position=ent.get("start", 0)
+                ))
+            
+            await client.close()
+            
+            # Sort by confidence
+            suggestions.sort(key=lambda x: x.confidence, reverse=True)
+            return suggestions
+
+        except ModelServeError as e:
+            logger.error(f"ModelServe ICD-10 extraction failed: {e}")
+            raise RuntimeError(f"ICD-10 extraction unavailable: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error in ICD-10 extraction: {e}")
+            raise RuntimeError(f"ICD-10 extraction error: {e}")

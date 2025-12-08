@@ -1,0 +1,6 @@
+Patient admitted with high fever and hypotension.
+Heart rate: 110 bpm.
+BP: 90/60.
+Potential sepsis detected. Started on IV antibiotics.
+Lactate elevated (4.0).
+Monitor for septic shock.

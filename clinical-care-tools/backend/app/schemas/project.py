@@ -11,6 +11,7 @@ Schemas:
 
 from typing import Optional, List
 from datetime import datetime
+from uuid import UUID
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -78,10 +79,10 @@ class ProjectUpdate(BaseModel):
 class ProjectMemberResponse(BaseModel):
     """Schema for project member data in responses."""
 
-    user_id: str
+    user_id: UUID
     role: str
     added_at: datetime
-    added_by: str
+    added_by: UUID
 
     model_config = {
         "from_attributes": True,
@@ -101,10 +102,10 @@ class ProjectMemberResponse(BaseModel):
 class ProjectResponse(BaseModel):
     """Schema for project data in API responses."""
 
-    id: str
+    id: UUID
     name: str
     description: Optional[str]
-    created_by: str
+    created_by: UUID
     created_at: datetime
     updated_at: datetime
     members: List[ProjectMemberResponse] = []

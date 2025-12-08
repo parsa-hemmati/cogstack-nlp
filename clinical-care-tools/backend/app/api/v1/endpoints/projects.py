@@ -94,28 +94,33 @@ async def create_project(
       }'
     ```
     """
-    # Create project
-    new_project = await project_service.create_project(
-        db, project_data, str(current_user.id)
-    )
+    try:
+        # Create project
+        new_project = await project_service.create_project(
+            db, project_data, str(current_user.id)
+        )
 
-    # Log audit trail
-    await log_action(
-        db=db,
-        user_id=str(current_user.id),
-        username=current_user.username,
-        action="CREATE_PROJECT",
-        resource_type="project",
-        resource_id=str(new_project.id),
-        ip_address=request.client.host if request.client else "unknown",
-        user_agent=request.headers.get("user-agent", "unknown"),
-        details={
-            "project_name": new_project.name,
-            "project_description": new_project.description
-        }
-    )
+        # Log audit trail
+        await log_action(
+            db=db,
+            user_id=str(current_user.id),
+            username=current_user.username,
+            action="CREATE_PROJECT",
+            resource_type="project",
+            resource_id=str(new_project.id),
+            ip_address=request.client.host if request.client else "unknown",
+            user_agent=request.headers.get("user-agent", "unknown"),
+            details={
+                "project_name": new_project.name,
+                "project_description": new_project.description
+            }
+        )
 
-    return ProjectResponse.model_validate(new_project)
+        return ProjectResponse.model_validate(new_project)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise e
 
 
 @router.patch(

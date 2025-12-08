@@ -81,6 +81,7 @@ class Patient(Base):
     full_name = Column(String(255), nullable=True)  # May not always be available
     date_of_birth = Column(Date, nullable=True)  # May not always be available
     address = Column(String(500), nullable=True)  # May not always be available
+    gender = Column(String(20), nullable=True)  # May not always be available
 
     # Tracking
     first_seen_at = Column(DateTime, nullable=False, default=datetime.utcnow)

@@ -60,7 +60,7 @@ async def create_alert_rule(
     current_user: User = Depends(get_current_user)
 ) -> AlertRuleResponse:
     """Create a new alert rule."""
-    rule = manager.create_rule(
+    rule = await manager.create_rule(
         name=rule_data.name,
         description=rule_data.description,
         conditions=rule_data.conditions.model_dump(),
@@ -88,7 +88,7 @@ async def list_alert_rules(
     current_user: User = Depends(get_current_user)
 ) -> List[AlertRuleResponse]:
     """List all alert rules."""
-    rules = manager.list_rules(
+    rules = await manager.list_rules(
         enabled_only=enabled_only,
         severity=severity,
         limit=limit,
@@ -108,7 +108,7 @@ async def get_alert_rule(
     current_user: User = Depends(get_current_user)
 ) -> AlertRuleResponse:
     """Get a specific alert rule."""
-    rule = manager.get_rule(rule_id)
+    rule = await manager.get_rule(rule_id)
     if not rule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -135,7 +135,7 @@ async def update_alert_rule(
     if "conditions" in update_dict and update_dict["conditions"]:
         update_dict["conditions"] = rule_data.conditions.model_dump()
 
-    rule = manager.update_rule(
+    rule = await manager.update_rule(
         rule_id=rule_id,
         updated_by=current_user.id,
         change_reason=rule_data.change_reason,
@@ -161,7 +161,7 @@ async def delete_alert_rule(
     current_user: User = Depends(get_current_user)
 ):
     """Delete an alert rule."""
-    if not manager.delete_rule(rule_id):
+    if not await manager.delete_rule(rule_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Alert rule not found"
@@ -179,7 +179,7 @@ async def get_rule_versions(
     current_user: User = Depends(get_current_user)
 ) -> List[AlertRuleVersionResponse]:
     """Get version history for an alert rule."""
-    versions = manager.get_rule_versions(rule_id)
+    versions = await manager.get_rule_versions(rule_id)
     return [AlertRuleVersionResponse.model_validate(v) for v in versions]
 
 
@@ -195,7 +195,7 @@ async def test_alert_rule(
     current_user: User = Depends(get_current_user)
 ) -> RuleTestResponse:
     """Test an alert rule against sample data without triggering."""
-    result = manager.rules_engine.test_rule(rule_id, test_request.test_data)
+    result = await manager.rules_engine.test_rule(rule_id, test_request.test_data)
 
     if "error" in result:
         raise HTTPException(
@@ -226,7 +226,7 @@ async def list_triggered_alerts(
     current_user: User = Depends(get_current_user)
 ) -> AlertListResponse:
     """List triggered alerts with filtering."""
-    alerts = manager.list_alerts(
+    alerts = await manager.list_alerts(
         status=status,
         severity=severity,
         patient_id=patient_id,
@@ -268,7 +268,7 @@ async def get_triggered_alert(
     current_user: User = Depends(get_current_user)
 ) -> TriggeredAlertResponse:
     """Get a specific triggered alert."""
-    alert = manager.get_alert(alert_id)
+    alert = await manager.get_alert(alert_id)
     if not alert:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -293,7 +293,7 @@ async def acknowledge_alert(
     current_user: User = Depends(get_current_user)
 ) -> TriggeredAlertResponse:
     """Acknowledge a triggered alert."""
-    alert = manager.acknowledge_alert(
+    alert = await manager.acknowledge_alert(
         alert_id=alert_id,
         user_id=current_user.id,
         notes=ack_request.notes
@@ -320,7 +320,7 @@ async def dismiss_alert(
     current_user: User = Depends(get_current_user)
 ) -> TriggeredAlertResponse:
     """Dismiss a triggered alert."""
-    alert = manager.dismiss_alert(
+    alert = await manager.dismiss_alert(
         alert_id=alert_id,
         user_id=current_user.id,
         notes=dismiss_request.notes
@@ -347,7 +347,7 @@ async def snooze_alert(
     current_user: User = Depends(get_current_user)
 ) -> TriggeredAlertResponse:
     """Snooze a triggered alert for specified duration."""
-    alert = manager.snooze_alert(
+    alert = await manager.snooze_alert(
         alert_id=alert_id,
         snooze_minutes=snooze_request.snooze_minutes
     )
@@ -372,17 +372,18 @@ async def bulk_acknowledge_alerts(
     current_user: User = Depends(get_current_user)
 ) -> BulkAcknowledgeResponse:
     """Acknowledge multiple alerts at once."""
-    acknowledged_count = manager.bulk_acknowledge(
+    acknowledged_count = await manager.bulk_acknowledge(
         alert_ids=bulk_request.alert_ids,
         user_id=current_user.id,
         notes=bulk_request.notes
     )
 
     # Calculate failed IDs
-    failed_ids = [
-        aid for aid in bulk_request.alert_ids
-        if manager.get_alert(aid) is None or manager.get_alert(aid).status != "acknowledged"
-    ]
+    failed_ids = []
+    for aid in bulk_request.alert_ids:
+        alert = await manager.get_alert(aid)
+        if alert is None or alert.status != "acknowledged":
+            failed_ids.append(aid)
 
     return BulkAcknowledgeResponse(
         acknowledged_count=acknowledged_count,
@@ -404,7 +405,7 @@ async def get_alert_statistics(
     current_user: User = Depends(get_current_user)
 ) -> AlertStatisticsResponse:
     """Get alert statistics for a time period."""
-    stats = manager.get_alert_statistics(start_date, end_date)
+    stats = await manager.get_alert_statistics(start_date, end_date)
     return AlertStatisticsResponse(**stats)
 
 
@@ -420,7 +421,8 @@ async def get_notification_statistics(
     current_user: User = Depends(get_current_user)
 ) -> NotificationStatsResponse:
     """Get notification delivery statistics."""
-    stats = manager.notification_service.get_notification_stats(start_date, end_date)
+    stats = await manager.notification_service.get_notification_stats(start_date, end_date)
+    # stats = {} # Placeholder until NotificationService is refactored
     return NotificationStatsResponse(**stats)
 
 
@@ -436,11 +438,11 @@ async def get_notification_preferences(
     current_user: User = Depends(get_current_user)
 ) -> NotificationPreferencesResponse:
     """Get notification preferences for the current user."""
-    prefs = manager.get_user_preferences(current_user.id)
+    prefs = await manager.get_user_preferences(current_user.id)
 
     if not prefs:
         # Create default preferences
-        prefs = manager.update_user_preferences(current_user.id)
+        prefs = await manager.update_user_preferences(current_user.id)
 
     return NotificationPreferencesResponse.model_validate(prefs)
 
@@ -468,5 +470,5 @@ async def update_notification_preferences(
         h, m = map(int, update_dict["quiet_hours_end"].split(":"))
         update_dict["quiet_hours_end"] = time(h, m)
 
-    prefs = manager.update_user_preferences(current_user.id, **update_dict)
+    prefs = await manager.update_user_preferences(current_user.id, **update_dict)
     return NotificationPreferencesResponse.model_validate(prefs)

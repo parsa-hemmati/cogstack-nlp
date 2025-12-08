@@ -16,7 +16,7 @@ from uuid import UUID
 class DocumentUploadResponse(BaseModel):
     """Schema for successful document upload response."""
 
-    document_id: str = Field(
+    document_id: UUID = Field(
         ...,
         description="Unique document identifier (UUID)"
     )
@@ -66,7 +66,7 @@ class DocumentUploadResponse(BaseModel):
 class DocumentDuplicateResponse(BaseModel):
     """Schema for duplicate document detection response."""
 
-    document_id: str = Field(
+    document_id: UUID = Field(
         ...,
         description="Existing document identifier (UUID)"
     )
@@ -105,13 +105,13 @@ class DocumentDuplicateResponse(BaseModel):
 class DocumentResponse(BaseModel):
     """Schema for document data in responses."""
 
-    id: str
+    id: UUID
     filename: str
     content_type: str
     file_size: int
     content_hash: str
-    uploaded_by: str
-    project_id: str
+    uploaded_by: UUID
+    project_id: UUID
     processing_status: str
     created_at: datetime
 

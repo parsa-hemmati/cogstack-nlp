@@ -40,7 +40,7 @@ SUPPORTED_CONTENT_TYPES = {
 
 @router.post(
     "/documents/upload",
-    response_model=DocumentUploadResponse,
+    # response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Upload clinical document",
     description="Upload RTF document with encryption and deduplication. Returns existing document if duplicate detected.",
@@ -98,144 +98,150 @@ async def upload_document(
     ```
     """
     # Step 1: Validate file is not empty
-    if not file.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No file provided"
-        )
-
-    # Read file content
-    content = await file.read()
-
-    if len(content) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File is empty"
-        )
-
-    # Step 2: Validate file type
-    content_type = file.content_type or "application/octet-stream"
-
-    if content_type not in SUPPORTED_CONTENT_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file type: {content_type}. Only RTF files are supported."
-        )
-
-    # Step 3: Verify project exists and user has access
     try:
-        project_uuid = uuid.UUID(project_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid project ID format"
-        )
+        # Step 1: Validate file is not empty
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No file provided"
+            )
 
-    result = await db.execute(
-        select(Project).where(Project.id == project_uuid)
-    )
-    project = result.scalar_one_or_none()
+        # Read file content
+        content = await file.read()
 
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project not found: {project_id}"
-        )
+        if len(content) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File is empty"
+            )
 
-    # Step 4: Compute content hash
-    content_hash = compute_content_hash(content)
+        # Step 2: Validate file type
+        content_type = file.content_type or "application/octet-stream"
 
-    # Step 5: Check for duplicates
-    existing_document_id = await check_duplicate(db, content_hash)
+        if content_type not in SUPPORTED_CONTENT_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file type: {content_type}. Only RTF files are supported."
+            )
 
-    if existing_document_id:
-        # Duplicate detected - return existing document
+        # Step 3: Verify project exists and user has access
+        try:
+            project_uuid = uuid.UUID(project_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid project ID format"
+            )
+
         result = await db.execute(
-            select(Document).where(Document.id == uuid.UUID(existing_document_id))
+            select(Project).where(Project.id == project_uuid)
         )
-        existing_document = result.scalar_one()
+        project = result.scalar_one_or_none()
 
-        # Log audit trail for duplicate attempt
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Project not found: {project_id}"
+            )
+
+        # Step 4: Compute content hash
+        content_hash = compute_content_hash(content)
+
+        # Step 5: Check for duplicates
+        existing_document_id = await check_duplicate(db, content_hash)
+
+        if existing_document_id:
+            # Duplicate detected - return existing document
+            result = await db.execute(
+                select(Document).where(Document.id == uuid.UUID(existing_document_id))
+            )
+            existing_document = result.scalar_one()
+
+            # Log audit trail for duplicate attempt
+            await log_action(
+                db=db,
+                user_id=str(current_user.id),
+                username=current_user.username,
+                action="UPLOAD_DOCUMENT_DUPLICATE",
+                resource_type="document",
+                resource_id=existing_document_id,
+                ip_address=request.client.host if request.client else "unknown",
+                user_agent=request.headers.get("user-agent", "unknown"),
+                details={
+                    "filename": file.filename,
+                    "content_hash": content_hash,
+                    "file_size": len(content),
+                    "duplicate_of": existing_document_id
+                }
+            )
+
+            return DocumentDuplicateResponse(
+                document_id=existing_document_id,
+                status="duplicate",
+                message=f"Document already exists with same content (uploaded {existing_document.created_at})",
+                filename=existing_document.filename,
+                created_at=existing_document.created_at
+            )
+
+        # Step 6: Encrypt content
+        encrypted_content = encrypt_content(content)
+
+        # Step 7: Create document record
+        new_document = Document(
+            id=uuid.uuid4(),
+            filename=file.filename,
+            content_type=content_type,
+            content_hash=content_hash,
+            encrypted_content=encrypted_content,
+            encryption_algorithm="AES-256-GCM",
+            file_size=len(content),
+            uploaded_by=current_user.id,
+            project_id=project_uuid,
+            processing_status=ProcessingStatus.PENDING,
+            created_at=datetime.utcnow()
+        )
+
+        db.add(new_document)
+        await db.commit()
+        await db.refresh(new_document)
+
+        # Step 8: Cache the document hash for fast future lookups
+        try:
+            await cache_document_hash(content_hash, str(new_document.id))
+        except Exception as cache_error:
+            # Cache failure should not block upload
+            # Error already logged by cache_document_hash
+            pass
+
+        # Step 9: Log audit trail
         await log_action(
             db=db,
             user_id=str(current_user.id),
             username=current_user.username,
-            action="UPLOAD_DOCUMENT_DUPLICATE",
+            action="UPLOAD_DOCUMENT",
             resource_type="document",
-            resource_id=existing_document_id,
+            resource_id=str(new_document.id),
             ip_address=request.client.host if request.client else "unknown",
             user_agent=request.headers.get("user-agent", "unknown"),
             details={
                 "filename": file.filename,
-                "content_hash": content_hash,
+                "content_type": content_type,
                 "file_size": len(content),
-                "duplicate_of": existing_document_id
+                "content_hash": content_hash,
+                "project_id": project_id
             }
         )
 
-        return DocumentDuplicateResponse(
-            document_id=existing_document_id,
-            status="duplicate",
-            message=f"Document already exists with same content (uploaded {existing_document.created_at})",
-            filename=existing_document.filename,
-            created_at=existing_document.created_at
+        return DocumentUploadResponse(
+            document_id=str(new_document.id),
+            status=new_document.processing_status.value,
+            filename=new_document.filename,
+            content_type=new_document.content_type,
+            file_size=new_document.file_size,
+            content_hash=new_document.content_hash,
+            created_at=new_document.created_at
         )
-
-    # Step 6: Encrypt content
-    encrypted_content = encrypt_content(content)
-
-    # Step 7: Create document record
-    new_document = Document(
-        id=uuid.uuid4(),
-        filename=file.filename,
-        content_type=content_type,
-        content_hash=content_hash,
-        encrypted_content=encrypted_content,
-        encryption_algorithm="AES-256-GCM",
-        file_size=len(content),
-        uploaded_by=current_user.id,
-        project_id=project_uuid,
-        processing_status=ProcessingStatus.PENDING,
-        created_at=datetime.utcnow()
-    )
-
-    db.add(new_document)
-    await db.commit()
-    await db.refresh(new_document)
-
-    # Step 8: Cache the document hash for fast future lookups
-    try:
-        await cache_document_hash(content_hash, str(new_document.id))
-    except Exception as cache_error:
-        # Cache failure should not block upload
-        # Error already logged by cache_document_hash
-        pass
-
-    # Step 9: Log audit trail
-    await log_action(
-        db=db,
-        user_id=str(current_user.id),
-        username=current_user.username,
-        action="UPLOAD_DOCUMENT",
-        resource_type="document",
-        resource_id=str(new_document.id),
-        ip_address=request.client.host if request.client else "unknown",
-        user_agent=request.headers.get("user-agent", "unknown"),
-        details={
-            "filename": file.filename,
-            "content_type": content_type,
-            "file_size": len(content),
-            "content_hash": content_hash,
-            "project_id": project_id
-        }
-    )
-
-    return DocumentUploadResponse(
-        document_id=str(new_document.id),
-        status=new_document.processing_status.value,
-        filename=new_document.filename,
-        content_type=new_document.content_type,
-        file_size=new_document.file_size,
-        content_hash=new_document.content_hash,
-        created_at=new_document.created_at
-    )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise e

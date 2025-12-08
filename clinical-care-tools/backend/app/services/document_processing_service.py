@@ -19,7 +19,7 @@ Usage:
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,8 +29,8 @@ from app.models.extracted_entity import ExtractedEntity, EntityType
 from app.models.patient import Patient
 from app.services.encryption_service import decrypt_content, DecryptionError
 from app.clients.modelserve_client import CogStackModelServeClient, ModelServeError
-from app.services.phi_classifier import classify_entity, is_phi_entity
-
+from app.services.phi_classifier import classify_entity, classify_entity
+from app.services.alerting.alert_manager import AlertManager
 
 logger = logging.getLogger(__name__)
 
@@ -46,26 +46,6 @@ async def process_document(
 ):
     """
     Process uploaded document in background.
-
-    Steps:
-    1. Load document from database
-    2. Decrypt document content
-    3. Extract entities via CogStack-ModelServe (SNOMED + PHI)
-    4. Classify entities (PHI vs clinical)
-    5. Store entities in extracted_entities table
-    6. Aggregate patient demographics (if NHS number found)
-    7. Update document status to completed
-
-    Args:
-        document_id: Document UUID to process
-        db: Database session
-
-    Raises:
-        DocumentProcessingError: If processing fails at any step
-
-    Example:
-        >>> # In FastAPI endpoint
-        >>> background_tasks.add_task(process_document, document_id=doc.id, db=db)
     """
     try:
         logger.info(f"Starting processing for document {document_id}")
@@ -164,14 +144,32 @@ async def process_document(
         )
 
         # Step 5: Aggregate patient demographics (if NHS number found)
+        patient = None
         if nhs_number:
-            await _aggregate_patient(
+            patient = await _aggregate_patient(
                 db=db,
                 document_id=document_id,
                 nhs_number=nhs_number
             )
 
-        # Step 6: Update document status to completed
+        # Step 6: Trigger Automated Alerting
+        if patient:
+            logger.info(f"Evaluating alerts for patient {patient.id}")
+            try:
+                alert_manager = AlertManager(db)
+                alert_data = {
+                    "text": text_content,
+                    "concepts": [e.get("pretty_name", "") for e in snomed_entities]
+                }
+                await alert_manager.evaluate_and_notify(
+                    data=alert_data,
+                    patient_id=patient.id
+                )
+            except Exception as e:
+                logger.error(f"Alert evaluation failed: {e}")
+                # Do not fail document processing if alerting fails
+
+        # Step 7: Update document status to completed
         document.processing_status = ProcessingStatus.COMPLETED
         await db.commit()
 
@@ -202,12 +200,6 @@ async def _store_entity(
 ):
     """
     Store extracted entity in database.
-
-    Args:
-        db: Database session
-        document_id: Document this entity belongs to
-        entity_data: Entity data from CogStack-ModelServe
-        entity_category: Classified category (phi_name, clinical, etc.)
     """
     # Map category string to EntityType enum
     entity_type_mapping = {
@@ -242,17 +234,12 @@ async def _aggregate_patient(
     db: AsyncSession,
     document_id: UUID,
     nhs_number: str
-):
+) -> Optional[Patient]:
     """
     Aggregate patient demographics from document.
 
-    Creates or updates patient record based on NHS number.
-    Links extracted entities to patient.
-
-    Args:
-        db: Database session
-        document_id: Document being processed
-        nhs_number: NHS number found in document
+    Returns:
+        Patient object if found/created, None otherwise.
     """
     from datetime import datetime
 
@@ -295,3 +282,5 @@ async def _aggregate_patient(
     await db.commit()
 
     logger.info(f"Linked {len(entities)} entities to patient {patient.id}")
+    
+    return patient

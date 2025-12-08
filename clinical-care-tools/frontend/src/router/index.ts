@@ -15,6 +15,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false },
   },
   {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
     path: '/patients',
     name: 'patients',
     component: () => import('@/views/PatientSearchView.vue'),
@@ -71,10 +77,12 @@ const router = createRouter({
 
 // Navigation guard for authentication
 router.beforeEach((to, _from, next) => {
-  const isAuthenticated = false // TODO: Implement authentication check
+  // Check localStorage for token (basic auth check)
+  const token = localStorage.getItem('auth_token')
+  const isAuthenticated = !!token
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'home' })
+    next({ name: 'login', query: { redirect: to.fullPath } })
   } else {
     next()
   }

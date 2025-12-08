@@ -1,7 +1,7 @@
 """Create alert tables for Sprint 7 - Automated Alerting.
 
-Revision ID: 018_create_alert_tables
-Revises: 017_create_nhs_dmd_medications_table
+Revision ID: 018
+Revises: 017
 Create Date: 2025-11-26
 """
 from alembic import op
@@ -9,8 +9,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers
-revision = '018_create_alert_tables'
-down_revision = '017_create_nhs_dmd_medications_table'
+revision = '018'
+down_revision = '017'
 branch_labels = None
 depends_on = None
 

@@ -1,7 +1,7 @@
 """Create population health tables for Sprint 8 - Population Health Dashboards.
 
-Revision ID: 019_create_population_health_tables
-Revises: 018_create_alert_tables
+Revision ID: 019
+Revises: 018
 Create Date: 2025-11-26
 """
 from alembic import op
@@ -9,8 +9,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers
-revision = '019_create_population_health_tables'
-down_revision = '018_create_alert_tables'
+revision = '019'
+down_revision = '018'
 branch_labels = None
 depends_on = None
 

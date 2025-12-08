@@ -1,0 +1,201 @@
+time="2025-12-07T21:48:03Z" level=warning msg="C:\\Users\\paurs\\OneDrive\\Desktop\\cogstack-nlp\\clinical-care-tools\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+clinical-care-backend  |     value = await result
+clinical-care-backend  |             ^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 546, in _prepare_and_execute
+clinical-care-backend  |     self._handle_exception(error)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 497, in _handle_exception
+clinical-care-backend  |     self._adapt_connection._handle_exception(error)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 780, in _handle_exception
+clinical-care-backend  |     raise translated_error from error
+clinical-care-backend  | sqlalchemy.exc.IntegrityError: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "patient_id" of relation "documents" violates not-null constraint
+clinical-care-backend  | DETAIL:  Failing row contains (42e88732-4cd9-4b40-8226-f62849baf3ad, null, null, null, null, null, null, null, f, null, null, f, null, null, null, 2025-12-07 21:46:54.452889+00, 2025-12-07 21:46:54.433906+00, 9bc6a4d1-4028-42d1-9358-b455f03451ca, sepsis_note.rtf, 7f4d873ba9116bfdfedd75ad9e4d92ed3be195952f023802454c569ee72fc8e8, \xc749405381ae8aea530983a09fd781837bf23e191e8cfcdf7873bfb393383e..., AES-256-GCM, 248, PENDING, application/rtf, de1ad891-78db-4fc2-ba01-a7350e6a9dd7).
+clinical-care-backend  | [SQL: INSERT INTO documents (id, filename, content_type, content_hash, encrypted_content, encryption_algorithm, file_size, uploaded_by, project_id, processing_status, created_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::BYTEA, $6::VARCHAR, $7::INTEGER, $8::UUID, $9::UUID, $10, $11::TIMESTAMP WITHOUT TIME ZONE)]
+clinical-care-backend  | [parameters: (UUID('42e88732-4cd9-4b40-8226-f62849baf3ad'), 'sepsis_note.rtf', 'application/rtf', '7f4d873ba9116bfdfedd75ad9e4d92ed3be195952f023802454c569ee72fc8e8', b'\xc7I@S\x81\xae\x8a\xeaS\t\x83\xa0\x9f\xd7\x81\x83{\xf2>\x19\x1e\x8c\xfc\xdfxs\xbf\xb3\x938>\xf8\x92\xd2$\x8ae\t\x9e\xe4B\x98\xd4\x1do3E(\x9b\xd3\x8 ... (497 characters truncated) ... \x84w\x08\xea\t(\x03?\x00P|\xec#MQ6uz\xbb,\xdac\xe5\xb1\xac\xe0l~\x04\xaf\x01\xeb\xfav\x1c\x01\xd7\x14J|\x85 \x9f7t\x19(\xc0l^\\\x1e\xb9\x97O\xa9\xfd', 'AES-256-GCM', 248, UUID('de1ad891-78db-4fc2-ba01-a7350e6a9dd7'), UUID('9bc6a4d1-4028-42d1-9358-b455f03451ca'), 'PENDING', datetime.datetime(2025, 12, 7, 21, 46, 54, 452889))]
+clinical-care-backend  | (Background on this error at: https://sqlalche.me/e/20/gkpj)
+clinical-care-backend  | INFO:     127.0.0.1:53800 - "POST /api/v1/documents/upload HTTP/1.1" 500 Internal Server Error
+clinical-care-backend  | ERROR:    Exception in ASGI application
+clinical-care-backend  | Traceback (most recent call last):
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 534, in _prepare_and_execute
+clinical-care-backend  |     self._rows = deque(await prepared_stmt.fetch(*parameters))
+clinical-care-backend  |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py", line 176, in fetch
+clinical-care-backend  |     data = await self.__bind_execute(args, 0, timeout)
+clinical-care-backend  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py", line 267, in __bind_execute
+clinical-care-backend  |     data, status, _ = await self.__do_execute(
+clinical-care-backend  |                       ^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py", line 256, in __do_execute
+clinical-care-backend  |     return await executor(protocol)
+clinical-care-backend  |            ^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "asyncpg/protocol/protocol.pyx", line 206, in bind_execute
+clinical-care-backend  | asyncpg.exceptions.NotNullViolationError: null value in column "patient_id" of relation "documents" violates not-null constraint
+clinical-care-backend  | DETAIL:  Failing row contains (42e88732-4cd9-4b40-8226-f62849baf3ad, null, null, null, null, null, null, null, f, null, null, f, null, null, null, 2025-12-07 21:46:54.452889+00, 2025-12-07 21:46:54.433906+00, 9bc6a4d1-4028-42d1-9358-b455f03451ca, sepsis_note.rtf, 7f4d873ba9116bfdfedd75ad9e4d92ed3be195952f023802454c569ee72fc8e8, \xc749405381ae8aea530983a09fd781837bf23e191e8cfcdf7873bfb393383e..., AES-256-GCM, 248, PENDING, application/rtf, de1ad891-78db-4fc2-ba01-a7350e6a9dd7).
+clinical-care-backend  | 
+clinical-care-backend  | The above exception was the direct cause of the following exception:
+clinical-care-backend  | 
+clinical-care-backend  | Traceback (most recent call last):
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+clinical-care-backend  |     self.dialect.do_execute(
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 941, in do_execute
+clinical-care-backend  |     cursor.execute(statement, parameters)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 568, in execute
+clinical-care-backend  |     self._adapt_connection.await_(
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+clinical-care-backend  |     return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+clinical-care-backend  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+clinical-care-backend  |     value = await result
+clinical-care-backend  |             ^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 546, in _prepare_and_execute
+clinical-care-backend  |     self._handle_exception(error)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 497, in _handle_exception
+clinical-care-backend  |     self._adapt_connection._handle_exception(error)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 780, in _handle_exception
+clinical-care-backend  |     raise translated_error from error
+clinical-care-backend  | sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.IntegrityError: <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "patient_id" of relation "documents" violates not-null constraint
+clinical-care-backend  | DETAIL:  Failing row contains (42e88732-4cd9-4b40-8226-f62849baf3ad, null, null, null, null, null, null, null, f, null, null, f, null, null, null, 2025-12-07 21:46:54.452889+00, 2025-12-07 21:46:54.433906+00, 9bc6a4d1-4028-42d1-9358-b455f03451ca, sepsis_note.rtf, 7f4d873ba9116bfdfedd75ad9e4d92ed3be195952f023802454c569ee72fc8e8, \xc749405381ae8aea530983a09fd781837bf23e191e8cfcdf7873bfb393383e..., AES-256-GCM, 248, PENDING, application/rtf, de1ad891-78db-4fc2-ba01-a7350e6a9dd7).
+clinical-care-backend  | 
+clinical-care-backend  | The above exception was the direct cause of the following exception:
+clinical-care-backend  | 
+clinical-care-backend  | Traceback (most recent call last):
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 409, in run_asgi
+clinical-care-backend  |     result = await app(  # type: ignore[func-returns-value]
+clinical-care-backend  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+clinical-care-backend  |     return await self.app(scope, receive, send)
+clinical-care-backend  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1054, in __call__
+clinical-care-backend  |     await super().__call__(scope, receive, send)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 113, in __call__
+clinical-care-backend  |     await self.middleware_stack(scope, receive, send)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 187, in __call__
+clinical-care-backend  |     raise exc
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 165, in __call__
+clinical-care-backend  |     await self.app(scope, receive, _send)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 174, in __call__
+clinical-care-backend  |     raise exc
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 172, in __call__
+clinical-care-backend  |     await self.app(scope, receive, send_wrapper)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+clinical-care-backend  |     await self.app(scope, receive, send)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+clinical-care-backend  |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+clinical-care-backend  |     raise exc
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+clinical-care-backend  |     await app(scope, receive, sender)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+clinical-care-backend  |     await self.middleware_stack(scope, receive, send)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+clinical-care-backend  |     await route.handle(scope, receive, send)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+clinical-care-backend  |     await self.app(scope, receive, send)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+clinical-care-backend  |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+clinical-care-backend  |     raise exc
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+clinical-care-backend  |     await app(scope, receive, sender)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+clinical-care-backend  |     response = await f(request)
+clinical-care-backend  |                ^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+clinical-care-backend  |     raw_response = await run_endpoint_function(
+clinical-care-backend  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 212, in run_endpoint_function
+clinical-care-backend  |     return await dependant.call(**values)
+clinical-care-backend  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/app/app/api/v1/endpoints/documents.py", line 247, in upload_document
+clinical-care-backend  |     raise e
+clinical-care-backend  |   File "/app/app/api/v1/endpoints/documents.py", line 205, in upload_document
+clinical-care-backend  |     await db.commit()
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/session.py", line 1009, in commit
+clinical-care-backend  |     await greenlet_spawn(self.sync_session.commit)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 203, in greenlet_spawn
+clinical-care-backend  |     result = context.switch(value)
+clinical-care-backend  |              ^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2028, in commit
+clinical-care-backend  |     trans.commit(_to_root=True)
+clinical-care-backend  |   File "<string>", line 2, in commit
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 139, in _go
+clinical-care-backend  |     ret_value = fn(self, *arg, **kw)
+clinical-care-backend  |                 ^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 1313, in commit
+clinical-care-backend  |     self._prepare_impl()
+clinical-care-backend  |   File "<string>", line 2, in _prepare_impl
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 139, in _go
+clinical-care-backend  |     ret_value = fn(self, *arg, **kw)
+clinical-care-backend  |                 ^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 1288, in _prepare_impl
+clinical-care-backend  |     self.session.flush()
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4352, in flush
+clinical-care-backend  |     self._flush(objects)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4487, in _flush
+clinical-care-backend  |     with util.safe_reraise():
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+clinical-care-backend  |     raise exc_value.with_traceback(exc_tb)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4448, in _flush
+clinical-care-backend  |     flush_context.execute()
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+clinical-care-backend  |     rec.execute(self)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+clinical-care-backend  |     util.preloaded.orm_persistence.save_obj(
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+clinical-care-backend  |     _emit_insert_statements(
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 1048, in _emit_insert_statements
+clinical-care-backend  |     result = connection.execute(
+clinical-care-backend  |              ^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1418, in execute
+clinical-care-backend  |     return meth(
+clinical-care-backend  |            ^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 515, in _execute_on_connection
+clinical-care-backend  |     return connection._execute_clauseelement(
+clinical-care-backend  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1640, in _execute_clauseelement
+clinical-care-backend  |     ret = self._execute_context(
+clinical-care-backend  |           ^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+clinical-care-backend  |     return self._exec_single_context(
+clinical-care-backend  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+clinical-care-backend  |     self._handle_dbapi_exception(
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
+clinical-care-backend  |     raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+clinical-care-backend  |     self.dialect.do_execute(
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 941, in do_execute
+clinical-care-backend  |     cursor.execute(statement, parameters)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 568, in execute
+clinical-care-backend  |     self._adapt_connection.await_(
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+clinical-care-backend  |     return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+clinical-care-backend  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+clinical-care-backend  |     value = await result
+clinical-care-backend  |             ^^^^^^^^^^^^
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 546, in _prepare_and_execute
+clinical-care-backend  |     self._handle_exception(error)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 497, in _handle_exception
+clinical-care-backend  |     self._adapt_connection._handle_exception(error)
+clinical-care-backend  |   File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 780, in _handle_exception
+clinical-care-backend  |     raise translated_error from error
+clinical-care-backend  | sqlalchemy.exc.IntegrityError: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "patient_id" of relation "documents" violates not-null constraint
+clinical-care-backend  | DETAIL:  Failing row contains (42e88732-4cd9-4b40-8226-f62849baf3ad, null, null, null, null, null, null, null, f, null, null, f, null, null, null, 2025-12-07 21:46:54.452889+00, 2025-12-07 21:46:54.433906+00, 9bc6a4d1-4028-42d1-9358-b455f03451ca, sepsis_note.rtf, 7f4d873ba9116bfdfedd75ad9e4d92ed3be195952f023802454c569ee72fc8e8, \xc749405381ae8aea530983a09fd781837bf23e191e8cfcdf7873bfb393383e..., AES-256-GCM, 248, PENDING, application/rtf, de1ad891-78db-4fc2-ba01-a7350e6a9dd7).
+clinical-care-backend  | [SQL: INSERT INTO documents (id, filename, content_type, content_hash, encrypted_content, encryption_algorithm, file_size, uploaded_by, project_id, processing_status, created_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::BYTEA, $6::VARCHAR, $7::INTEGER, $8::UUID, $9::UUID, $10, $11::TIMESTAMP WITHOUT TIME ZONE)]
+clinical-care-backend  | [parameters: (UUID('42e88732-4cd9-4b40-8226-f62849baf3ad'), 'sepsis_note.rtf', 'application/rtf', '7f4d873ba9116bfdfedd75ad9e4d92ed3be195952f023802454c569ee72fc8e8', b'\xc7I@S\x81\xae\x8a\xeaS\t\x83\xa0\x9f\xd7\x81\x83{\xf2>\x19\x1e\x8c\xfc\xdfxs\xbf\xb3\x938>\xf8\x92\xd2$\x8ae\t\x9e\xe4B\x98\xd4\x1do3E(\x9b\xd3\x8 ... (497 characters truncated) ... \x84w\x08\xea\t(\x03?\x00P|\xec#MQ6uz\xbb,\xdac\xe5\xb1\xac\xe0l~\x04\xaf\x01\xeb\xfav\x1c\x01\xd7\x14J|\x85 \x9f7t\x19(\xc0l^\\\x1e\xb9\x97O\xa9\xfd', 'AES-256-GCM', 248, UUID('de1ad891-78db-4fc2-ba01-a7350e6a9dd7'), UUID('9bc6a4d1-4028-42d1-9358-b455f03451ca'), 'PENDING', datetime.datetime(2025, 12, 7, 21, 46, 54, 452889))]
+clinical-care-backend  | (Background on this error at: https://sqlalche.me/e/20/gkpj)
+clinical-care-backend  | 2025-12-07 21:46:56,565 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+clinical-care-backend  | 2025-12-07 21:46:56,566 INFO sqlalchemy.engine.Engine SELECT 1
+clinical-care-backend  | 2025-12-07 21:46:56,566 INFO sqlalchemy.engine.Engine [generated in 0.00024s] ()
+clinical-care-backend  | 2025-12-07 21:46:56,567 INFO sqlalchemy.engine.Engine ROLLBACK
+clinical-care-backend  | INFO:     127.0.0.1:53826 - "GET /health HTTP/1.1" 200 OK
+clinical-care-backend  | 2025-12-07 21:47:27,935 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+clinical-care-backend  | 2025-12-07 21:47:27,936 INFO sqlalchemy.engine.Engine SELECT 1
+clinical-care-backend  | 2025-12-07 21:47:27,936 INFO sqlalchemy.engine.Engine [cached since 30.19s ago] ()
+clinical-care-backend  | 2025-12-07 21:47:27,939 INFO sqlalchemy.engine.Engine ROLLBACK
+clinical-care-backend  | INFO:     127.0.0.1:35376 - "GET /health HTTP/1.1" 200 OK
+clinical-care-backend  | 2025-12-07 21:48:00,946 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+clinical-care-backend  | 2025-12-07 21:48:00,946 INFO sqlalchemy.engine.Engine SELECT 1
+clinical-care-backend  | 2025-12-07 21:48:00,946 INFO sqlalchemy.engine.Engine [cached since 61.44s ago] ()
+clinical-care-backend  | 2025-12-07 21:48:00,948 INFO sqlalchemy.engine.Engine ROLLBACK
+clinical-care-backend  | INFO:     127.0.0.1:52806 - "GET /health HTTP/1.1" 200 OK

@@ -18,8 +18,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB, ARRAY
 
 
-revision = '020_create_analytics_tables'
-down_revision = '019_create_population_health_tables'
+revision = '020'
+down_revision = '019'
 branch_labels = None
 depends_on = None
 

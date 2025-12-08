@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from uuid import UUID
 
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_, or_, desc, func
 
 from app.models.alerting.alert_rule import AlertRule, AlertRuleVersion
 from app.models.alerting.triggered_alert import TriggeredAlert, AlertNotification
@@ -30,7 +30,7 @@ class AlertManager:
     - Retrieving alert history and statistics
     """
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         """Initialize alert manager.
 
         Args:
@@ -42,7 +42,7 @@ class AlertManager:
 
     # ==================== Rule Management ====================
 
-    def create_rule(
+    async def create_rule(
         self,
         name: str,
         conditions: Dict[str, Any],
@@ -80,13 +80,13 @@ class AlertManager:
         )
 
         self.db.add(rule)
-        self.db.commit()
-        self.db.refresh(rule)
+        await self.db.commit()
+        await self.db.refresh(rule)
 
         logger.info(f"Created alert rule: {name} (id={rule.id})")
         return rule
 
-    def update_rule(
+    async def update_rule(
         self,
         rule_id: UUID,
         updated_by: UUID,
@@ -106,17 +106,19 @@ class AlertManager:
         Returns:
             Updated rule or None if not found
         """
-        rule = self.db.query(AlertRule).filter(AlertRule.id == rule_id).first()
+        rule = await self.get_rule(rule_id)
         if not rule:
             return None
 
         # Create version record before updating
-        version_number = self.db.query(AlertRuleVersion).filter(
-            AlertRuleVersion.rule_id == rule_id
-        ).count() + 1
+        # Note: In async, simple counts are harder without a query, let's just get count
+        result = await self.db.execute(
+            select(func.count(AlertRuleVersion.id)).filter(AlertRuleVersion.rule_id == rule_id)
+        )
+        version_number = (result.scalar() or 0) + 1
 
         version = AlertRuleVersion(
-            rule_id=rule_id,
+            rule_id=rule.id,
             version=version_number,
             conditions=rule.conditions,  # Store old conditions
             changed_by=updated_by,
@@ -133,13 +135,13 @@ class AlertManager:
             if field in allowed_fields and hasattr(rule, field):
                 setattr(rule, field, value)
 
-        self.db.commit()
-        self.db.refresh(rule)
+        await self.db.commit()
+        await self.db.refresh(rule)
 
         logger.info(f"Updated alert rule: {rule.name} (version={version_number})")
         return rule
 
-    def delete_rule(self, rule_id: UUID) -> bool:
+    async def delete_rule(self, rule_id: UUID) -> bool:
         """Delete an alert rule.
 
         Args:
@@ -148,17 +150,17 @@ class AlertManager:
         Returns:
             True if deleted, False if not found
         """
-        rule = self.db.query(AlertRule).filter(AlertRule.id == rule_id).first()
+        rule = await self.get_rule(rule_id)
         if not rule:
             return False
 
-        self.db.delete(rule)
-        self.db.commit()
+        await self.db.delete(rule)
+        await self.db.commit()
 
         logger.info(f"Deleted alert rule: {rule.name}")
         return True
 
-    def get_rule(self, rule_id: UUID) -> Optional[AlertRule]:
+    async def get_rule(self, rule_id: UUID) -> Optional[AlertRule]:
         """Get a rule by ID.
 
         Args:
@@ -167,9 +169,10 @@ class AlertManager:
         Returns:
             AlertRule or None
         """
-        return self.db.query(AlertRule).filter(AlertRule.id == rule_id).first()
+        result = await self.db.execute(select(AlertRule).filter(AlertRule.id == rule_id))
+        return result.scalar_one_or_none()
 
-    def list_rules(
+    async def list_rules(
         self,
         enabled_only: bool = False,
         severity: Optional[str] = None,
@@ -187,16 +190,20 @@ class AlertManager:
         Returns:
             List of AlertRule objects
         """
-        query = self.db.query(AlertRule)
+        query = select(AlertRule)
 
         if enabled_only:
             query = query.filter(AlertRule.enabled == True)
         if severity:
             query = query.filter(AlertRule.severity == severity)
 
-        return query.offset(offset).limit(limit).all()
+        # Order by newest first
+        query = query.order_by(AlertRule.created_at.desc()).offset(offset).limit(limit)
+        
+        result = await self.db.execute(query)
+        return result.scalars().all()
 
-    def get_rule_versions(self, rule_id: UUID) -> List[AlertRuleVersion]:
+    async def get_rule_versions(self, rule_id: UUID) -> List[AlertRuleVersion]:
         """Get version history for a rule.
 
         Args:
@@ -205,9 +212,12 @@ class AlertManager:
         Returns:
             List of AlertRuleVersion records
         """
-        return self.db.query(AlertRuleVersion).filter(
-            AlertRuleVersion.rule_id == rule_id
-        ).order_by(desc(AlertRuleVersion.version)).all()
+        result = await self.db.execute(
+            select(AlertRuleVersion)
+            .filter(AlertRuleVersion.rule_id == rule_id)
+            .order_by(desc(AlertRuleVersion.version))
+        )
+        return result.scalars().all()
 
     # ==================== Alert Evaluation ====================
 
@@ -228,14 +238,14 @@ class AlertManager:
             List of triggered alerts
         """
         # Evaluate rules
-        triggered_alerts = self.rules_engine.evaluate_rules(data, patient_id)
+        triggered_alerts = await self.rules_engine.evaluate_rules(data, patient_id)
 
         if not triggered_alerts:
             return []
 
         # Send notifications for each triggered alert
         for alert in triggered_alerts:
-            rule = self.get_rule(alert.rule_id)
+            rule = await self.get_rule(alert.rule_id)
             if not rule:
                 continue
 
@@ -257,7 +267,7 @@ class AlertManager:
                 alert, recipient_ids, template_data
             )
 
-        self.db.commit()
+        await self.db.commit()
         return triggered_alerts
 
     def _get_default_recipients(self, alert: TriggeredAlert) -> List[UUID]:
@@ -279,7 +289,7 @@ class AlertManager:
 
     # ==================== Alert Management ====================
 
-    def get_alert(self, alert_id: UUID) -> Optional[TriggeredAlert]:
+    async def get_alert(self, alert_id: UUID) -> Optional[TriggeredAlert]:
         """Get an alert by ID.
 
         Args:
@@ -288,11 +298,10 @@ class AlertManager:
         Returns:
             TriggeredAlert or None
         """
-        return self.db.query(TriggeredAlert).filter(
-            TriggeredAlert.id == alert_id
-        ).first()
+        result = await self.db.execute(select(TriggeredAlert).filter(TriggeredAlert.id == alert_id))
+        return result.scalar_one_or_none()
 
-    def list_alerts(
+    async def list_alerts(
         self,
         status: Optional[str] = None,
         severity: Optional[str] = None,
@@ -316,7 +325,7 @@ class AlertManager:
         Returns:
             List of TriggeredAlert objects
         """
-        query = self.db.query(TriggeredAlert)
+        query = select(TriggeredAlert)
 
         if status:
             query = query.filter(TriggeredAlert.status == status)
@@ -329,9 +338,12 @@ class AlertManager:
         if end_date:
             query = query.filter(TriggeredAlert.triggered_at <= end_date)
 
-        return query.order_by(desc(TriggeredAlert.triggered_at)).offset(offset).limit(limit).all()
+        query = query.order_by(desc(TriggeredAlert.triggered_at)).offset(offset).limit(limit)
+        
+        result = await self.db.execute(query)
+        return result.scalars().all()
 
-    def acknowledge_alert(
+    async def acknowledge_alert(
         self,
         alert_id: UUID,
         user_id: UUID,
@@ -347,18 +359,18 @@ class AlertManager:
         Returns:
             Updated alert or None
         """
-        alert = self.get_alert(alert_id)
+        alert = await self.get_alert(alert_id)
         if not alert:
             return None
 
         alert.acknowledge(user_id, notes)
-        self.db.commit()
-        self.db.refresh(alert)
+        await self.db.commit()
+        await self.db.refresh(alert)
 
         logger.info(f"Alert acknowledged: {alert_id} by {user_id}")
         return alert
 
-    def dismiss_alert(
+    async def dismiss_alert(
         self,
         alert_id: UUID,
         user_id: UUID,
@@ -374,18 +386,18 @@ class AlertManager:
         Returns:
             Updated alert or None
         """
-        alert = self.get_alert(alert_id)
+        alert = await self.get_alert(alert_id)
         if not alert:
             return None
 
         alert.dismiss(user_id, notes)
-        self.db.commit()
-        self.db.refresh(alert)
+        await self.db.commit()
+        await self.db.refresh(alert)
 
         logger.info(f"Alert dismissed: {alert_id} by {user_id}")
         return alert
 
-    def snooze_alert(
+    async def snooze_alert(
         self,
         alert_id: UUID,
         snooze_minutes: int
@@ -399,19 +411,19 @@ class AlertManager:
         Returns:
             Updated alert or None
         """
-        alert = self.get_alert(alert_id)
+        alert = await self.get_alert(alert_id)
         if not alert:
             return None
 
         snooze_until = datetime.utcnow() + timedelta(minutes=snooze_minutes)
         alert.snooze(snooze_until)
-        self.db.commit()
-        self.db.refresh(alert)
+        await self.db.commit()
+        await self.db.refresh(alert)
 
         logger.info(f"Alert snoozed: {alert_id} until {snooze_until}")
         return alert
 
-    def bulk_acknowledge(
+    async def bulk_acknowledge(
         self,
         alert_ids: List[UUID],
         user_id: UUID,
@@ -429,13 +441,13 @@ class AlertManager:
         """
         count = 0
         for alert_id in alert_ids:
-            if self.acknowledge_alert(alert_id, user_id, notes):
+            if await self.acknowledge_alert(alert_id, user_id, notes):
                 count += 1
         return count
 
     # ==================== Statistics ====================
 
-    def get_alert_statistics(
+    async def get_alert_statistics(
         self,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
@@ -451,31 +463,53 @@ class AlertManager:
         """
         from sqlalchemy import func
 
-        query = self.db.query(TriggeredAlert)
+        query = select(TriggeredAlert)
 
         if start_date:
             query = query.filter(TriggeredAlert.triggered_at >= start_date)
         if end_date:
             query = query.filter(TriggeredAlert.triggered_at <= end_date)
 
-        total = query.count()
+        # Count total
+        total_result = await self.db.execute(select(func.count(TriggeredAlert.id)).filter(
+            TriggeredAlert.triggered_at >= start_date if start_date else True,
+            TriggeredAlert.triggered_at <= end_date if end_date else True
+        ))
+        total = total_result.scalar() or 0
 
-        by_status = dict(
-            query.with_entities(
-                TriggeredAlert.status,
-                func.count(TriggeredAlert.id)
-            ).group_by(TriggeredAlert.status).all()
+        # Group by status
+        status_query = select(
+            TriggeredAlert.status,
+            func.count(TriggeredAlert.id)
+        ).filter(
+            TriggeredAlert.triggered_at >= start_date if start_date else True,
+            TriggeredAlert.triggered_at <= end_date if end_date else True
+        ).group_by(TriggeredAlert.status)
+        
+        status_result = await self.db.execute(status_query)
+        by_status = dict(status_result.all())
+
+        # Group by severity
+        severity_query = select(
+            TriggeredAlert.severity,
+            func.count(TriggeredAlert.id)
+        ).filter(
+             TriggeredAlert.triggered_at >= start_date if start_date else True,
+             TriggeredAlert.triggered_at <= end_date if end_date else True
+        ).group_by(TriggeredAlert.severity)
+
+        severity_result = await self.db.execute(severity_query)
+        by_severity = dict(severity_result.all())
+
+        # Calculate average response time
+        ack_query = select(TriggeredAlert).filter(
+            TriggeredAlert.acknowledged_at.isnot(None),
+            TriggeredAlert.triggered_at >= start_date if start_date else True,
+            TriggeredAlert.triggered_at <= end_date if end_date else True
         )
+        ack_result = await self.db.execute(ack_query)
+        acknowledged = ack_result.scalars().all()
 
-        by_severity = dict(
-            query.with_entities(
-                TriggeredAlert.severity,
-                func.count(TriggeredAlert.id)
-            ).group_by(TriggeredAlert.severity).all()
-        )
-
-        # Calculate average response time (time to acknowledge)
-        acknowledged = query.filter(TriggeredAlert.acknowledged_at.isnot(None)).all()
         if acknowledged:
             response_times = [
                 (a.acknowledged_at - a.triggered_at).total_seconds()
@@ -486,21 +520,28 @@ class AlertManager:
         else:
             avg_response_time = 0
 
+        # Critical unacknowledged
+        crit_query = select(func.count(TriggeredAlert.id)).filter(
+            TriggeredAlert.severity == "critical",
+            TriggeredAlert.status == "new",
+            TriggeredAlert.triggered_at >= start_date if start_date else True,
+            TriggeredAlert.triggered_at <= end_date if end_date else True
+        )
+        crit_result = await self.db.execute(crit_query)
+        critical_unacknowledged = crit_result.scalar() or 0
+
         return {
             "total_alerts": total,
             "by_status": by_status,
             "by_severity": by_severity,
             "avg_response_time_seconds": avg_response_time,
             "unacknowledged_count": by_status.get("new", 0),
-            "critical_unacknowledged": query.filter(
-                TriggeredAlert.severity == "critical",
-                TriggeredAlert.status == "new"
-            ).count()
+            "critical_unacknowledged": critical_unacknowledged
         }
 
     # ==================== Notification Preferences ====================
 
-    def get_user_preferences(self, user_id: UUID) -> Optional[NotificationPreferences]:
+    async def get_user_preferences(self, user_id: UUID) -> Optional[NotificationPreferences]:
         """Get notification preferences for a user.
 
         Args:
@@ -509,11 +550,12 @@ class AlertManager:
         Returns:
             NotificationPreferences or None
         """
-        return self.db.query(NotificationPreferences).filter(
+        result = await self.db.execute(select(NotificationPreferences).filter(
             NotificationPreferences.user_id == user_id
-        ).first()
+        ))
+        return result.scalar_one_or_none()
 
-    def update_user_preferences(
+    async def update_user_preferences(
         self,
         user_id: UUID,
         **preferences
@@ -529,7 +571,7 @@ class AlertManager:
         Returns:
             Updated NotificationPreferences
         """
-        prefs = self.get_user_preferences(user_id)
+        prefs = await self.get_user_preferences(user_id)
 
         if not prefs:
             prefs = NotificationPreferences(user_id=user_id)
@@ -544,7 +586,7 @@ class AlertManager:
             if field in allowed_fields:
                 setattr(prefs, field, value)
 
-        self.db.commit()
-        self.db.refresh(prefs)
+        await self.db.commit()
+        await self.db.refresh(prefs)
 
         return prefs

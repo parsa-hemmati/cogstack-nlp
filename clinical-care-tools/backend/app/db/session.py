@@ -13,12 +13,13 @@ from sqlalchemy.ext.asyncio import (
 from app.core.config import settings
 
 # Create async engine
+# Create async engine
 engine: AsyncEngine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DB_ECHO,
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
-    pool_timeout=settings.DB_POOL_TIMEOUT,
+    settings.async_database_url,
+    echo=settings.debug,
+    pool_size=20,
+    max_overflow=10,
+    pool_timeout=30,
     pool_pre_ping=True,  # Verify connections before using
     future=True,
 )

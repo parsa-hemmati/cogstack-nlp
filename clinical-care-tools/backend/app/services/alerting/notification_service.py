@@ -10,7 +10,8 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 
 from app.models.alerting.triggered_alert import TriggeredAlert, AlertNotification
 from app.models.alerting.notification_preferences import NotificationPreferences
@@ -265,7 +266,7 @@ class NotificationService:
     MAX_RETRIES = 3
     RETRY_DELAYS = [60, 300, 900]  # 1min, 5min, 15min
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         """Initialize notification service.
 
         Args:
@@ -307,7 +308,7 @@ class NotificationService:
 
         for recipient_id in recipient_ids:
             # Get user preferences
-            preferences = self._get_user_preferences(recipient_id)
+            preferences = await self._get_user_preferences(recipient_id)
 
             if not preferences:
                 logger.warning(f"No notification preferences for user {recipient_id}")
@@ -369,7 +370,7 @@ class NotificationService:
             status="pending"
         )
         self.db.add(notification)
-        self.db.flush()
+        await self.db.flush()
 
         # Attempt to send
         try:
@@ -386,7 +387,7 @@ class NotificationService:
 
         return notification
 
-    def _get_user_preferences(self, user_id: UUID) -> Optional[NotificationPreferences]:
+    async def _get_user_preferences(self, user_id: UUID) -> Optional[NotificationPreferences]:
         """Get notification preferences for a user.
 
         Args:
@@ -395,9 +396,10 @@ class NotificationService:
         Returns:
             NotificationPreferences or None
         """
-        return self.db.query(NotificationPreferences).filter(
+        result = await self.db.execute(select(NotificationPreferences).filter(
             NotificationPreferences.user_id == user_id
-        ).first()
+        ))
+        return result.scalar_one_or_none()
 
     def _get_recipient_info(
         self,
@@ -429,15 +431,16 @@ class NotificationService:
         Returns:
             Number of notifications retried
         """
-        failed = self.db.query(AlertNotification).filter(
+        result = await self.db.execute(select(AlertNotification).filter(
             AlertNotification.status == "failed",
             AlertNotification.retry_count < self.MAX_RETRIES
-        ).all()
+        ))
+        failed = result.scalars().all()
 
         retried = 0
         for notification in failed:
             alert = notification.alert
-            preferences = self._get_user_preferences(notification.recipient_id)
+            preferences = await self._get_user_preferences(notification.recipient_id)
 
             if not preferences:
                 continue
@@ -466,10 +469,10 @@ class NotificationService:
             except Exception as e:
                 notification.mark_failed(str(e))
 
-        self.db.commit()
+        await self.db.commit()
         return retried
 
-    def get_notification_stats(
+    async def get_notification_stats(
         self,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
@@ -485,26 +488,43 @@ class NotificationService:
         """
         from sqlalchemy import func
 
-        query = self.db.query(AlertNotification)
+        query = select(AlertNotification)
 
         if start_date:
             query = query.filter(AlertNotification.sent_at >= start_date)
         if end_date:
             query = query.filter(AlertNotification.sent_at <= end_date)
 
-        total = query.count()
-        by_status = dict(
-            query.with_entities(
-                AlertNotification.status,
-                func.count(AlertNotification.id)
-            ).group_by(AlertNotification.status).all()
-        )
-        by_channel = dict(
-            query.with_entities(
-                AlertNotification.channel,
-                func.count(AlertNotification.id)
-            ).group_by(AlertNotification.channel).all()
-        )
+        # Total count
+        total_result = await self.db.execute(select(func.count(AlertNotification.id)).filter(
+            AlertNotification.sent_at >= start_date if start_date else True,
+            AlertNotification.sent_at <= end_date if end_date else True
+        ))
+        total = total_result.scalar() or 0
+
+        # Group by status
+        status_query = select(
+            AlertNotification.status,
+            func.count(AlertNotification.id)
+        ).filter(
+            AlertNotification.sent_at >= start_date if start_date else True,
+            AlertNotification.sent_at <= end_date if end_date else True
+        ).group_by(AlertNotification.status)
+        
+        status_result = await self.db.execute(status_query)
+        by_status = dict(status_result.all())
+
+        # Group by channel
+        channel_query = select(
+            AlertNotification.channel,
+            func.count(AlertNotification.id)
+        ).filter(
+            AlertNotification.sent_at >= start_date if start_date else True,
+            AlertNotification.sent_at <= end_date if end_date else True
+        ).group_by(AlertNotification.channel)
+        
+        channel_result = await self.db.execute(channel_query)
+        by_channel = dict(channel_result.all())
 
         return {
             "total": total,
