@@ -2,8 +2,7 @@
  * API client configuration with Axios
  */
 
-import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
-import { useAuthStore } from '@/stores/auth'
+import axios, { type AxiosInstance, type InternalAxiosRequestConfig, type AxiosResponse, type AxiosError } from 'axios'
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -17,30 +16,31 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor - Add auth token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const authStore = useAuthStore()
+    const token = localStorage.getItem('auth_token')
 
-    if (authStore.token) {
-      config.headers.Authorization = `Bearer ${authStore.token}`
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
 
     return config
   },
-  (error) => {
+  (error: AxiosError) => {
     return Promise.reject(error)
   }
 )
 
 // Response interceptor - Handle errors
 apiClient.interceptors.response.use(
-  (response) => {
+  (response: AxiosResponse) => {
     return response
   },
-  async (error) => {
-    const authStore = useAuthStore()
-
+  async (error: AxiosError) => {
     // Handle 401 Unauthorized
     if (error.response?.status === 401) {
-      authStore.logout()
+      // Clear tokens from localStorage
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('auth_user')
       window.location.href = '/login'
     }
 
