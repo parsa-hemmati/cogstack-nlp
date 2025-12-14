@@ -89,7 +89,7 @@
     </v-navigation-drawer>
 
     <v-main>
-      <router-view />
+      <slot />
     </v-main>
 
     <v-footer app>
