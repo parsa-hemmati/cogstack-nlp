@@ -409,7 +409,10 @@ MOCK_ALERTS = [
         "patient_id": "patient-003",
         "created_at": "2024-12-12T15:30:00Z",
         "acknowledged": False,
-        "acknowledged_by": None
+        "acknowledged_by": None,
+        "status": "new",
+        "rule_id": "rule-001",
+        "rule_name": "Critical Lab Values"
     },
     {
         "id": "alert-002",
@@ -420,7 +423,10 @@ MOCK_ALERTS = [
         "patient_id": "patient-003",
         "created_at": "2024-12-12T14:00:00Z",
         "acknowledged": True,
-        "acknowledged_by": "Dr. Wilson"
+        "acknowledged_by": "Dr. Wilson",
+        "status": "acknowledged",
+        "rule_id": "rule-002",
+        "rule_name": "Drug Interactions"
     },
     {
         "id": "alert-003",
@@ -431,9 +437,100 @@ MOCK_ALERTS = [
         "patient_id": "patient-001",
         "created_at": "2024-12-11T08:45:00Z",
         "acknowledged": True,
-        "acknowledged_by": "Dr. Adams"
+        "acknowledged_by": "Dr. Adams",
+        "status": "acknowledged",
+        "rule_id": "rule-003",
+        "rule_name": "Sepsis Screening"
     }
 ]
+
+# Alert Rules
+MOCK_ALERT_RULES = [
+    {
+        "id": "rule-001",
+        "name": "Critical Lab Values",
+        "description": "Alert on critical lab result values",
+        "enabled": True,
+        "severity": "critical",
+        "rule_type": "threshold",
+        "conditions": {"metric": "lab_value", "operator": "gt", "threshold": 6.0},
+        "created_at": "2024-01-15T10:00:00Z",
+        "updated_at": "2024-12-01T10:00:00Z",
+        "created_by": "admin"
+    },
+    {
+        "id": "rule-002",
+        "name": "Drug Interactions",
+        "description": "Alert on potential drug-drug interactions",
+        "enabled": True,
+        "severity": "warning",
+        "rule_type": "pattern",
+        "conditions": {"pattern": "drug_interaction"},
+        "created_at": "2024-02-20T14:00:00Z",
+        "updated_at": "2024-11-15T10:00:00Z",
+        "created_by": "admin"
+    },
+    {
+        "id": "rule-003",
+        "name": "Sepsis Screening",
+        "description": "Alert when sepsis screening criteria are met",
+        "enabled": True,
+        "severity": "warning",
+        "rule_type": "composite",
+        "conditions": {"criteria": ["temp>38", "hr>90", "wbc>12000"]},
+        "created_at": "2024-03-10T09:00:00Z",
+        "updated_at": "2024-12-10T10:00:00Z",
+        "created_by": "clinician"
+    }
+]
+
+# Alert Statistics
+MOCK_ALERT_STATISTICS = {
+    "total_alerts": 156,
+    "new_alerts": 12,
+    "acknowledged_alerts": 89,
+    "dismissed_alerts": 55,
+    "critical_count": 23,
+    "warning_count": 98,
+    "info_count": 35,
+    "average_response_time_minutes": 15,
+    "alerts_by_severity": {
+        "critical": 23,
+        "warning": 98,
+        "info": 35
+    },
+    "alerts_by_type": {
+        "critical_finding": 45,
+        "medication_interaction": 38,
+        "sepsis_screening": 28,
+        "abnormal_vital": 25,
+        "other": 20
+    },
+    "trends": [
+        {"date": "2024-12-07", "count": 18},
+        {"date": "2024-12-08", "count": 22},
+        {"date": "2024-12-09", "count": 25},
+        {"date": "2024-12-10", "count": 19},
+        {"date": "2024-12-11", "count": 28},
+        {"date": "2024-12-12", "count": 32},
+        {"date": "2024-12-13", "count": 12}
+    ]
+}
+
+# Notification Preferences
+MOCK_NOTIFICATION_PREFERENCES = {
+    "user_id": "user-001",
+    "email_enabled": True,
+    "email_address": "admin@example.com",
+    "sms_enabled": False,
+    "sms_phone": None,
+    "push_enabled": True,
+    "quiet_hours_enabled": True,
+    "quiet_hours_start": "22:00",
+    "quiet_hours_end": "07:00",
+    "severity_filters": ["critical", "warning"],
+    "alert_types": ["critical_finding", "medication_interaction", "sepsis_screening"]
+}
 
 # Dashboard Stats
 MOCK_DASHBOARD = {
@@ -620,17 +717,45 @@ class ComprehensiveMockHandler(BaseHTTPRequestHandler):
         elif path == '/api/v1/analytics/trends':
             self._send_json(MOCK_ANALYTICS['trends'])
 
-        # Alerts
+        # Alerts - Rules
+        elif path == '/api/v1/alerts/rules':
+            enabled_only = query.get('enabledOnly', [''])[0].lower() == 'true'
+            rules = MOCK_ALERT_RULES
+            if enabled_only:
+                rules = [r for r in rules if r['enabled']]
+            self._send_json(rules)
+
+        elif path.startswith('/api/v1/alerts/rules/') and not path.endswith('/test'):
+            rule_id = path.split('/')[-1]
+            rule = next((r for r in MOCK_ALERT_RULES if r['id'] == rule_id), None)
+            if rule:
+                self._send_json(rule)
+            else:
+                self._send_error("Rule not found", 404)
+
+        # Alerts - Statistics
+        elif path == '/api/v1/alerts/statistics':
+            self._send_json(MOCK_ALERT_STATISTICS)
+
+        # Alerts - Preferences
+        elif path == '/api/v1/alerts/preferences':
+            self._send_json(MOCK_NOTIFICATION_PREFERENCES)
+
+        # Alerts - List triggered alerts
         elif path == '/api/v1/alerts':
             severity = query.get('severity', [''])[0]
-            acknowledged = query.get('acknowledged', [''])[0]
+            status = query.get('status', [''])[0]
             alerts = MOCK_ALERTS
             if severity:
                 alerts = [a for a in alerts if a['severity'] == severity]
-            if acknowledged:
-                ack_bool = acknowledged.lower() == 'true'
-                alerts = [a for a in alerts if a['acknowledged'] == ack_bool]
-            self._send_json({"items": alerts, "total": len(alerts)})
+            if status:
+                alerts = [a for a in alerts if a['status'] == status]
+            # Return in AlertListResponse format
+            self._send_json({
+                "alerts": alerts,
+                "total": len(alerts),
+                "hasMore": False
+            })
 
         # Users (admin only)
         elif path == '/api/v1/users':
